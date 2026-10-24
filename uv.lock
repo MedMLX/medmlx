@@ -625,8 +625,8 @@ requires-dist = [
     { name = "mlx-segment-ct", marker = "extra == 'segment'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=2bb5647dbf2d82d6f2434edad5913e7bbedf4199" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=de0a72458db04d86492a4be53f5cf406da44f6c2" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=de0a72458db04d86492a4be53f5cf406da44f6c2" },
-    { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=9ad103b38d1200bd966f560a299ca38cd8956501" },
-    { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=9ad103b38d1200bd966f560a299ca38cd8956501" },
+    { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
+    { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=01ae10ccc07422ae6dd9af1c08652484a2e3cb59" },
     { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=01ae10ccc07422ae6dd9af1c08652484a2e3cb59" },
     { name = "packaging", specifier = ">=24" },
@@ -638,8 +638,8 @@ requires-dist = [
     { name = "swin-unetr-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" },
     { name = "synthseg-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/synthseg-mlx.git?rev=1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" },
     { name = "synthseg-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/synthseg-mlx.git?rev=1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=91afd8155ffc867b37eeaea6803bae8053860ae4" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=91afd8155ffc867b37eeaea6803bae8053860ae4" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=f8314d8236ae0638a0c725f8498174e82afbbe84" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=f8314d8236ae0638a0c725f8498174e82afbbe84" },
     { name = "unest-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
     { name = "unest-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
 ]
@@ -812,7 +812,7 @@ wheels = [
 [[package]]
 name = "nnunet-mlx"
 version = "0.5.1"
-source = { git = "https://github.com/MedMLX/nnunet-mlx.git?rev=9ad103b38d1200bd966f560a299ca38cd8956501#9ad103b38d1200bd966f560a299ca38cd8956501" }
+source = { git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a#ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" }
 dependencies = [
     { name = "blosc2" },
     { name = "imagecodecs" },
@@ -1284,7 +1284,7 @@ wheels = [
 [[package]]
 name = "totalsegmentator-mlx"
 version = "0.1.1"
-source = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=91afd8155ffc867b37eeaea6803bae8053860ae4#91afd8155ffc867b37eeaea6803bae8053860ae4" }
+source = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=f8314d8236ae0638a0c725f8498174e82afbbe84#f8314d8236ae0638a0c725f8498174e82afbbe84" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },

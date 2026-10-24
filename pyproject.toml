@@ -95,13 +95,13 @@ lung-nodule-mlx = { git = "https://github.com/MedMLX/lung-nodule-mlx.git", rev =
 medsam2-mlx = { git = "https://github.com/MedMLX/medsam2-mlx.git", rev = "d56da367cb02f55fd974a3c0a68707fdd11b7b1b" }
 mlx-segment-ct = { git = "https://github.com/MedMLX/mlx-segment-ct.git", rev = "2bb5647dbf2d82d6f2434edad5913e7bbedf4199" }
 mlxradiomics = { git = "https://github.com/MedMLX/mlxradiomics.git", rev = "de0a72458db04d86492a4be53f5cf406da44f6c2" }
-nnunet-mlx = { git = "https://github.com/MedMLX/nnunet-mlx.git", rev = "9ad103b38d1200bd966f560a299ca38cd8956501" }
+nnunet-mlx = { git = "https://github.com/MedMLX/nnunet-mlx.git", rev = "ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" }
 nv-generate-mlx = { git = "https://github.com/MedMLX/nv-generate-mlx.git", rev = "01ae10ccc07422ae6dd9af1c08652484a2e3cb59" }
 radimagenet-mlx = { git = "https://github.com/MedMLX/radimagenet-mlx.git", rev = "399d0cb062c2d6c39a0eef66ed618145f7a8a3da" }
 segresnet-mlx = { git = "https://github.com/MedMLX/segresnet-mlx.git", rev = "b5cc265cd0426fe8f64b40a8ed9be4c42a599724" }
 swin-unetr-mlx = { git = "https://github.com/MedMLX/swin-unetr-mlx.git", rev = "80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" }
 synthseg-mlx = { git = "https://github.com/MedMLX/synthseg-mlx.git", rev = "1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" }
-totalsegmentator-mlx = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git", rev = "91afd8155ffc867b37eeaea6803bae8053860ae4" }
+totalsegmentator-mlx = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git", rev = "f8314d8236ae0638a0c725f8498174e82afbbe84" }
 unest-mlx = { git = "https://github.com/MedMLX/unest-mlx.git", rev = "0320081a01e087ae52e3630d544c91c9fc18dfef" }
 medmlx-core = { workspace = true }
 
