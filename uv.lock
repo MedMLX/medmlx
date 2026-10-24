@@ -63,7 +63,7 @@ wheels = [
 [[package]]
 name = "biomedparse-mlx"
 version = "0.1.1"
-source = { git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=6224c6f16e5918dced0bda0de36d3a8958c8baa0#6224c6f16e5918dced0bda0de36d3a8958c8baa0" }
+source = { git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=a11d909b22ec6119a5cf28e01016fc2f471731a9#a11d909b22ec6119a5cf28e01016fc2f471731a9" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
@@ -605,8 +605,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "biomedparse-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=6224c6f16e5918dced0bda0de36d3a8958c8baa0" },
-    { name = "biomedparse-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=6224c6f16e5918dced0bda0de36d3a8958c8baa0" },
+    { name = "biomedparse-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=a11d909b22ec6119a5cf28e01016fc2f471731a9" },
+    { name = "biomedparse-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=a11d909b22ec6119a5cf28e01016fc2f471731a9" },
     { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git?rev=fc6c5dcbd09052c8b102883c96f86345363d5266" },
     { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git?rev=fc6c5dcbd09052c8b102883c96f86345363d5266" },
     { name = "flexible-unet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45" },
