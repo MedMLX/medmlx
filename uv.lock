@@ -630,8 +630,8 @@ requires-dist = [
     { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=01ae10ccc07422ae6dd9af1c08652484a2e3cb59" },
     { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=01ae10ccc07422ae6dd9af1c08652484a2e3cb59" },
     { name = "packaging", specifier = ">=24" },
-    { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=51f43387a50d239d2c13efc41761de96bd944426" },
-    { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=51f43387a50d239d2c13efc41761de96bd944426" },
+    { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
+    { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "segresnet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
     { name = "segresnet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
     { name = "swin-unetr-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" },
@@ -640,8 +640,8 @@ requires-dist = [
     { name = "synthseg-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/synthseg-mlx.git?rev=1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" },
     { name = "totalsegmentator-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=91afd8155ffc867b37eeaea6803bae8053860ae4" },
     { name = "totalsegmentator-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=91afd8155ffc867b37eeaea6803bae8053860ae4" },
-    { name = "unest-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/unest-mlx.git?rev=b029c7d68854b8e1564f4c1ee9d3934e65eebecb" },
-    { name = "unest-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/unest-mlx.git?rev=b029c7d68854b8e1564f4c1ee9d3934e65eebecb" },
+    { name = "unest-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
+    { name = "unest-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
 ]
 provides-extras = ["segment", "generate", "vision", "all", "mcp"]
 
@@ -1031,7 +1031,7 @@ wheels = [
 [[package]]
 name = "radimagenet-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=51f43387a50d239d2c13efc41761de96bd944426#51f43387a50d239d2c13efc41761de96bd944426" }
+source = { git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da#399d0cb062c2d6c39a0eef66ed618145f7a8a3da" }
 dependencies = [
     { name = "h5py" },
     { name = "medmlx-core" },
@@ -1349,7 +1349,7 @@ wheels = [
 [[package]]
 name = "unest-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/unest-mlx.git?rev=b029c7d68854b8e1564f4c1ee9d3934e65eebecb#b029c7d68854b8e1564f4c1ee9d3934e65eebecb" }
+source = { git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef#0320081a01e087ae52e3630d544c91c9fc18dfef" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
