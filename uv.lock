@@ -163,7 +163,7 @@ wheels = [
 [[package]]
 name = "flexible-unet-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=4ffcaabf09276c2e7ed850d05bb5845aac676559#4ffcaabf09276c2e7ed850d05bb5845aac676559" }
+source = { git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45#ee5e6cedaba026c3c63e76bda57ca16983134f45" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "numpy" },
@@ -609,8 +609,8 @@ requires-dist = [
     { name = "biomedparse-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/biomedparse-mlx.git?rev=6224c6f16e5918dced0bda0de36d3a8958c8baa0" },
     { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git?rev=1df663c21dc04c51071d34751b1dd2842d1f0c63" },
     { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git?rev=1df663c21dc04c51071d34751b1dd2842d1f0c63" },
-    { name = "flexible-unet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=4ffcaabf09276c2e7ed850d05bb5845aac676559" },
-    { name = "flexible-unet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=4ffcaabf09276c2e7ed850d05bb5845aac676559" },
+    { name = "flexible-unet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45" },
+    { name = "flexible-unet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45" },
     { name = "flexray-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=b1b9de3bfc608e153f0a2f356e7dd4b60e837104" },
     { name = "flexray-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=b1b9de3bfc608e153f0a2f356e7dd4b60e837104" },
     { name = "lesiondiffusion-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=0489f81ff5342873fbac1fbc1d72a0a91a68f878" },
