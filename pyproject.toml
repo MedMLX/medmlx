@@ -87,7 +87,7 @@ exclude = ["conversion"]
 
 [tool.uv.sources]
 biomedparse-mlx = { git = "https://github.com/MedMLX/biomedparse-mlx.git", rev = "6224c6f16e5918dced0bda0de36d3a8958c8baa0" }
-fdg-pet-ct-mlx = { git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git", rev = "1df663c21dc04c51071d34751b1dd2842d1f0c63" }
+fdg-pet-ct-mlx = { git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git", rev = "fc6c5dcbd09052c8b102883c96f86345363d5266" }
 flexible-unet-mlx = { git = "https://github.com/MedMLX/flexible-unet-mlx.git", rev = "ee5e6cedaba026c3c63e76bda57ca16983134f45" }
 flexray-mlx = { git = "https://github.com/MedMLX/flexray-mlx.git", rev = "b1b9de3bfc608e153f0a2f356e7dd4b60e837104" }
 lesiondiffusion-mlx = { git = "https://github.com/MedMLX/lesiondiffusion-mlx.git", rev = "0489f81ff5342873fbac1fbc1d72a0a91a68f878" }
@@ -98,8 +98,8 @@ mlxradiomics = { git = "https://github.com/MedMLX/mlxradiomics.git", rev = "de0a
 nnunet-mlx = { git = "https://github.com/MedMLX/nnunet-mlx.git", rev = "9ad103b38d1200bd966f560a299ca38cd8956501" }
 nv-generate-mlx = { git = "https://github.com/MedMLX/nv-generate-mlx.git", rev = "01ae10ccc07422ae6dd9af1c08652484a2e3cb59" }
 radimagenet-mlx = { git = "https://github.com/MedMLX/radimagenet-mlx.git", rev = "51f43387a50d239d2c13efc41761de96bd944426" }
-segresnet-mlx = { git = "https://github.com/MedMLX/segresnet-mlx.git", rev = "81587e7bd191619221c6865f9963791e2d37dd8a" }
-swin-unetr-mlx = { git = "https://github.com/MedMLX/swin-unetr-mlx.git", rev = "88625451f6d8cdc11ca663b8b8f5eb53ed925f77" }
+segresnet-mlx = { git = "https://github.com/MedMLX/segresnet-mlx.git", rev = "b5cc265cd0426fe8f64b40a8ed9be4c42a599724" }
+swin-unetr-mlx = { git = "https://github.com/MedMLX/swin-unetr-mlx.git", rev = "80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" }
 synthseg-mlx = { git = "https://github.com/MedMLX/synthseg-mlx.git", rev = "1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" }
 totalsegmentator-mlx = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git", rev = "91afd8155ffc867b37eeaea6803bae8053860ae4" }
 unest-mlx = { git = "https://github.com/MedMLX/unest-mlx.git", rev = "b029c7d68854b8e1564f4c1ee9d3934e65eebecb" }
