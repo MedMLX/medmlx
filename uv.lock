@@ -448,7 +448,7 @@ wheels = [
 [[package]]
 name = "lesiondiffusion-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=0489f81ff5342873fbac1fbc1d72a0a91a68f878#0489f81ff5342873fbac1fbc1d72a0a91a68f878" }
+source = { git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=41f7400dd6f34b1b5844732ad2360a1301cdb9fa#41f7400dd6f34b1b5844732ad2360a1301cdb9fa" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
@@ -613,8 +613,8 @@ requires-dist = [
     { name = "flexible-unet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45" },
     { name = "flexray-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=5a0ef5f36f40ef606819a48b5869d381386909a2" },
     { name = "flexray-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=5a0ef5f36f40ef606819a48b5869d381386909a2" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=0489f81ff5342873fbac1fbc1d72a0a91a68f878" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=0489f81ff5342873fbac1fbc1d72a0a91a68f878" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=41f7400dd6f34b1b5844732ad2360a1301cdb9fa" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=41f7400dd6f34b1b5844732ad2360a1301cdb9fa" },
     { name = "lung-nodule-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lung-nodule-mlx.git?rev=c537a373ac8cfe1e75e7c1a96d760e0bb2de645d" },
     { name = "lung-nodule-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/lung-nodule-mlx.git?rev=c537a373ac8cfe1e75e7c1a96d760e0bb2de645d" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.2,<3" },
@@ -623,8 +623,8 @@ requires-dist = [
     { name = "medsam2-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=93d44672b798cdbd4d0919a23c1c10ddf56b3ea7" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
-    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=de0a72458db04d86492a4be53f5cf406da44f6c2" },
-    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=de0a72458db04d86492a4be53f5cf406da44f6c2" },
+    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
+    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=01ae10ccc07422ae6dd9af1c08652484a2e3cb59" },
@@ -732,7 +732,7 @@ dependencies = [
 [[package]]
 name = "mlxradiomics"
 version = "0.1.0.dev3"
-source = { git = "https://github.com/MedMLX/mlxradiomics.git?rev=de0a72458db04d86492a4be53f5cf406da44f6c2#de0a72458db04d86492a4be53f5cf406da44f6c2" }
+source = { git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c#63477176be5bc7ad6c8c679eb8cd98ea4949050c" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },
