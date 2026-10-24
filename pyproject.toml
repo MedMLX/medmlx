@@ -1,0 +1,147 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "medmlx"
+version = "0.3.0"
+description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
+readme = "README.md"
+classifiers = ["Operating System :: MacOS :: MacOS X"]
+requires-python = ">=3.13,<3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
+dependencies = ["medmlx-core==0.2.3", "packaging>=24"]
+
+[project.scripts]
+medmlx = "medmlx.cli:main"
+
+[project.entry-points."medmlx.models"]
+nnunet-pancreas = "medmlx.adapters.nnunet:PANCREAS"
+nnunet-brats2021 = "medmlx.adapters.nnunet:BRATS"
+mrsegmentator = "medmlx.adapters.nnunet:MRSEGMENTATOR"
+
+[project.optional-dependencies]
+segment = [
+  "biomedparse-mlx==0.1.1",
+  "flexible-unet-mlx==0.2.1",
+  "swin-unetr-mlx==0.2.1",
+  "segresnet-mlx==0.2.1",
+  "medsam2-mlx==0.2.1",
+  "mlx-segment-ct==0.2.1",
+  "unest-mlx==0.2.1",
+  "synthseg-mlx==0.2.1",
+  "flexray-mlx==0.2.1",
+  "nnunet-mlx==0.5.1",
+  "totalsegmentator-mlx==0.1.1",
+]
+generate = [
+  "fdg-pet-ct-mlx==0.2.1",
+  "nv-generate-mlx==0.3.0",
+  "lesiondiffusion-mlx==0.2.1",
+]
+vision = [
+  "mlxradiomics[io]==0.1.0.dev3",
+  "radimagenet-mlx==0.2.1",
+  "lung-nodule-mlx==0.2.1",
+]
+all = [
+  "biomedparse-mlx==0.1.1",
+  "fdg-pet-ct-mlx==0.2.1",
+  "flexible-unet-mlx==0.2.1",
+  "flexray-mlx==0.2.1",
+  "lesiondiffusion-mlx==0.2.1",
+  "lung-nodule-mlx==0.2.1",
+  "medsam2-mlx==0.2.1",
+  "nv-generate-mlx==0.3.0",
+  "mlx-segment-ct==0.2.1",
+  "mlxradiomics[io]==0.1.0.dev3",
+  "nnunet-mlx==0.5.1",
+  "radimagenet-mlx==0.2.1",
+  "segresnet-mlx==0.2.1",
+  "swin-unetr-mlx==0.2.1",
+  "synthseg-mlx==0.2.1",
+  "totalsegmentator-mlx==0.1.1",
+  "unest-mlx==0.2.1",
+]
+mcp = [
+  "mcp>=2.2,<3",
+]
+
+[dependency-groups]
+dev = ["pyright==1.1.414", "pytest>=8.4,<10", "ruff>=0.13,<1", "hypothesis>=6.140,<7", "monai==1.6.1", "torch==2.14.1"]
+
+[tool.uv]
+environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'"]
+constraint-dependencies = ["certifi>=2026.10.19", "pillow>=13,<14", "urllib3>=2.8.0"]
+# uv treats runtimes' pinned Git subdirectory and the workspace as conflicting
+# core sources; this override selects the workspace member for every provider.
+override-dependencies = [
+  "medmlx-core==0.2.3",
+]
+
+[tool.uv.workspace]
+members = ["packages/core"]
+exclude = ["conversion"]
+
+[tool.uv.sources]
+biomedparse-mlx = { git = "https://github.com/MedMLX/biomedparse-mlx.git", rev = "6224c6f16e5918dced0bda0de36d3a8958c8baa0" }
+fdg-pet-ct-mlx = { git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git", rev = "1df663c21dc04c51071d34751b1dd2842d1f0c63" }
+flexible-unet-mlx = { git = "https://github.com/MedMLX/flexible-unet-mlx.git", rev = "4ffcaabf09276c2e7ed850d05bb5845aac676559" }
+flexray-mlx = { git = "https://github.com/MedMLX/flexray-mlx.git", rev = "b1b9de3bfc608e153f0a2f356e7dd4b60e837104" }
+lesiondiffusion-mlx = { git = "https://github.com/MedMLX/lesiondiffusion-mlx.git", rev = "0489f81ff5342873fbac1fbc1d72a0a91a68f878" }
+lung-nodule-mlx = { git = "https://github.com/MedMLX/lung-nodule-mlx.git", rev = "7f2ca37370e1529bc843704f156ae7f28f98087c" }
+medsam2-mlx = { git = "https://github.com/MedMLX/medsam2-mlx.git", rev = "d56da367cb02f55fd974a3c0a68707fdd11b7b1b" }
+mlx-segment-ct = { git = "https://github.com/MedMLX/mlx-segment-ct.git", rev = "2bb5647dbf2d82d6f2434edad5913e7bbedf4199" }
+mlxradiomics = { git = "https://github.com/MedMLX/mlxradiomics.git", rev = "de0a72458db04d86492a4be53f5cf406da44f6c2" }
+nnunet-mlx = { git = "https://github.com/MedMLX/nnunet-mlx.git", rev = "9ad103b38d1200bd966f560a299ca38cd8956501" }
+nv-generate-mlx = { git = "https://github.com/MedMLX/nv-generate-mlx.git", rev = "01ae10ccc07422ae6dd9af1c08652484a2e3cb59" }
+radimagenet-mlx = { git = "https://github.com/MedMLX/radimagenet-mlx.git", rev = "51f43387a50d239d2c13efc41761de96bd944426" }
+segresnet-mlx = { git = "https://github.com/MedMLX/segresnet-mlx.git", rev = "81587e7bd191619221c6865f9963791e2d37dd8a" }
+swin-unetr-mlx = { git = "https://github.com/MedMLX/swin-unetr-mlx.git", rev = "88625451f6d8cdc11ca663b8b8f5eb53ed925f77" }
+synthseg-mlx = { git = "https://github.com/MedMLX/synthseg-mlx.git", rev = "1a75515598f8f6fc6d5972b8c2af3ed57ffba01e" }
+totalsegmentator-mlx = { git = "https://github.com/MedMLX/totalsegmentator-mlx.git", rev = "91afd8155ffc867b37eeaea6803bae8053860ae4" }
+unest-mlx = { git = "https://github.com/MedMLX/unest-mlx.git", rev = "b029c7d68854b8e1564f4c1ee9d3934e65eebecb" }
+medmlx-core = { workspace = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/medmlx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers --import-mode=importlib"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TID251", "TID252", "ANN401"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
+"typing_extensions.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
+
+[tool.pyright]
+include = ["src", "tests", "tools/extraction/tests"]
+extraPaths = ["src", "packages/core/src"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+enableTypeIgnoreComments = false
+reportUnnecessaryTypeIgnoreComment = "error"
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "src/medmlx",
+  "pyproject.toml",
+  "README.md",
+  "LICENSE",
+  "THIRD_PARTY_NOTICES.md",
+]

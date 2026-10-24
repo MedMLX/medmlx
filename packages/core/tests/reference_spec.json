@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "monai_version": "1.6.1",
+  "monai_revision": "7af492176792f9069b8f1253d099abd05c5e769d",
+  "torch_version": "2.14.1",
+  "torch_revision": "5c4886908584029761b579af026dcfb627c84070"
+}

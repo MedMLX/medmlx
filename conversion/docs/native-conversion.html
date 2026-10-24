@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedMLX native conversion</title>
+<style>
+:root{color-scheme:light;--ink:#172b37;--muted:#506672;--line:#d8e2e7;--blue:#166373}
+*{box-sizing:border-box}body{margin:0;background:#f5f8fa;color:var(--ink);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1150px;margin:auto;padding:42px 28px 80px}h1{font-size:36px;letter-spacing:-1px;margin:8px 0}
+h2{font-size:23px;margin:36px 0 12px}p{max-width:850px}a{color:var(--blue)}code{font-size:.89em}
+.eyebrow{color:var(--blue);font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.lead{font-size:20px;max-width:930px}.note{color:var(--muted)}.flow{padding:20px;background:#e6f0f3;border-left:4px solid var(--blue)}
+table{width:100%;border-collapse:collapse;background:white;font-size:14px}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}
+th{background:#e6edf1}td:first-child{font-weight:650;min-width:150px}.scroll{overflow:auto}
+pre{overflow:auto;background:#172b37;color:#f4f8fa;padding:20px;border-radius:5px;font-size:13px}li{margin:8px 0}
+@media(max-width:650px){main{padding:24px 16px}h1{font-size:29px}table{min-width:760px}}
+</style>
+<main>
+<div class="eyebrow">Engineering pilot · 16 October 2026</div>
+<h1>MedMLX native conversion</h1>
+<p class="lead">Use architecture recipes, a small shared operator layer, and independent source comparisons. Convert both the computation graph and its tensor state. Admit each new operation explicitly.</p>
+<p class="note">Capture, source translation and comparison recipes live in the <code>conversion/</code> subproject (the <code>medmlx_convert</code> package). The portable graph schema, loader, Metal executor and shared geometry live in medmlx-core. Current native inference imports neither Torch nor Core AI/Core ML. This is an experimental fixed-shape FP32 path; complete host pipelines and catalog-wide conversion remain outside this pilot.</p>
+
+<h2>Implemented path</h2>
+<div class="flow">Original upstream model + checkpoint → strict torch.export → functionalization with an empty decomposition table → versioned schema-2 portable graph + Safetensors → medmlx-core Metal execution</div>
+<p>Capture, functionalization, and reloaded MLX output are each compared directly to the original model. The graph retains explicit tensor references, source names, roles, shapes and dtypes. Consumed persistent buffers, nonpersistent buffers and constants are stored alongside parameters. Unknown operators, training, input/state mutation and unsupported variants fail explicitly. File loading happens on the host; model arithmetic runs on Metal.</p>
+<p>The <a href="../../packages/core/src/medmlx_core/graph/schema.py">graph ontology</a>, <a href="../src/medmlx_convert/native/capture.py">Torch frontend</a>, <a href="../../packages/core/src/medmlx_core/graph/operators.py">MLX lowering</a> and <a href="../src/medmlx_convert/native/check.py">comparison gate</a> are separate modules. The runtime preserves source tensor axes between operations and adapts layouts locally. This is a correctness baseline, without a throughput claim.</p>
+
+<h2>Pilot evidence</h2>
+<div class="scroll"><table>
+<tr><th>Scope</th><th>Source comparison</th><th>Observed result</th><th>Limits</th></tr>
+<tr><td>nnU-Net BraTS fold 0</td><td>Released weights and original trainer loader; 1×4×64×64×64 diagnostic patch.</td><td>Capture and functionalization: exact. Saved MLX maximum absolute error: 8.39×10⁻⁵; budget 10⁻².</td><td>64-cube diagnostic input, rather than the planned patch; no five-fold ensemble, TTA or image pipeline.</td></tr>
+<tr><td>SynthMorph geometry</td><td>Pinned official VoxelMorph and Neurite TensorFlow functions; synthetic dense pull fields, border/fill interpolation and seven-step velocity integration.</td><td>All three recorded output comparisons: exact FP32 equality in this fixture.</td><td>Geometry adapters only. No learned SynthMorph weights, affine feature detector, hypernetwork, joint model or inference endpoint has been converted.</td></tr>
+</table></div>
+<p>Receipts and source fixtures live under <code>build/native-pilot/</code>. The original BraTS attempt retains a FAIL receipt: the generic MLX 0.32.3 2× transposed-convolution path produced a large lazy-execution error. Stage-by-stage execution reduced the final discrepancy below 10⁻⁴. The corrected path reuses the pinned <code>medmlx-core</code> decoder implementation; it does not loosen tolerance or force every layer to synchronize.</p>
+
+<h2>Architecture inventory and expansion strategy</h2>
+<p>The review covered 18 neural-model packages below. Entries describe inspected architecture demands and proposed routes; only the pilot evidence above establishes conversion execution here.</p>
+<div class="scroll"><table>
+<tr><th>Package / architectures</th><th>Runtime behavior that must survive conversion</th><th>Route after the pilot</th></tr>
+<tr><td>nnunet-mlx<br>PlainConvUNet, ResidualEncoderUNet</td><td>2D/3D plans, anisotropic strides, InstanceNorm, learned upsampling, folds, regions, TTA.</td><td>Expand graph operator coverage with plan-specific fixtures; compare whole pipelines separately.</td></tr>
+<tr><td>segresnet-mlx<br>SegResNet</td><td>GroupNorm, 3D residual blocks, deconvolution or trilinear decoding; source-order FP32 profiles.</td><td>Reuse shared convolution, normalization and precision implementations.</td></tr>
+<tr><td>MLX-Segment-Ct<br>SegResNetDS2 / VISTA</td><td>Automatic and point-conditioned branches, projection order, point coordinates and custom deconvolution.</td><td>Separate branch contracts and prompt fixtures; preserve host coordinate arithmetic.</td></tr>
+<tr><td>unest-mlx<br>UNesT</td><td>Nested 3D block attention, positional embeddings, unusual head flattening, PReLU and deconvolution.</td><td>Attention/reshape recipes with intermediate token comparisons.</td></tr>
+<tr><td>swin-unetr-mlx<br>SwinUNETR</td><td>Shifted 3D windows, masks, relative-position indices and the released patch-merging order.</td><td>Explicit window and patch-merging fixtures; retain integer buffers.</td></tr>
+<tr><td>lung-nodule-mlx<br>3D RetinaNet / ResNet50 FPN</td><td>Feature pyramid, anchors, box decoding, top-k ties, NMS and image/world coordinates.</td><td>Capture network heads; retain independently tested postprocessing and geometry.</td></tr>
+<tr><td>flexray-mlx<br>Residual 2D U-Net ensemble</td><td>InstanceNorm after activation, align-corners upsampling, 61 independent labels and five members.</td><td>Expand shared 2D operators; explicitly validate every member and ensemble reduction.</td></tr>
+<tr><td>flexible-unet-mlx<br>EfficientNet B2 + U-Net</td><td>Grouped/depthwise convolution, SAME padding, squeeze-excitation, Swish and nearest upsampling.</td><td>Operator variants plus source padding and resize fixtures.</td></tr>
+<tr><td>radimagenet-mlx<br>ResNet50, DenseNet121, InceptionV3, InceptionResNetV2</td><td>Keras graph connectivity, HWIO kernels, SAME/valid pooling, residual scaling and feature endpoints.</td><td>Use the maintained Keras Torch backend where compatible, checked against independent TensorFlow outputs.</td></tr>
+<tr><td>synthseg-mlx<br>Standard, robust, parcellation and QC networks</td><td>3D Keras U-Nets, hard-group transitions, label order, Gaussian operations, topology and QC.</td><td>Reuse established H5 mapping and independent TF fixtures; capture each component and then the full host pipeline.</td></tr>
+<tr><td>medsam2-mlx<br>Hiera + prompt/mask/memory networks</td><td>RoPE, BF16 spatial memory, object pointers, memory attention and frame propagation.</td><td>Functional state inputs/outputs and multi-frame replay; a single mask call is insufficient.</td></tr>
+<tr><td>sam3-mlx<br>ViT, text, fusion/DETR decoder and mask heads</td><td>Image/text/geometry branches, layout mapping and selected-frame behavior; experimental tracking is separate.</td><td>Component captures, then coupled prompt/mask tests; qualify tracking separately.</td></tr>
+<tr><td>biomedparse-mlx<br>FocalNet, pixel decoder, CLIP, BoltzFormer</td><td>Packed QKV, scalar/buffer state, text and image branches, sampled attention masks.</td><td>Replay exact attention draws and compare intermediate branches, rather than relying on matching random seeds.</td></tr>
+<tr><td>nv-generate-mlx<br>MAISI / NVGenerate</td><td>3D denoisers, ControlNet, image/mask autoencoders, schedulers, CFG, latent scales and noise.</td><td>Component graphs plus complete seeded trajectory replay and declared conditioning.</td></tr>
+<tr><td>lesiondiffusion-mlx<br>LMNet/LINet, VQ autoencoder, text encoders</td><td>EMA weight selection, quantizer decisions, DDIM trajectories and explicit arithmetic profiles.</td><td>Preserve source profiles first; compare denoising trajectories and quantization decisions.</td></tr>
+<tr><td>MLX-Reason-CT<br>Primus 3D ViT + Qwen3.5</td><td>3D coordinates, projector, hybrid attention/GatedDeltaNet and recurrent/convolution/KV state.</td><td>Prefill/decode components with explicit caches and continuation fixtures; preserve source precision contracts.</td></tr>
+<tr><td>med-vlm-mlx<br>Medical Gemma3/SigLIP and Qwen2.5-VL</td><td>Embedding scaling, multimodal placement, image prefill, masks, rotary positions and cache behavior.</td><td>Use maintained architecture implementations; qualify medical checkpoints and multi-step generation. Inherited generic models are not automatically covered.</td></tr>
+</table></div>
+<p class="note">FDG PET simulation and radiomics have no learned checkpoint to convert. Aggregator and MCP repositories provide integration, rather than another neural architecture. Official TensorFlow SynthMorph is an additional source pipeline, not an already completed MLX model package.</p>
+
+<h2>Next work, in order</h2>
+<ol>
+<li>Expand the working 2D/3D operator path using the existing CNN recipes. Reuse <code>medmlx-core</code>; add variants only with independent numerical evidence.</li>
+<li>Port SynthMorph's remaining affine fitting, affine/dense composition and hyperconvolution runtime with official TensorFlow intermediate fixtures. Admit released weights only after matching their exact architecture.</li>
+<li>Add attention and token-layout contracts, then explicit state inputs/outputs for SAM memory, language caches and diffusion trajectories.</li>
+<li>Keep host preprocessing/postprocessing in model recipes and compare complete pipelines separately. Precision optimization and performance measurements come after the source FP32 baseline.</li>
+</ol>
+<p>Do not build a universal Python transpiler. The observed torch2mlx failures involved semantics that layer names alone cannot express. An ONNX route can provide another comparison, but an execution provider's CPU fallback does not establish native Metal coverage. Compatible Keras code can use its Torch backend; TensorFlow-specific custom code still needs migration. These are bounded engineering choices, not claims that one route is universally best.</p>
+
+<h2>Ownership and installation</h2>
+<p>Model applications need only medmlx-core and their model package. Conversion tools and upstream frameworks stay in <code>medmlx_convert</code>. The canonical schema and codec are defined once in core; ATen names are translated before serialization. Schema-1 pilot bundles require regeneration. The core runtime never imports the converter.</p>
+<h2>Run the pilot</h2>
+<pre>make env
+bash environment/setup.sh --run python recipes/nnunet_brats/native.py \
+  --root PATH_TO_EXTRACTED_BRATS_RELEASE --out build/my-native-brats --patch 64</pre>
+<p>Choose a new repository-relative output directory each time; conversion refuses to replace one. The <code>verification.json</code> file records the source checkpoint/configuration, converter revision, graph operators and numerical comparisons. The exact source inputs/outputs remain in <code>source.npz</code>.</p>
+<pre>from pathlib import Path
+import mlx.core as mx
+from medmlx_core.graph.runtime import Session
+
+session = Session.load(Path("build/my-native-brats"))
+logits, = session(mx.zeros((1, 4, 64, 64, 64), dtype=mx.float32))</pre>
+</main>
+</html>

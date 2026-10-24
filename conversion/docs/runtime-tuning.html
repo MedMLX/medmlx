@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Export, profile and tune MedMLX Apple runtimes</title>
+<style>
+body{font:16px/1.6 system-ui,sans-serif;background:#f6f8fa;color:#203244;margin:0}
+main{max-width:1040px;margin:auto;padding:36px}h1{font-size:30px;line-height:1.2}
+h2{margin-top:32px}pre{background:#122e42;color:#f2f6fa;padding:18px;overflow:auto;
+font:14px/1.5 ui-monospace,monospace;border-radius:8px}code{font-family:ui-monospace,monospace}
+table{border-collapse:collapse;width:100%;background:white}th,td{text-align:left;
+padding:12px;border-bottom:1px solid #d9e1e7;vertical-align:top}th{background:#e6eef4}
+a{color:#136098}.note{padding:16px;background:#e7f0f5;border-left:4px solid #287393}
+footer{font-size:14px;color:#536779;margin-top:36px}
+</style>
+<main>
+<h1>Export, profile and tune MedMLX Apple runtimes</h1>
+<p>Run these commands from the <code>conversion/</code> directory of the repository. This procedure compares
+the same original checkpoint, synthetic input tensors and FP32 outputs under
+explicit runtime policies. It applies to an exported network or component.
+Whole-volume segmentation, diffusion sampling and language generation require
+additional pipeline tests.</p>
+
+<h2>1. Export and preserve a replayable workload</h2>
+<pre>make env
+bash environment/setup.sh --run python recipes/flexible_unet/export.py
+</pre>
+<p>Replace <code>flexible_unet</code> with the maintained recipe directory for
+another model. To re-export and test every maintained recipe, run
+<code>make qualify</code>; <code>make qa</code> runs only lint and strict
+Pyright. Preserve the log.
+The <a href="../README.md">coverage table</a> lists component limits and models
+that still need a recipe or complete pipeline qualification.</p>
+<p>A recipe now writes <code>.aimodel</code>, <code>.mlpackage</code>,
+<code>.verification.json</code> and <code>.runtime.npz</code> beside one another
+under ignored <code>build/</code>. The fixture contains <code>schema_version=1</code>,
+<code>input/&lt;name&gt;</code> and <code>output/&lt;name&gt;</code> arrays. Outputs come
+from the source model, before either conversion. Integer inputs are stored as
+int32, matching both Apple runtime interfaces. Floating-point inputs remain FP32.</p>
+<p>The benchmark refuses a failed export receipt, unknown schemas, changed input
+shape or dtype, nonfinite inputs and a mismatched output dtype. It checks every
+first, warm-up and timed output against the source fixture using the recipe's
+existing tolerance and PSNR policy. The separate Core AI profiling call is also
+checked. A failure stops the run, retains its phase and one-based iteration,
+and exits nonzero. A failed run cannot support a speed comparison.
+Do not relax a tolerance to make a candidate pass. Fixtures can be large; keep
+them in <code>build/</code> and regenerate them when the checkpoint or recipe changes.</p>
+
+<h2>2. Measure the default runtime and its stages</h2>
+<pre>bash environment/setup.sh --run env USE_OS_COREAI=1 \
+  python -m medmlx_convert.runtime_benchmark \
+  build/flexible_unet/flexible_unet_endoscopic \
+  build/flexible_unet/flexible_unet_endoscopic.runtime.npz \
+  coreai-default build/runtime-tuning/flexible-coreai-default.json --inspect
+
+bash environment/setup.sh --run python -m medmlx_convert.runtime_benchmark \
+  build/flexible_unet/flexible_unet_endoscopic \
+  build/flexible_unet/flexible_unet_endoscopic.runtime.npz \
+  coreml-all build/runtime-tuning/flexible-coreml-all.json --inspect
+</pre>
+<p>Unset <code>USE_LOCAL_COREAI</code> before running Core AI. The CLI verifies
+that OS specialization is supported and fails if it is unavailable. Each run
+uses one fresh process, a first call, three further warmups and ten completed
+timed calls. <code>--runs</code> and <code>--warmup</code> override those counts.</p>
+<table><thead><tr><th>Recorded stage</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>load_s</code></td><td>Load and function setup. OS/filesystem caches remain intact;
+this is not a guaranteed cold-cache measurement.</td></tr>
+<tr><td><code>reused_input_setup_s</code></td><td>One-time preparation for reusable input
+profiles, reported separately from warm calls.</td></tr>
+<tr><td><code>prepare_s</code></td><td>Core AI input-array construction. Core ML uses the
+existing NumPy inputs and reports zero for this separate Python stage.</td></tr>
+<tr><td><code>execute_s</code></td><td>Awaited Core AI invocation or completed Core ML
+prediction. Includes runtime work and any internal transfers; it is not pure GPU time.</td></tr>
+<tr><td><code>materialize_s</code></td><td>Expose completed host arrays. Core ML may
+already materialize them inside <code>predict</code>, so stage boundaries differ.</td></tr>
+<tr><td><code>total_s</code></td><td>Completed call across the declared boundary.
+Use this value when comparing matching call scopes.</td></tr>
+</tbody></table>
+<p>Run JSON uses <code>schema_version=4</code>, including the declared
+<code>build_profile</code> for FP32 or FP16. Its <code>calls</code> list retains
+each call's <code>phase</code>, one-based <code>iteration</code>,
+<code>timing</code>, per-output <code>comparisons</code> and <code>verdict</code>.
+When requested, the Core AI profiling call is appended with
+<code>phase=inspection</code>; its failure also fails the run's final verdict.
+Malformed or nonfinite outputs retain an <code>error</code> message. The top-level
+verdict fails at the first bad call; later calls are not executed. Comparisons
+run between inference timing intervals, so use the same checking protocol
+across runtimes. Package versions, load averages and process peak RSS are also
+recorded. RSS includes
+the Python process, fixtures and outputs; it is not accelerator-only memory.</p>
+
+<h2>3. Screen one runtime change at a time</h2>
+<p>Use the same command with one of these profile names. The output filename must
+be unique for each profile and pass.</p>
+<table><thead><tr><th>Profile</th><th>Exact policy</th></tr></thead><tbody>
+<tr><td><code>coreml-all</code></td><td>All compute units, default specialization.</td></tr>
+<tr><td><code>coreml-fast</code></td><td>All compute units, FastPrediction specialization hint.</td></tr>
+<tr><td><code>coreml-gpu</code></td><td>CPU and GPU allowed; Neural Engine excluded.</td></tr>
+<tr><td><code>coreml-ne</code></td><td>CPU and Neural Engine allowed; GPU excluded.</td></tr>
+<tr><td><code>coreai-default</code></td><td>OS Core AI default specialization, fresh bytes-backed inputs.</td></tr>
+<tr><td><code>coreai-gpu</code></td><td>GPU preferred; other supported units remain allowed.</td></tr>
+<tr><td><code>coreai-ne</code></td><td>Neural Engine preferred; other supported units remain allowed.</td></tr>
+<tr><td><code>coreai-reuse-bytes</code></td><td>Default specialization, reuse bytes-backed input arrays.</td></tr>
+<tr><td><code>coreai-reuse-metal</code></td><td>Default specialization, reuse Metal-backed input arrays.</td></tr>
+<tr><td><code>coreai-reuse-iosurface</code></td><td>Default specialization, reuse IOSurface-backed input arrays.</td></tr>
+</tbody></table>
+<div class="note">Reusable-input profiles measure repeated inference on the same
+prepared tensors. Their one-time input construction is excluded from warm calls.
+Report this as a separate prepared-input lane. For a new image or patch, prepare
+its own inputs and account for that preparation. Never reuse an old image buffer
+as though it represented a new request. The original host-to-host table includes
+input preparation and must retain that boundary.</div>
+<p>Runtime profiles preserve the artifact's admitted build precision. FP16,
+quantization, changed tensor shapes and larger batches require separate exports
+and output qualification. Model instances already persist across warm calls;
+reloading a model for every patch would add an avoidable application cost.</p>
+
+<h2>4. Confirm candidates in reverse order</h2>
+<p>After a short screen, compare the baseline and candidate in two passes:
+baseline then candidate, followed by candidate then baseline. Keep ten timed
+calls per run. Execute sequentially so the runtimes do not contend with one
+another. Preserve all four JSON files and their logs. Repeat for each model;
+do not infer a universal setting from one architecture.</p>
+<p>Check matching inputs, shapes, checkpoint, precision, machine and
+call scope. Require every output decision to pass. Examine the ranges of
+per-pass medians and the raw sample distribution. Treat small, inconsistent or
+overlapping changes as inconclusive. Shared-machine runs are diagnostic;
+do not stop another user's process to improve a benchmark.</p>
+
+<h2>5. Inspect placement and loading separately</h2>
+<p><code>--inspect</code> collects diagnostics after the timed calls. Core AI
+records native profiler events for a separate invocation. Core ML records its
+compute plan's anticipated device and estimated cost for each top-level operation.
+Unknown plan entries remain unknown. A preference, compute-unit policy or compute
+plan does not prove actual ANE utilization or energy consumption.</p>
+<p>To capture native execution in Instruments, first check the installed CLI and
+available templates:</p>
+<pre>xcrun xctrace list templates
+xcrun xctrace record --template 'Core AI' \
+  --output build/runtime-tuning/coreai.trace --time-limit 30s \
+  --env USE_OS_COREAI=1 --launch -- \
+  &lt;path-to-conda-env&gt;/bin/python \
+  -m medmlx_convert.runtime_benchmark \
+  build/flexible_unet/flexible_unet_endoscopic \
+  build/flexible_unet/flexible_unet_endoscopic.runtime.npz \
+  coreai-default build/runtime-tuning/instrumented.json
+xcrun xctrace export --input build/runtime-tuning/coreai.trace --toc
+</pre>
+<p>Replace <code>&lt;path-to-conda-env&gt;/bin/python</code> with the interpreter of
+the <code>medmlx-conversion</code> environment created by <code>make env</code>;
+<code>bash environment/setup.sh --run python -c 'import sys; print(sys.executable)'</code>
+prints it. Keep instrumented timings out of the
+acceptance comparison. If capture fails or requires unavailable permissions,
+retain the error and mark hardware placement unverified.</p>
+<p>For Core ML startup, Apple's supported approach is to keep a compiled
+<code>.mlmodelc</code> at a stable path and load it with
+<code>coremltools.models.CompiledMLModel</code>. The path comes from
+<code>MLModel.get_compiled_model_path()</code>. Refresh the compiled asset when
+the source package changes. The warm policy sweep here loads <code>.mlpackage</code>;
+it does not claim a measured stable-cache startup improvement.</p>
+
+<h2>6. Preserve the surrounding algorithm</h2>
+<p>Segmentation: keep image normalization, patch size, overlap, window blending,
+label mapping, affine and postprocessing fixed. Benchmark both one patch and the
+whole volume before changing application routing.</p>
+<p>Diffusion: export the source components, then port the complete sampling loop.
+Preserve the exact timestep sequence, beta/alpha values, scheduler arithmetic,
+step count, eta, guidance, initial noise and noise drawn at each step. Replay the
+same draws across runtimes. Check intermediate latents and final decoded outputs.
+LesionDiffusion's current MLX sampler explicitly preserves the upstream rounded
+schedule; a new backend must preserve that contract.</p>
+<p>Language models: preserve tokenization, prompt formatting, sampling parameters
+and cache semantics. Check prefill, cache updates and multi-token decoding before
+reporting tokens per second. A vision-encoder export is not complete generation.</p>
+<p><strong>Rejected shortcuts:</strong> changing diffusion steps or scheduler to
+make one backend faster changes the workload; lowering precision without a new
+output check can change logits; silently substituting a backend hides failures;
+claiming ANE execution from an allowed-device setting is unsupported; ranking
+SwinUNETR across its currently different MLX and MONAI patch-merging graphs violates
+the matching-output requirement.</p>
+
+<h2>7. Compare the actual MLX ports with both native formats</h2>
+<p>Install the lock-pinned environment, which includes MLX:</p>
+<pre>make env
+
+bash environment/setup.sh --run python -m medmlx_convert.runtime_benchmark \
+  build/flexible_unet/flexible_unet_endoscopic \
+  build/flexible_unet/flexible_unet_endoscopic.runtime.npz \
+  mlx-gpu build/runtime-tuning/flexible-mlx.json \
+  --mlx-root .. --warmup 3 --runs 10
+</pre>
+<p>Run from a quiet host after other model jobs finish. Use the same saved fixture
+with the native profiles in Section 2, keeping a separate output file for each
+profile and pass. Follow the reverse-order comparison in Section 4.
+The supported ports are
+FlexibleUNet endoscopy, renal SegResNet, nnU-Net liver, SynthSeg v1 and automatic
+VISTA3D. The explicit checkout root must contain their owning packages and
+<code>medmlx-core</code>. Source checkout revisions and dirty state are recorded;
+the native report supplies the checkpoint path and pinned source revision used to load MLX. These adapters reject
+FP16 builds because their current MLX execution is FP32.</p>
+<p>nnU-Net follows its owning native runner's qualified compilation default;
+the other ports use their owning model calls without an external compile wrapper.</p>
+<p>The runtime checks every completed call outside its timing interval. Keep
+the checkpoint and source checkout fixed across passes. A dirty flag does not
+identify individual uncommitted edits. Per-process medians and p95 values
+describe these samples; they are not confidence intervals across independent
+machines.</p>
+<p>Compare <code>total_s</code>: host input through completed host output, including
+required layout conversion, transfer and materialization. MLX is explicitly
+evaluated and synchronized. Loading and process peak RSS remain diagnostics:
+MLX weight conversion loads the upstream checkpoint, while native runtimes load
+saved assets, so these setup peaks do not measure comparable resident-model memory.</p>
+<p><strong>Rejected comparisons:</strong> SynthSeg probabilities versus exported
+logits compare different outputs; use its shared public <code>logits()</code>
+path. VISTA3D's fixed-class embedding cache removes work performed by the native
+graph; supply class IDs on every MLX invocation. Checking only the last result
+can hide an intermittent failure; every call must pass.</p>
+
+<h2>Historical evidence and API references</h2>
+<p>The following October 13 experiments retain their original failures and
+scope. They are not current paired timing results. Current build qualification
+and the required QA gate are reported in the <a href="../README.md">README</a>.</p>
+<p>The 2026-10-13 sweep confirmed no consistent improvement that met the matched
+comparison rule, so it does not justify changing the default runtime policies.
+Core AI SegResNet default and NE-preferred first calls failed in one pass with
+max absolute errors of 31.71 and 32.25 against tolerance 0.01, then passed in
+the reverse pass. A separate 20-call buffer-owner diagnostic did not reproduce
+the error; its cause remains unverified. Exclude those paths from speed
+recommendations until the first-call failure is resolved. VISTA3D's Core ML
+CPU_AND_NE screen hit a 180-second limit. Keep failures in the experiment record.</p>
+<p>The October 13 QA run recorded <strong>23 passed and 2 failed</strong>. One failure
+was a recipe being removed by a concurrent change after pytest collected
+it. SAM 3 failed Core ML mask and semantic outputs (19.6 and 1.22 against 0.1
+and 0.01); its Core AI outputs passed. The gate is not green. See the
+<a href="validation/sam3-20261013.verification.json">SAM 3 failure receipt</a>.
+The coverage docs also retain a separate Lung Nodule Core AI failure. Earlier
+passes and successful diagnostic retries do not erase these failures.</p>
+<p>A separate saved-package SAM 3 diagnostic passed three Core ML calls under
+ALL and three under CPU_AND_GPU, including checking the retained first output
+before and after a Core AI invocation. Mask error was 0.0503 and semantic error
+0.000174. The export-time failure was not reproduced and its cause remains
+unverified.</p>
+<p>The separate FlexibleUNet Core AI default Instruments capture contains 153
+GPU interval rows attributed to the benchmark process and zero rows in its ANE
+interval export. It supports GPU execution in that capture; it is not an ANE
+utilization or energy measurement.</p>
+<p><a href="https://apple.github.io/coremltools/docs-guides/source/model-prediction.html">Apple Core ML prediction and loading guide</a>
+· <a href="https://github.com/apple/coreai-models">Apple Core AI models and pipeline guidance</a>.</p>
+<p>The implemented policies were checked against installed coreai-core
+1.0.0b3 runtime source and stubs, coreai-torch 0.4.3, and coremltools 9.0.
+Read the corresponding installed API again before changing versions.</p>
+<footer>Procedure schema_version: 2 · Updated 2026-10-16 · Synthetic engineering
+qualification; full diffusion and language pipeline qualification remains separate.</footer>
+</main>
+</html>

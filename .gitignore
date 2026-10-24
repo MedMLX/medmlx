@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# Checkpoints and converted weights are never committed.
+checkpoints/
+weights/
+*.safetensors
+*.npz
+!tests/fixtures/*.npz
+!tests/fixtures/*/*.npz
+!tests/oracles/*.npz
+!packages/core/tests/fixtures/*/*.npz
+!packages/core/tests/oracles/*.npz
+!conversion/tests/fixtures/*.npz
+*.pt
+*.pth
+*.ckpt
+
+# Imaging data is never committed.
+data/
+*.nii
+*.nii.gz
+*.dcm
+.DS_Store

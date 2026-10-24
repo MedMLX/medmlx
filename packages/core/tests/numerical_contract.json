@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "dtype": "float32",
+  "shape": "reference",
+  "allow_nan": false,
+  "allow_inf": false,
+  "budgets": {
+    "exact": {
+      "rtol": 0.0,
+      "atol": 0.0,
+      "reason": "Copies, permutations and exactly representable operations do not change values."
+    },
+    "pointwise": {
+      "rtol": 4.76837158203125e-7,
+      "atol": 1.1920928955078125e-7,
+      "reason": "Four FP32 eps relative plus one eps near zero for differing sigmoid/exp rounding. The reviewer reports one-eps errors; upstream FP32 versus rounded float64 reaches two eps on these seeded inputs."
+    },
+    "dot": {
+      "rtol": 1.9073486328125e-6,
+      "atol": 3.814697265625e-6,
+      "reason": "Seeded convolution/linear reductions use differing FMA and summation orders. Sixteen eps relative plus a 32-eps cancellation floor covers the reported 3.8146973e-6 difference and the upstream FP32/rounded-float64 comparison (max absolute 4.76837158e-6, with a relative component)."
+    },
+    "normalization": {
+      "rtol": 9.5367431640625e-7,
+      "atol": 4.76837158203125e-7,
+      "reason": "Eight eps relative plus four eps near zero for FP32 mean/variance, reciprocal root and affine rounding; the report includes four-eps absolute differences."
+    },
+    "moments": {
+      "rtol": 4.76837158203125e-7,
+      "atol": 1.1920928955078125e-7,
+      "reason": "FP32 Welford tile/merge reductions versus the float64 population reference on unit-scale seeded inputs; four eps relative for variance and one eps absolute for cancellation in the mean."
+    },
+    "interpolation": {
+      "rtol": 4.76837158203125e-7,
+      "atol": 4.76837158203125e-7,
+      "reason": "Four eps relative and absolute for the eight-corner weighted sum, separable evaluation and skip addition. Upstream FP32 versus rounded float64 reaches one eps; no large reduction is involved."
+    },
+    "graph": {
+      "rtol": 7.62939453125e-6,
+      "atol": 3.814697265625e-6,
+      "reason": "Seeded complete graphs propagate convolution and normalization rounding. Four dot budgets give 64 eps relative; the absolute cancellation floor remains 32 eps. This cumulative budget needs reviewer Metal verification because later-stage maxima were not supplied."
+    }
+  }
+}

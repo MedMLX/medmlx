@@ -1,0 +1,14 @@
+.DS_Store
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+build/
+*.aimodel
+*.mlpackage
+*.pth
+*.pt
+*.safetensors
+*.nii
+*.nii.gz
