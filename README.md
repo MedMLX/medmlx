@@ -22,10 +22,11 @@ and `mcp`. The base installation contains the API and shared runtime. It does
 not install model families, MCP, Torch, TensorFlow or conversion frameworks.
 RadImageNet remains available in `vision`.
 
-Wheel dependencies use versioned PyPI requirements. Locked source development
-uses the immutable Git revisions in `tool.uv.sources`, which currently require
-access to the private MedMLX repositories. Install segmentation runtimes for the
-examples below:
+The locked source checkout installs the model families from immutable public Git
+revisions in `tool.uv.sources`. Wheel extras use versioned package requirements;
+those provider versions must be available on your package index or in a local
+wheel directory. Use this checkout for the combined installation. Install
+segmentation runtimes for the examples below:
 
 ```sh
 uv sync --locked --no-dev --extra segment --extra mcp
