@@ -539,7 +539,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -627,8 +627,8 @@ requires-dist = [
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
-    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=6e3857becf2fc6e1b69cb79449895578ab02766b" },
-    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=6e3857becf2fc6e1b69cb79449895578ab02766b" },
+    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893" },
+    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893" },
     { name = "packaging", specifier = ">=24" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
@@ -862,8 +862,8 @@ wheels = [
 
 [[package]]
 name = "nv-generate-mlx"
-version = "0.3.0"
-source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=6e3857becf2fc6e1b69cb79449895578ab02766b#6e3857becf2fc6e1b69cb79449895578ab02766b" }
+version = "0.3.1"
+source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893#bd3ece28f67e8a4b3773ce234d38e2db377bf893" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },

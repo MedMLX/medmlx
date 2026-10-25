@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.3.0"
+version = "0.3.1"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -38,7 +38,7 @@ segment = [
 ]
 generate = [
   "fdg-pet-ct-mlx==0.2.1",
-  "nv-generate-mlx==0.3.0",
+  "nv-generate-mlx==0.3.1",
   "lesiondiffusion-mlx==0.2.1",
 ]
 vision = [
@@ -54,7 +54,7 @@ all = [
   "lesiondiffusion-mlx==0.2.1",
   "lung-nodule-mlx==0.2.1",
   "medsam2-mlx==0.2.1",
-  "nv-generate-mlx==0.3.0",
+  "nv-generate-mlx==0.3.1",
   "mlx-segment-ct==0.2.1",
   "mlxradiomics[io]==0.1.0.dev3",
   "nnunet-mlx==0.5.1",
@@ -96,7 +96,7 @@ medsam2-mlx = { git = "https://github.com/MedMLX/medsam2-mlx.git", rev = "93d446
 mlx-segment-ct = { git = "https://github.com/MedMLX/mlx-segment-ct.git", rev = "bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" }
 mlxradiomics = { git = "https://github.com/MedMLX/mlxradiomics.git", rev = "63477176be5bc7ad6c8c679eb8cd98ea4949050c" }
 nnunet-mlx = { git = "https://github.com/MedMLX/nnunet-mlx.git", rev = "ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" }
-nv-generate-mlx = { git = "https://github.com/MedMLX/nv-generate-mlx.git", rev = "6e3857becf2fc6e1b69cb79449895578ab02766b" }
+nv-generate-mlx = { git = "https://github.com/MedMLX/nv-generate-mlx.git", rev = "bd3ece28f67e8a4b3773ce234d38e2db377bf893" }
 radimagenet-mlx = { git = "https://github.com/MedMLX/radimagenet-mlx.git", rev = "399d0cb062c2d6c39a0eef66ed618145f7a8a3da" }
 segresnet-mlx = { git = "https://github.com/MedMLX/segresnet-mlx.git", rev = "b5cc265cd0426fe8f64b40a8ed9be4c42a599724" }
 swin-unetr-mlx = { git = "https://github.com/MedMLX/swin-unetr-mlx.git", rev = "80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" }
