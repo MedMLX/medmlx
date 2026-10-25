@@ -1,20 +1,25 @@
 # MedMLX
 
-One Python API, command and MCP server for medical imaging models on Apple
-Silicon. Each model runtime remains in its own repository. MedMLX discovers its
-installed runners and executes them in supervised worker processes.
+TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more, running natively in MLX.
+Run any of them from Python, the command line or an MCP client. Each model runtime
+remains in its own repository; MedMLX discovers the installed runners and executes
+them in supervised worker processes.
 
-Requires macOS arm64, Python 3.13 and Metal. Research use only; model outputs
-require human review.
+Research use only; model outputs require human review.
+
+![Outputs from MedMLX models across CT, PET/CT, radiographs, endoscopy and MRI](https://raw.githubusercontent.com/MedMLX/medmlx/main/docs/gallery.jpg)
 
 ## Install
 
-From this checkout, install the API, shared runtime and MCP server:
+Needs an Apple Silicon Mac and [uv](https://docs.astral.sh/uv/). Install the API,
+the MCP server and every model family:
 
 ```sh
-uv sync --locked --no-dev --extra mcp
-uv run --locked --no-sync medmlx models
-uv run --locked --no-sync medmlx serve --root /path/to/work
+git clone https://github.com/MedMLX/medmlx.git
+cd medmlx
+uv sync --locked --no-dev --extra all --extra mcp
+source .venv/bin/activate
+medmlx models
 ```
 
 Optional extras are `segment`, `generate`, `vision`, `all` (all three families),
@@ -25,12 +30,7 @@ RadImageNet remains available in `vision`.
 The locked source checkout installs the model families from immutable public Git
 revisions in `tool.uv.sources`. Wheel extras use versioned package requirements;
 those provider versions must be available on your package index or in a local
-wheel directory. Use this checkout for the combined installation. Install
-segmentation runtimes for the examples below:
-
-```sh
-uv sync --locked --no-dev --extra segment --extra mcp
-```
+wheel directory. Use this checkout for the combined installation.
 
 ## Use
 
