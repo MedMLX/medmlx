@@ -12,6 +12,7 @@ runs the full core suite.
 - 3D convolutions, resampling and sliding-window inference
 - Tensor layouts, precision helpers and checkpoint conversion
 - Portable saved-graph inference and dense registration geometry
+- Shared MAISI vocabulary/grid contracts and MedSAM2 prompt metadata
 
 [PyPI](https://pypi.org/project/medmlx-core/) ·
 [Releases](https://github.com/MedMLX/medmlx/releases) ·
@@ -24,6 +25,10 @@ runs the full core suite.
 Apple Silicon Mac, macOS, Python 3.13 or 3.14, and Metal GPU access.
 NumPy and MLX install automatically. Inference raises an error when Metal is
 unavailable.
+
+The `medmlx_core.maisi` and `medmlx_core.prompts` metadata modules also serve
+CPU/CUDA providers. They do not load MLX or require Metal. Model-specific prompt
+validation, mode names, and supported inference grids remain with each provider.
 
 ## Install
 

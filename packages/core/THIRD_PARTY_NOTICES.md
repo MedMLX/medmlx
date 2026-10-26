@@ -15,6 +15,15 @@ used by the SwinUNETR and FlexibleUNet model packages. MONAI Consortium
 copyright and Apache-2.0 obligations apply; the complete original license is
 retained below.
 
+## MAISI metadata
+
+`src/medmlx_core/maisi.py` consolidates the vocabulary, grid rules and anatomy-size
+contracts from MedMLX's `nv-generate-mlx`. These follow NVIDIA's
+NV-Generate-CTMR revision `5cb04e82fed71f2fe64a2617ab695be1f5a37fea` and its
+MONAI/MAISI components. The source retains their Apache-2.0 attribution and terms;
+MedMLX-authored metadata and validation code is Apache-2.0. The full Apache-2.0
+license is retained below.
+
 ## Apple MLX
 
 The register-blocked FP32 convolution in `src/medmlx_core/precision.py` was
