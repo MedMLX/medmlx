@@ -619,16 +619,16 @@ requires-dist = [
     { name = "lung-nodule-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/lung-nodule-mlx.git?rev=c537a373ac8cfe1e75e7c1a96d760e0bb2de645d" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.2,<3" },
     { name = "medmlx-core", editable = "packages/core" },
-    { name = "medsam2-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=93d44672b798cdbd4d0919a23c1c10ddf56b3ea7" },
-    { name = "medsam2-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=93d44672b798cdbd4d0919a23c1c10ddf56b3ea7" },
+    { name = "medsam2-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=42840d98db0e3f10c36a767dcaf51ef84363fab3" },
+    { name = "medsam2-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=42840d98db0e3f10c36a767dcaf51ef84363fab3" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
-    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893" },
-    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893" },
+    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4" },
+    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4" },
     { name = "packaging", specifier = ">=24" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
@@ -682,7 +682,7 @@ provides-extras = ["conversion", "dev"]
 [[package]]
 name = "medsam2-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/medsam2-mlx.git?rev=93d44672b798cdbd4d0919a23c1c10ddf56b3ea7#93d44672b798cdbd4d0919a23c1c10ddf56b3ea7" }
+source = { git = "https://github.com/MedMLX/medsam2-mlx.git?rev=42840d98db0e3f10c36a767dcaf51ef84363fab3#42840d98db0e3f10c36a767dcaf51ef84363fab3" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },
@@ -863,7 +863,7 @@ wheels = [
 [[package]]
 name = "nv-generate-mlx"
 version = "0.3.1"
-source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=bd3ece28f67e8a4b3773ce234d38e2db377bf893#bd3ece28f67e8a4b3773ce234d38e2db377bf893" }
+source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4#15a6c854c006e06826a7a014875a08465daf00f4" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },
