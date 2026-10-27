@@ -627,8 +627,8 @@ requires-dist = [
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
-    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4" },
-    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4" },
+    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf" },
+    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf" },
     { name = "packaging", specifier = ">=24" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
@@ -863,7 +863,7 @@ wheels = [
 [[package]]
 name = "nv-generate-mlx"
 version = "0.3.1"
-source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=15a6c854c006e06826a7a014875a08465daf00f4#15a6c854c006e06826a7a014875a08465daf00f4" }
+source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf#2e513605116ef416713135185c9cc05fc02dd2cf" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },
