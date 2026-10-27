@@ -1,4 +1,4 @@
-"""Export SAM 3 text-prompted detection (Apple's full recipe) to Core AI and Core ML, then check.
+"""Export SAM 3 text-prompted detection to Core AI and Core ML, then check.
 
 Follows apple/coreai-models' SAM 3 `--full` export: the Hugging Face Sam3Model at 1008x1008,
 returning masks, boxes, logits, presence and semantic segmentation. The text prompt is padded
@@ -13,7 +13,6 @@ import torch
 
 from medmlx_convert import export_and_check, recipe_args
 from medmlx_convert.boundary import (
-    Module,
     as_sequence,
     as_tensor,
     attribute,
@@ -26,7 +25,8 @@ from medmlx_convert.boundary import (
 )
 from medmlx_convert.check import check_source_outputs
 from medmlx_convert.provenance import BuildSource
-from medmlx_convert.sam3 import load_detector
+from medmlx_convert.sam3 import OUTPUTS as OUTPUT_NAMES
+from medmlx_convert.sam3 import Sam3TextWithGeometry, load_detector
 
 # Gated: accept the SAM License on Hugging Face and log in (`hf auth login`) first.
 REPO = "facebook/sam3"
@@ -34,23 +34,7 @@ REVISION = "3c879f39826c281e95690f02c7821c4de09afae7"
 IMAGE_SIZE = 1008
 TEXT_TOKENS = 32  # apple/coreai-models' default static text length
 PROMPT = "liver"
-OUTPUTS = ["pred_masks", "pred_boxes", "pred_logits", "presence_logits", "semantic_seg"]
-
-
-class Sam3Full(Module):
-    """Apple's _Sam3FullModule, plus the text attention mask as an input."""
-
-    def __init__(self, model: torch.nn.Module) -> None:
-        super().__init__()
-        self.model = model
-
-    def forward(
-        self, pixel_values: torch.Tensor, input_ids: torch.Tensor, attention_mask: torch.Tensor
-    ) -> tuple[torch.Tensor, ...]:
-        outputs = self.model(
-            pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask
-        )
-        return tuple(as_tensor(attribute(outputs, name), name) for name in OUTPUTS)
+OUTPUTS: list[str] = list(OUTPUT_NAMES)
 
 
 def tokenize(tokenizer: object, padding: bool | str) -> tuple[torch.Tensor, torch.Tensor]:
@@ -71,7 +55,7 @@ processor = function(class_(transformers, "Sam3Processor"), "from_pretrained")(
     str(snapshot), local_files_only=True
 )
 tokenizer = attribute(processor, "tokenizer")
-wrapped = Sam3Full(model).eval()
+wrapped = Sam3TextWithGeometry(model).eval()
 
 # The DETR decoder reads the feature grid size out of a tensor, which torch.export treats as
 # data-dependent. For a fixed image size the grid is constant: record it on an eager pass,
@@ -98,11 +82,18 @@ input_ids, attention_mask = tokenize(tokenizer, "max_length")
 short_ids, short_mask = tokenize(tokenizer, False)
 with torch.no_grad():
     original = wrapped(pixel_values, input_ids, attention_mask)
+    masked_box = model(
+        pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask,
+        input_boxes=torch.zeros((1, 1, 4)), input_boxes_labels=torch.full((1, 1), -10),
+    )
     vars(decoder)["_get_rpb_matrix"] = recording_rpb
     padded = wrapped(pixel_values, input_ids, attention_mask)
     unpadded = wrapped(pixel_values, short_ids, short_mask)
 inputs = {"pixel_values": pixel_values, "input_ids": input_ids, "attention_mask": attention_mask}
 # These are source-transform checks, distinct from either native converter's error.
+check_source_outputs(out_dir / "sam3_empty_geometry_source", inputs, original,
+                     tuple(as_tensor(attribute(masked_box, name), name) for name in OUTPUTS),
+                     OUTPUTS, dict.fromkeys(OUTPUTS, 1e-2), "source_empty_geometry")
 check_source_outputs(out_dir / "sam3_prompt_padding_source", inputs, padded, unpadded,
                      OUTPUTS, dict.fromkeys(OUTPUTS, 1e-2), "source_prompt_padding")
 (feature_grid,) = grids
@@ -133,7 +124,7 @@ passed = export_and_check(
         Path(__file__), snapshot / "model.safetensors", origin=f"{REPO}@{REVISION}",
         configuration={"model": "config.json", "processor": "processor_config.json",
                        "prompt": PROMPT, "text_tokens": str(TEXT_TOKENS),
-                       "image_size": str(IMAGE_SIZE)},
+                       "image_size": str(IMAGE_SIZE), "text_geometry": "empty geometry CLS"},
     ),
     tolerance={**dict.fromkeys(OUTPUTS, 1e-2), "pred_masks": 0.1},
     profile=options.profile, source_device=options.source_device,
