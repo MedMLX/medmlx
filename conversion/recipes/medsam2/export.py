@@ -202,6 +202,21 @@ class SamHeads(Module):
         return low_res, high_res, ious, obj_ptr, object_score
 
 
+class PromptedSlice(Module):
+    """Image encoder and box-prompt mask heads for a first slice without memory."""
+
+    def __init__(self, encoder: ImageEncoder, heads: SamHeads) -> None:
+        super().__init__()
+        self.encoder = encoder
+        self.heads = heads
+
+    def forward(
+        self, image: torch.Tensor, point_coords: torch.Tensor, point_labels: torch.Tensor,
+    ) -> tuple[torch.Tensor, ...]:
+        feat_s0, feat_s1, _, no_memory, _ = self.encoder(image)
+        return self.heads(no_memory, point_coords, point_labels, feat_s0, feat_s1)
+
+
 class MemoryEncoder(Module):
     """SAM2Base._encode_new_memory on the sigmoid path.
 
@@ -437,6 +452,21 @@ passed &= export_and_check(
     profile=options.profile, source_device=options.source_device,
     coreml_profile=options.coreml_profile,
     fp32_norm_types=fp32_norm_types,
+)
+prompted = PromptedSlice(encoder, heads).eval()
+with torch.no_grad():
+    prompted_actual = prompted(image, box, box_labels)
+check_source_outputs(
+    out_dir / "medsam2_prompted_source",
+    {"image": image, "point_coords": box, "point_labels": box_labels},
+    prompted_actual, tuple(head_reference[index] for index in (3, 4, 2, 5, 6)),
+    head_names, dict.fromkeys(head_names, 1e-3), "source_prompted_slice",
+)
+passed &= export_and_check(
+    prompted, {"image": image, "point_coords": box, "point_labels": box_labels},
+    head_names, out_dir / "medsam2_prompted", source=source, tolerance=1e-2,
+    profile=options.profile, source_device=options.source_device,
+    coreml_profile=options.coreml_profile, fp32_norm_types=fp32_norm_types,
 )
 with torch.no_grad():
     _, high_res, _, obj_ptr, object_score = heads(no_memory, box, box_labels, feat_s0, feat_s1)

@@ -196,8 +196,10 @@ Qwen3-Embedding).
   components.
 
 ### medsam2-mlx: Core ML verified, Core AI verified
-- Recipe: `recipes/medsam2` exports four models: image encoder, prompt + mask heads
-  (box prompt), memory encoder, and memory attention. Max difference ≤1e-4.
+- Recipe: `recipes/medsam2` exports the image encoder, prompt + mask heads
+  (box prompt), memory encoder, and memory attention, plus a combined prompted-slice
+  encoder and mask-head graph for network timing. Max difference ≤1e-4 for the four
+  component exports.
 - Memory attention runs at a fixed 7 memories + 16 pointers with a validity mask;
   padded + masked matches upstream on the real slots to 3e-6. RoPE is rewritten in
   real arithmetic, point embedding and multimask selection without data-dependent
