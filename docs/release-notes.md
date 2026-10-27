@@ -8,7 +8,8 @@
   checkpoint contents remain unverified. No preflight result establishes a
   validated run. An importable runner or existing path is insufficient evidence.
 - Readiness accepts one model's arguments for signature and local path checks.
-  Parameter descriptions expose provider prose. Descriptions are not
+  Parameter descriptions now expose provider prose, including wrapped argument
+  groups and paragraphs naming arguments in backticks. Descriptions are not
   machine-validated constraints or independent qualification evidence.
 - `segment`/`all` install SAM3 with video support; `generate`/`all` install
   NV-Reason-CT and the standalone FDG PET adapter. FDG synthesis requires an

@@ -361,6 +361,75 @@ def test_readiness_and_description_come_from_the_package(
     _with_client(tmp_path, body)
 
 
+@pytest.mark.parametrize(
+    ("docstring", "expected"),
+    [
+        (
+            """Threshold a JSON array.
+
+            Args:
+                image_path,
+                    output_path (str): JSON files containing scalar arrays.
+                    Paths are relative to the server root.
+                level: Unitless cutoff.
+            """,
+            {
+                "image_path": "JSON files containing scalar arrays. "
+                              "Paths are relative to the server root.",
+                "output_path": "JSON files containing scalar arrays. "
+                               "Paths are relative to the server root.",
+                "level": "Unitless cutoff.",
+            },
+        ),
+        (
+            """Threshold a JSON array.
+
+            ``image_path`` supplies the scalar JSON array; `output_path` receives
+            the mask.
+
+            ``image_path`` values are unitless. ``level`` defaults to 0.5.
+
+            ``image_paths`` is not an argument of this runner. The level is a cutoff.
+
+            Args:
+                level: Unitless cutoff; explicit argument prose takes priority.
+
+            Returns:
+                Metadata for ``output_path``. The `level` is not returned.
+            """,
+            {
+                "image_path": "``image_path`` supplies the scalar JSON array; "
+                              "`output_path` receives the mask.\n\n"
+                              "``image_path`` values are unitless. ``level`` defaults to 0.5.",
+                "output_path": "``image_path`` supplies the scalar JSON array; "
+                               "`output_path` receives the mask.",
+                "level": "Unitless cutoff; explicit argument prose takes priority.",
+            },
+        ),
+        (
+            """Threshold a JSON array.
+
+            ``image_paths`` is not an argument. A plain mention of level carries
+            no structured parameter documentation.
+            """,
+            {"image_path": None, "output_path": None, "level": None},
+        ),
+    ],
+    ids=["wrapped-args", "literal-prose", "unrelated-prose"],
+)
+def test_description_maps_provider_prose_to_argument_names(
+    model_site: Path, tmp_path: Path, docstring: str, expected: dict[str, str | None],
+) -> None:
+    module = model_site / "fakemlx" / "__init__.py"
+    module.write_text(module.read_text() + f"\nthreshold.__doc__ = {docstring!r}\n")
+
+    async def body(client: Client) -> None:
+        described = await _call(client, "describe_model", {"model_id": "threshold"})
+        assert {row["name"]: row["description"] for row in described["parameters"]} == expected
+
+    _with_client(tmp_path, body)
+
+
 def test_models_command_prints_discovery_and_fails_on_bad_entry_points(
     model_site: Path,
 ) -> None:
