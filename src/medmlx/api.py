@@ -43,6 +43,8 @@ def _runtime_package(spec: registry.ModelSpec) -> str:
     The named-checkpoint adapters declared by this package run on the optional
     ``nnunet-mlx`` distribution, so they are attributed to it rather than to
     ``medmlx`` itself. The FDG adapter similarly belongs to ``fdg-pet-ct-mlx``.
+    The provisional MedVLM bridges refer to their explicitly selected external
+    environment; that runtime is not a member of the unified install families.
     Every other model belongs to the distribution that
     declared its entry point (empty when the entry point has no distribution).
     """
@@ -50,6 +52,8 @@ def _runtime_package(spec: registry.ModelSpec) -> str:
         return "nnunet-mlx"
     if spec.run.startswith("medmlx.adapters.fdg_pet:"):
         return "fdg-pet-ct-mlx"
+    if spec.run.startswith("medmlx.adapters.medvlm:"):
+        return "med-vlm-mlx"
     return _canonical(spec.package)
 
 

@@ -18,6 +18,8 @@ dependencies = ["medmlx-core==0.2.3", "packaging>=24"]
 medmlx = "medmlx.cli:main"
 
 [project.entry-points."medmlx.models"]
+medgemma = "medmlx.adapters.medvlm:MEDGEMMA"
+lingshu = "medmlx.adapters.medvlm:LINGSHU"
 fdg-pet-ct = "medmlx.adapters.fdg_pet:MODEL"
 nnunet-pancreas = "medmlx.adapters.nnunet:PANCREAS"
 nnunet-brats2021 = "medmlx.adapters.nnunet:BRATS"

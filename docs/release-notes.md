@@ -2,6 +2,11 @@
 
 ## Unreleased MCP completion
 
+- Provisional `medgemma` and `lingshu` adapters can call an explicitly selected
+  isolated MedVLM environment. They require local assets and preserve dependency
+  pins, offline execution, overwrite protection and supervised cancellation.
+  CPU bridge tests are not real-checkpoint or numerical qualification; see the
+  [bridge contract](medvlm-bridge.md).
 - `ready` remains a boolean with its existing provider/import plus Metal meaning.
   `runtime_ready` is an explicit alias. New clients should inspect `run_ready`:
   `false` means a known runtime, argument or path blocker; `null` means input and
@@ -38,7 +43,8 @@ model inference. Changing the MedVLM MLX pin alone cannot resolve them. A shared
 environment requires provider-owned dependency changes, validation of both
 MedGemma/Gemma3 and Lingshu/Qwen2.5-VL on the selected versions, and NV-Reason-CT
 regression checks for any Hub/tokenizer update. Only then can provider-owned MCP
-entry points be integrated without dependency overrides.
+entry points join the unified environment without dependency overrides. The
+provisional separate-environment adapters avoid combining these dependency sets.
 
 MedVLM's existing checkpoint smoke script uses real 4-bit checkpoints but a
 synthetic solid-color image and at most 24 generated tokens. Passing that check

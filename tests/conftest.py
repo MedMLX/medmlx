@@ -6,6 +6,7 @@ import importlib
 import os
 import sys
 from collections.abc import Iterator
+from importlib.metadata import distribution
 from pathlib import Path
 
 import pytest
@@ -123,6 +124,7 @@ def set_mlx(site: Path, source: str) -> None:
 def model_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     """Install ``fakemlx``, fake families, and a usable fake MLX for this process and workers."""
 
+    frontend_entries = distribution("medmlx").read_text("entry_points.txt") or ""
     site = tmp_path / "site"
     (site / "fakemlx").mkdir(parents=True)
     (site / "fakemlx" / "__init__.py").write_text(_MODULE)
@@ -132,7 +134,7 @@ def model_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path
         for family, members in _FAMILIES.items() for item in members
         if ";" not in item
     ]
-    add_distribution(site, "medmlx", requires=requirements)
+    add_distribution(site, "medmlx", entry_points=frontend_entries, requires=requirements)
     set_mlx(site, USABLE_MLX)
     monkeypatch.setattr(sys, "path", [str(site), *sys.path])
     importlib.invalidate_caches()

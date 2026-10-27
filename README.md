@@ -24,10 +24,12 @@ medmlx models
 Choose `segment`, `generate` or `vision` instead of `all` for a smaller install.
 The segment extra includes SAM3 image/video support; generate includes NV-Reason-CT
 and the weight-free FDG PET adapter. Model weights have their own download and access
-requirements. MedGemma/Lingshu is not bundled: med-vlm-mlx currently pins MLX 0.32.3,
-which conflicts with this workspace's MLX >=0.32.4 requirement. Its Transformers
-requirements also conflict with NV-Reason-CT's Hub/tokenizer pins; see the
-[compatibility notes](docs/release-notes.md).
+requirements. Provisional `medgemma` and `lingshu` adapters use an explicitly selected
+separate MedVLM environment; real-checkpoint inference through these bridges is
+unqualified. The MedVLM runtime is not bundled because its MLX and Transformers
+requirements conflict with the unified environment. See the
+[bridge setup and limits](docs/medvlm-bridge.md) and
+[dependency compatibility notes](docs/release-notes.md).
 
 ## Run a model
 

@@ -84,6 +84,8 @@ class Jobs:
         The returned job is initially running. Call ``get`` or ``all`` to
         collect the worker's completion status and response after it exits.
         A closed session rejects new runs before creating files or processes.
+        MEDMLX_WORKER_CONTROL_DIR gives adapters a job-owned location for helper
+        control files, which remains removable when a worker is killed.
         """
 
         # Shutdown must see every launched worker before removing its files.
@@ -117,7 +119,8 @@ class Jobs:
                 stdout=log,
                 stderr=subprocess.STDOUT,
                 # A native crash in MLX or a model then leaves a traceback in worker.log.
-                env={**os.environ, "PYTHONFAULTHANDLER": "1"},
+                env={**os.environ, "PYTHONFAULTHANDLER": "1",
+                     "MEDMLX_WORKER_CONTROL_DIR": str(control_dir)},
                 start_new_session=os.name != "nt",
             )
         job = Job(
