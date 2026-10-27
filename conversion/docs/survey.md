@@ -210,7 +210,7 @@ Qwen3-Embedding).
   it with fixed slots and a mask.
 - Host: frame loop, per-object memory bank, hole filling.
 
-### sam3-mlx: Core ML and Core AI recheck required
+### sam3-mlx: Core ML and Core AI verified
 
 - The 2026-10-13 closeout receipt reports numerical agreement for five outputs,
   but does not record a checkpoint loading report. With transformers 5.10.1,
@@ -224,8 +224,12 @@ Qwen3-Embedding).
   source checks also passed.
 - The current recipe includes the original image model’s empty-geometry CLS token,
   which the Transformers text-only call omits. It checks this path against the
-  Transformers geometry encoder with a fully masked box; the aligned export
-  needs a new native-runtime receipt.
+  Transformers geometry encoder with a fully masked box. The 2026-10-27
+  [aligned export](validation/sam3-geometry-aligned-20261027.verification.json)
+  passed on both runtimes, with maximum mask-logit errors of 0.03560 (Core AI)
+  and 0.03335 (Core ML); all other outputs were within 0.00021. The
+  [empty-geometry source check](validation/sam3-empty-geometry-20261027.verification.json),
+  prompt-padding and fixed-grid checks passed as well.
 - Recipe: `recipes/sam3`, following apple/coreai-models' SAM 3 `--full` export: the
   image detector of the Hugging Face `Sam3VideoModel` from gated
   `facebook/sam3@3c879f39` at 1008×1008, with a 32-token text prompt and
