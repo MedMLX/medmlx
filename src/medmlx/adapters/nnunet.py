@@ -63,7 +63,7 @@ def _validate_folder(
 
 def _run(
     model_dir: str, images: list[str], output_dir: str, configuration: str,
-    folds: list[int], *, source_profile: str = "nnunet-v2.8.1-default",
+    folds: list[int], *, overwrite: bool, source_profile: str = "nnunet-v2.8.1-default",
     arithmetic: str = "native", use_mirroring: bool = True,
 ) -> dict[str, object]:
     """Call the ``nnunet-mlx`` runner and expose its ``segmentation`` output as ``mask``."""
@@ -72,13 +72,13 @@ def _run(
     result = run(
         model_dir=model_dir, image_paths=images, output_dir=output_dir,
         configuration=configuration, folds=folds, source_profile=source_profile,
-        arithmetic=arithmetic, use_mirroring=use_mirroring,
+        arithmetic=arithmetic, use_mirroring=use_mirroring, overwrite=overwrite,
     )
     return {"outputs": {"mask": result["outputs"]["segmentation"]}, "details": result["details"]}
 
 
 def pancreas(
-    *, model_dir: str, image_path: str, output_dir: str, fold: int = 0,
+    *, model_dir: str, image_path: str, output_dir: str, overwrite: bool = False, fold: int = 0,
     use_mirroring: bool = True,
 ) -> dict[str, object]:
     """Segment pancreas and cancer in one CT with the converted PancCTMultiTalentV2 model.
@@ -92,6 +92,7 @@ def pancreas(
             cancer 2).
         image_path: Path of the input CT volume.
         output_dir: Directory for the predicted mask.
+        overwrite: Replace existing outputs; input/output aliases are refused.
         fold: Trained fold to run.
         use_mirroring: Whether to average over test-time flips.
 
@@ -107,13 +108,13 @@ def pancreas(
     )
     return _run(
         model_dir, [image_path], output_dir, "3d_fullres_bs4", [fold],
-        use_mirroring=use_mirroring,
+        overwrite=overwrite, use_mirroring=use_mirroring,
     )
 
 
 def brats(
     *, model_dir: str, flair_path: str, t1_path: str, t1ce_path: str, t2_path: str,
-    output_dir: str, fold: int = 0, use_mirroring: bool = True,
+    output_dir: str, overwrite: bool = False, fold: int = 0, use_mirroring: bool = True,
 ) -> dict[str, object]:
     """Segment a BraTS study with the converted ``Dataset002_BRATS19`` nnU-Net model.
 
@@ -127,6 +128,7 @@ def brats(
             ``dataset.json``.
         flair_path, t1_path, t1ce_path, t2_path: Paths of the four input volumes.
         output_dir: Directory for the predicted mask.
+        overwrite: Replace existing outputs; input/output aliases are refused.
         fold: Trained fold, 0 to 4.
         use_mirroring: Whether to average over test-time flips.
 
@@ -147,13 +149,14 @@ def brats(
     )
     images = [t1_path, t1ce_path, t2_path, flair_path]
     return _run(
-        model_dir, images, output_dir, "3d_fullres", [fold], use_mirroring=use_mirroring,
+        model_dir, images, output_dir, "3d_fullres", [fold],
+        overwrite=overwrite, use_mirroring=use_mirroring,
     )
 
 
 def mrsegmentator(
-    *, model_dir: str, image_path: str, output_dir: str, fast: bool = False,
-    fold: int | None = None,
+    *, model_dir: str, image_path: str, output_dir: str, overwrite: bool = False,
+    fast: bool = False, fold: int | None = None,
 ) -> dict[str, object]:
     """Segment one MR volume with the converted MRSegmentator 1.2 base model.
 
@@ -166,6 +169,7 @@ def mrsegmentator(
         model_dir: Converted ``Dataset050_ukbb_inhouse_nako`` model folder.
         image_path: Path of the input MR volume.
         output_dir: Directory for the predicted mask.
+        overwrite: Replace existing outputs; input/output aliases are refused.
         fast: Run fold 0 only when ``fold`` is not given.
         fold: Single fold to run, 0 to 4.
 
@@ -184,7 +188,7 @@ def mrsegmentator(
     folds = [fold] if fold is not None else [0] if fast else list(range(5))
     return _run(
         model_dir, [image_path], output_dir, "3d_fullres_bs8", folds,
-        source_profile="mrsegmentator-1.2-base", arithmetic="torch-order-fp32",
+        overwrite=overwrite, source_profile="mrsegmentator-1.2-base", arithmetic="torch-order-fp32",
         use_mirroring=False,
     )
 
