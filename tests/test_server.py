@@ -333,7 +333,8 @@ def test_readiness_and_description_come_from_the_package(
         readiness = await _call(client, "model_readiness", {"model_ids": ["threshold", "sleeper"]})
         assert readiness["mlx_usable"] is True
         assert [row["runtime_ready"] for row in readiness["models"]] == [False, True]
-        assert [row["ready"] for row in readiness["models"]] == [False, None]
+        assert [row["ready"] for row in readiness["models"]] == [False, True]
+        assert [row["run_ready"] for row in readiness["models"]] == [False, None]
         assert [
             {key: row[key] for key in ("id", "reason", "setup_hint")}
             for row in readiness["models"]
@@ -393,6 +394,7 @@ def test_readiness_fails_every_model_when_mlx_is_unusable(
         assert runtime["mlx"].get("reason") == reason
         readiness = await _call(client, "model_readiness", {"model_ids": ["threshold", "sleeper"]})
         assert readiness["mlx_usable"] is False
+        assert [row["run_ready"] for row in readiness["models"]] == [False, False]
         threshold, sleeper = readiness["models"]
         assert threshold["ready"] is False
         assert threshold["reason"] == f"weights not staged; MLX is not usable: {reason}"
@@ -498,6 +500,8 @@ def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
     model_site: Path, tmp_path: Path,
 ) -> None:
     (tmp_path / "image.json").write_text("[0.2, 0.8]")
+    module = model_site / "fakemlx" / "__init__.py"
+    module.write_text(module.read_text() + '\nTHRESHOLD.pop("readiness")\n')
 
     async def body(client: Client) -> None:
         missing = await _call(client, "model_readiness", {
@@ -505,7 +509,9 @@ def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
             "arguments": {"image_path": "absent.json", "output_path": "mask.json"},
         })
         row = missing["models"][0]
-        assert row["ready"] is False
+        assert row["ready"] is True
+        assert row["runtime_ready"] is True
+        assert row["run_ready"] is False
         assert row["arguments_valid"] is True
         assert row["path_checks"] == [{
             "parameter": "image_path", "path": str(tmp_path / "absent.json"),
@@ -515,13 +521,17 @@ def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
             "model_ids": ["threshold"],
             "arguments": {"image_path": "image.json", "output_path": "mask.json"},
         })
+        assert present["models"][0]["ready"] is True
+        assert present["models"][0]["run_ready"] is None
         assert present["models"][0]["path_checks"][0]["available"] is True
         assert present["models"][0]["weights_validated"] is False
         assert present["models"][0]["inputs_validated"] is False
         invalid = await _call(client, "model_readiness", {
             "model_ids": ["sleeper"], "arguments": {"misspelled": 0},
         })
-        assert invalid["models"][0]["ready"] is False
+        assert invalid["models"][0]["ready"] is True
+        assert invalid["models"][0]["runtime_ready"] is True
+        assert invalid["models"][0]["run_ready"] is False
         assert invalid["models"][0]["arguments_valid"] is False
         assert not (tmp_path / "mask.json").exists()
         assert (await _call(client, "list_jobs", {}))["jobs"] == []

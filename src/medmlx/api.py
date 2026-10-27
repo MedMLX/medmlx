@@ -175,10 +175,11 @@ def model_readiness(
 ) -> ReadinessPayload:
     """Check runtime availability and, optionally, one run's argument names and paths.
 
-    ``ready=False`` identifies a known blocker; ``ready=None`` means the run's
-    inputs and checkpoint contents remain unverified. ``runtime_ready`` retains
-    the separate provider/import and Metal result. No inference, downloads or
-    output writes occur. Importable runners are never proof of compatible assets.
+    ``ready`` preserves the historical boolean provider/import and Metal result;
+    ``runtime_ready`` names that same result explicitly. Neither validates a run.
+    ``run_ready=False`` identifies a known blocker; ``run_ready=None`` means input
+    and checkpoint contents remain unverified. This check never returns a true
+    ``run_ready``. No inference, downloads or output writes occur.
 
     Args:
         model_ids: Models to check; all discovered models when omitted or empty.
@@ -208,14 +209,16 @@ def model_readiness(
     for spec in specs:
         runtime = registry.readiness(spec)
         row: ModelReadiness = {
-            "id": spec.id, "ready": None if runtime["ready"] else False,
-            "runtime_ready": runtime["ready"], "reason": runtime["reason"],
+            "id": spec.id, "ready": runtime["ready"],
+            "runtime_ready": runtime["ready"], "run_ready": None if runtime["ready"] else False,
+            "reason": runtime["reason"],
             "setup_hint": runtime["setup_hint"], "arguments_valid": None,
             "path_checks": [], "inputs_validated": False, "weights_validated": False,
         }
         reasons = [str(row["reason"])] if row["reason"] else []
         if not mlx["usable"]:
-            row.update(ready=False, runtime_ready=False, setup_hint=row["setup_hint"] or _MLX_HINT)
+            row.update(ready=False, runtime_ready=False, run_ready=False,
+                       setup_hint=row["setup_hint"] or _MLX_HINT)
             reasons.append(f"MLX is not usable: {mlx.get('reason')}")
         if arguments is not None:
             try:
@@ -225,10 +228,10 @@ def model_readiness(
                 row["arguments_valid"] = True
                 missing = [item["path"] for item in row["path_checks"] if not item["available"]]
                 if missing:
-                    row["ready"] = False
+                    row["run_ready"] = False
                     reasons.append("Unavailable input/weight paths: " + ", ".join(missing))
             except (TypeError, ValueError, ImportError, AttributeError) as error:
-                row.update(ready=False, arguments_valid=False)
+                row.update(run_ready=False, arguments_valid=False)
                 reasons.append(f"Invalid arguments: {error}")
         row["reason"] = "; ".join(reasons) or None
         rows.append(row)

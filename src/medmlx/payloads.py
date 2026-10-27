@@ -117,13 +117,15 @@ class PathCheck(TypedDict):
 class ModelReadiness(TypedDict):
     """Separate runtime availability from unproven input/checkpoint compatibility.
 
-    ``ready=None`` means no known blocker, but the run is not validated. Path
-    existence alone cannot establish valid image contents or compatible weights.
+    ``ready`` is the legacy runtime boolean, identical to ``runtime_ready``.
+    ``run_ready=None`` means no known blocker, but the run is not validated.
+    Path existence cannot establish valid image contents or compatible weights.
     """
 
     id: str
-    ready: bool | None
+    ready: bool
     runtime_ready: bool
+    run_ready: bool | None
     reason: object
     setup_hint: object
     arguments_valid: bool | None

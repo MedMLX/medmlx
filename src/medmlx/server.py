@@ -40,10 +40,12 @@ list_checkpoints exposes source references, including catalog-only checkpoints;
 it does not download weights or assert that checkpoints have been qualified.
 Typical flow: list_models -> describe_model -> model_readiness -> run_model ->
 get_job (with wait_seconds). runtime_info reports MLX Metal availability and device.
-Readiness separates runtime_ready from ready: null means input/checkpoint contents
-are unverified, false identifies a blocker. Supply arguments with one model id to
-check argument binding and local input/weight paths without inference or downloads.
-describe_model includes provider instructions and argument descriptions.
+Readiness preserves ready as a boolean alias of runtime_ready (provider/import
+checks plus Metal). run_ready is null for unverified input/checkpoint contents, or
+false for a known blocker; this check cannot establish a validated run.
+Supply arguments with one model id to check argument binding and local input/weight
+paths without inference or downloads. describe_model reproduces provider instructions
+and argument descriptions; it does not independently validate or qualify their claims.
 Some providers fetch default weights when assets are omitted (for example SAM3
 checkpoint_path). Read those instructions and supply local assets for offline runs.
 run_model takes the model's run-function keyword arguments, as listed by
@@ -105,7 +107,7 @@ def build_server(root: Path) -> MCPServer[Jobs]:
         return api.list_checkpoints(model_id)
 
     def describe_model(model_id: str) -> ModelDescription:
-        """Return one model's declaration and run arguments."""
+        """Return a model's declaration and provider-authored guidance, not validation."""
         with _tool_errors():
             return api.describe_model(model_id)
 
@@ -115,9 +117,10 @@ def build_server(root: Path) -> MCPServer[Jobs]:
     ) -> ReadinessPayload:
         """Check runtime and optional input/weight paths for one model without running it.
 
-        ready=null means input/checkpoint contents remain unverified. runtime_ready
-        reports imports/provider checks plus Metal separately. Optional arguments
-        require exactly one model id and resolve paths against the server root.
+        ready and runtime_ready report the same boolean imports/provider checks
+        plus Metal result. run_ready=null means input/checkpoint contents remain
+        unverified; false identifies a blocker. Optional arguments require exactly
+        one model id and resolve paths against the server root.
         """
         with _tool_errors():
             return api.model_readiness(model_ids, arguments=arguments, root=root)
