@@ -194,6 +194,18 @@ wheels = [
 ]
 
 [[package]]
+name = "ftfy"
+version = "6.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wcwidth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a5/d3/8650919bc3c7c6e90ee3fa7fd618bf373cbbe55dff043bd67353dbb20cd8/ftfy-6.3.1.tar.gz", hash = "sha256:9b3c3d90f84fb267fe64d375a07b7f8912d817cf86009ae134aa03e1819506ec", size = 308927, upload-time = "2024-10-26T00:50:35.149Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/6e/81d47999aebc1b155f81eca4477a616a70f238a2549848c38983f3c22a82/ftfy-6.3.1-py3-none-any.whl", hash = "sha256:7c70eb532015cd2f9adb53f101fb6c7945988d023a085d127d1573dc49dd0083", size = 44821, upload-time = "2024-10-26T00:50:33.425Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -308,7 +320,7 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "1.33.0"
+version = "1.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -321,9 +333,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/2a/484d112c0d8fc5f665d7b65137ac9cdb2953c982391598c3597968a12ee7/huggingface_hub-1.33.0.tar.gz", hash = "sha256:367be21a201db9523eddf8aeac7048f2602c1b308691c97640d5e72ed188007e", size = 1043548, upload-time = "2026-09-24T09:49:29.971Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/8f/999e4dda11c6187c78f090eac00895a47e11a0049308f07579bcb7aa3aa2/huggingface_hub-1.23.0.tar.gz", hash = "sha256:c04997fb8bbdace1e57b7703d30ed7678af51f70d00d241819ff411b92ae9a88", size = 919163, upload-time = "2026-07-09T14:49:32.315Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/16/963096d224b80909432dc16561a615fd33d2d13beef3ce4c63fa25e40867/huggingface_hub-1.33.0-py3-none-any.whl", hash = "sha256:04e434b06e100eddbce9a6e817d72693a7884b10a79bd67ab48080d5c07eb899", size = 846435, upload-time = "2026-09-24T09:49:28.059Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/ce/13b2ba57838b8db1e6bd033c1b21ce0b9f6153b87d4e4939f77074e41eb0/huggingface_hub-1.23.0-py3-none-any.whl", hash = "sha256:b1d604788f5adc7f0eb246e03e0ec19011ca06e38400218c347dccc3dffa64a2", size = 770336, upload-time = "2026-07-09T14:49:30.597Z" },
 ]
 
 [[package]]
@@ -555,11 +567,14 @@ all = [
     { name = "lesiondiffusion-mlx" },
     { name = "lung-nodule-mlx" },
     { name = "medsam2-mlx" },
+    { name = "mlx-reason-ct" },
     { name = "mlx-segment-ct" },
     { name = "mlxradiomics", extra = ["io"] },
+    { name = "nibabel" },
     { name = "nnunet-mlx" },
     { name = "nv-generate-mlx" },
     { name = "radimagenet-mlx" },
+    { name = "sam3-mlx", extra = ["video"] },
     { name = "segresnet-mlx" },
     { name = "swin-unetr-mlx" },
     { name = "synthseg-mlx" },
@@ -569,6 +584,8 @@ all = [
 generate = [
     { name = "fdg-pet-ct-mlx" },
     { name = "lesiondiffusion-mlx" },
+    { name = "mlx-reason-ct" },
+    { name = "nibabel" },
     { name = "nv-generate-mlx" },
 ]
 mcp = [
@@ -581,6 +598,7 @@ segment = [
     { name = "medsam2-mlx" },
     { name = "mlx-segment-ct" },
     { name = "nnunet-mlx" },
+    { name = "sam3-mlx", extra = ["video"] },
     { name = "segresnet-mlx" },
     { name = "swin-unetr-mlx" },
     { name = "synthseg-mlx" },
@@ -621,10 +639,14 @@ requires-dist = [
     { name = "medmlx-core", editable = "packages/core" },
     { name = "medsam2-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=42840d98db0e3f10c36a767dcaf51ef84363fab3" },
     { name = "medsam2-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/medsam2-mlx.git?rev=42840d98db0e3f10c36a767dcaf51ef84363fab3" },
+    { name = "mlx-reason-ct", marker = "extra == 'all'", git = "https://github.com/MedMLX/MLX-Reason-CT.git?rev=97cc51938fd5a5bace2cc7a63b28d0af1ed7c99f" },
+    { name = "mlx-reason-ct", marker = "extra == 'generate'", git = "https://github.com/MedMLX/MLX-Reason-CT.git?rev=97cc51938fd5a5bace2cc7a63b28d0af1ed7c99f" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", git = "https://github.com/MedMLX/mlx-segment-ct.git?rev=bff7ec9d39a0295ca52833e6a2e6c1844afe8f99" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", git = "https://github.com/MedMLX/mlxradiomics.git?rev=63477176be5bc7ad6c8c679eb8cd98ea4949050c" },
+    { name = "nibabel", marker = "extra == 'all'", specifier = ">=5.4.2,<6" },
+    { name = "nibabel", marker = "extra == 'generate'", specifier = ">=5.4.2,<6" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf" },
@@ -632,6 +654,8 @@ requires-dist = [
     { name = "packaging", specifier = ">=24" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", git = "https://github.com/MedMLX/sam3-mlx.git?rev=3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", git = "https://github.com/MedMLX/sam3-mlx.git?rev=3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" },
     { name = "segresnet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
     { name = "segresnet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
     { name = "swin-unetr-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" },
@@ -716,6 +740,22 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/77/24/7e5b7ed5d28abacab4577c7a8dd1fca6e9058504f5f95ae4333c09420e2e/mlx_metal-0.32.4-py3-none-macosx_14_0_arm64.whl", hash = "sha256:8019b2db622599267d66cc168b2f0dbf5af929790a6c3b3913e00eabc42a7947", size = 44958619, upload-time = "2026-10-14T21:14:45.727Z" },
     { url = "https://files.pythonhosted.org/packages/54/8c/9754dd6c4db485037f59cc8be6495738e14cdeb8bf19d5bddb5e96da890f/mlx_metal-0.32.4-py3-none-macosx_15_0_arm64.whl", hash = "sha256:9f0a3cc26d89724434d9684932fc6f3e4e83669d2a895d858ed2c8a55eb84e8b", size = 44942974, upload-time = "2026-10-14T21:14:50.012Z" },
     { url = "https://files.pythonhosted.org/packages/2a/d6/4340ed6e184f71693d7f531c9ae55d677451351245760d71f8dd714dcbe5/mlx_metal-0.32.4-py3-none-macosx_26_0_arm64.whl", hash = "sha256:514df92d41a286895d2564b4b18f4da45096bd7a4a0c47e1042f345ad5a7f936", size = 78106861, upload-time = "2026-10-14T21:14:56.184Z" },
+]
+
+[[package]]
+name = "mlx-reason-ct"
+version = "0.3.2"
+source = { git = "https://github.com/MedMLX/MLX-Reason-CT.git?rev=97cc51938fd5a5bace2cc7a63b28d0af1ed7c99f#97cc51938fd5a5bace2cc7a63b28d0af1ed7c99f" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "jinja2" },
+    { name = "medmlx-core" },
+    { name = "mlx" },
+    { name = "nibabel" },
+    { name = "numpy" },
+    { name = "safetensors" },
+    { name = "scipy" },
+    { name = "tokenizers" },
 ]
 
 [[package]]
@@ -852,12 +892,14 @@ wheels = [
 
 [[package]]
 name = "numpy"
-version = "2.5.4"
+version = "2.3.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/95/b0/c7453d0b6e2073c3264468b106ee1563750cecc910965e67357e3698c83e/numpy-2.5.4.tar.gz", hash = "sha256:9a94cf751c9ad8ebaa835bcd3d40dacf8534ad086b88c38029b65123c7999d2a", size = 20866315, upload-time = "2026-10-10T20:05:31.422Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/65/21b3bc86aac7b8f2862db1e808f1ea22b028e30a225a34a5ede9bf8678f2/numpy-2.3.5.tar.gz", hash = "sha256:784db1dcdab56bf0517743e746dfb0f885fc68d948aba86eeec2cba234bdf1c0", size = 20584950, upload-time = "2025-11-16T22:52:42.067Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/8c/b0ea9477fb1f0d4484bbc5cba21678cc9969704d8d7f3f158d1db35f8e14/numpy-2.5.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7415db95818b39ec475a5eea54d9e3b6bc83e3912158e46da3438cdce399804d", size = 12009826, upload-time = "2026-10-10T20:03:11.946Z" },
-    { url = "https://files.pythonhosted.org/packages/e2/84/6a3d75b3ba3dfe84ac0053450753d1e6d250a8bf80f66474cc46d1fb643f/numpy-2.5.4-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:6d6a71b9d9a97c03633aa12565ef2825ffa036cc1d99cfd50dacf0f128af4fe2", size = 5445803, upload-time = "2026-10-10T20:03:14.329Z" },
+    { url = "https://files.pythonhosted.org/packages/79/fb/f505c95ceddd7027347b067689db71ca80bd5ecc926f913f1a23e65cf09b/numpy-2.3.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:aa5bc7c5d59d831d9773d1170acac7893ce3a5e130540605770ade83280e7188", size = 12254652, upload-time = "2025-11-16T22:50:21.487Z" },
+    { url = "https://files.pythonhosted.org/packages/78/da/8c7738060ca9c31b30e9301ee0cf6c5ffdbf889d9593285a1cead337f9a5/numpy-2.3.5-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:ccc933afd4d20aad3c00bcef049cb40049f7f196e0397f1109dba6fed63267b0", size = 5083172, upload-time = "2025-11-16T22:50:24.562Z" },
+    { url = "https://files.pythonhosted.org/packages/71/80/ba9dc6f2a4398e7f42b708a7fdc841bb638d353be255655498edbf9a15a8/numpy-2.3.5-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:5ee6609ac3604fa7780e30a03e5e241a7956f8e2fcfe547d51e3afa5247ac47f", size = 12378897, upload-time = "2025-11-16T22:50:51.327Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/6d/db2151b9f64264bcceccd51741aa39b50150de9b602d98ecfe7e0c4bff39/numpy-2.3.5-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:86d835afea1eaa143012a2d7a3f45a3adce2d7adc8b4961f0b362214d800846a", size = 5207391, upload-time = "2025-11-16T22:50:54.542Z" },
 ]
 
 [[package]]
@@ -871,6 +913,18 @@ dependencies = [
     { name = "numpy" },
     { name = "safetensors" },
     { name = "scipy" },
+]
+
+[[package]]
+name = "opencv-python-headless"
+version = "5.0.0.93"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/99/76b7c80252aa83c1af16393454aafd125a0287101afe8deb0a6821af0e30/opencv_python_headless-5.0.0.93.tar.gz", hash = "sha256:b82f9831daab90b725c7c1ee1b36cb5732c367096ac76d119e64e14eb70d5f3c", size = 81817738, upload-time = "2026-07-02T07:01:06.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/7c/8c8097891c509d98cd128493835c95631c80be6a8f37ed9d25716c2e16f1/opencv_python_headless-5.0.0.93-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:030ca5e0837a2963ab36ef896baa9767eb8d2b83353fb28af5a521e40dd8756f", size = 48322581, upload-time = "2026-07-02T05:50:34.207Z" },
 ]
 
 [[package]]
@@ -1053,6 +1107,16 @@ wheels = [
 ]
 
 [[package]]
+name = "regex"
+version = "2026.9.29"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/f2/af1da9d3ceed77bfcdce40427d49ba0be94e4fe84245e3bfef68c10e75b6/regex-2026.9.29.tar.gz", hash = "sha256:8b5fcc4771732191b2b7d1dd68d8f0353f47f8d90b6150f6dce58bf1112442cb", size = 419199, upload-time = "2026-09-29T00:49:58.298Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/d5/6080f7d1a6e7e36aa720f806ac93c035ba39c209ae6cc510e8ef4c0279c6/regex-2026.9.29-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:f1a0d5117230dd46b399a30a38afa44f79c99f3168988fdc4f425c3f928b39df", size = 497622, upload-time = "2026-09-29T00:47:08.251Z" },
+    { url = "https://files.pythonhosted.org/packages/11/9e/aa0f4cde3bc4688c1d58b0cd8415edd708339bc0bc401a195b0b1e8c8f0c/regex-2026.9.29-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c90fcf7804ea0a54b896ce0f2b9565350220b8d4890fd0db461a476a4c687963", size = 293472, upload-time = "2026-09-29T00:47:11.723Z" },
+]
+
+[[package]]
 name = "rich"
 version = "15.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1090,6 +1154,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/45/06/f955dbbb1859e3bd23c8ac6141af5106e7ad5fedec4a3a6e3d60f94b7001/safetensors-0.8.0.tar.gz", hash = "sha256:fabaf3e0f18a6618d9b36560682562157f77c2b71fcffc7b432be2baed9d753d", size = 325846, upload-time = "2026-06-09T07:52:25.563Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f5/b1/fa7c600e7dceae12e9606c7578cbc9ff1e1ed55844883ee5c92205e86226/safetensors-0.8.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:c80201d22cbf405b80647a60ada77bba06c8fba2da2743ba1e89cdcc39a81f25", size = 484562, upload-time = "2026-06-09T07:52:17.518Z" },
+]
+
+[[package]]
+name = "sam3-mlx"
+version = "0.1.3"
+source = { git = "https://github.com/MedMLX/sam3-mlx.git?rev=3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80#3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" }
+dependencies = [
+    { name = "ftfy" },
+    { name = "huggingface-hub" },
+    { name = "medmlx-core" },
+    { name = "mlx" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "regex" },
+]
+
+[package.optional-dependencies]
+video = [
+    { name = "opencv-python-headless" },
 ]
 
 [[package]]
@@ -1367,4 +1450,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/38/0c/b54a4fdd7f90a3af8b02ebc9ce6712c2c208b7926a2f7bad95c33ebbe943/uvicorn-0.54.0-py3-none-any.whl", hash = "sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf", size = 87427, upload-time = "2026-09-25T06:52:35.829Z" },
+]
+
+[[package]]
+name = "wcwidth"
+version = "0.9.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/01/e5ac23733628a6bbb91913a765fcf55ee8070d8d991bc88fdaaf805052c7/wcwidth-0.9.4.tar.gz", hash = "sha256:fd8d57d3cdfe570e3265c8fab1885c24e34ef40889c0759c0c304a19e9835954", size = 970051, upload-time = "2026-10-24T18:11:44.954Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/e9/dfdca30ca36c472de3e260406dee29fc108499ec590c63b3fe279887ee9d/wcwidth-0.9.4-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:f279f32c8e206a9092fa350e53ca0c2bd8072e45b1c9fd31bb6d476b59b591c4", size = 618904, upload-time = "2026-10-24T18:11:02.008Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/0c/309b1813b230d1dbbd6f2c2ab2bb21ef68992358977605d9ef289bbfedcc/wcwidth-0.9.4-py3-none-any.whl", hash = "sha256:901eace6d2dd25ebb917d0ce5db18e5c537e1504c905cf32f0d006c12098b05d", size = 301806, upload-time = "2026-10-24T18:10:52.651Z" },
 ]

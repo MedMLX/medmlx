@@ -16,6 +16,7 @@ import pytest
 from mcp import Client, StdioServerParameters
 
 from medmlx.payloads import (
+    CheckpointListPayload,
     DiscoveryError,
     JobListPayload,
     JobPayload,
@@ -35,6 +36,7 @@ _TOOLS = {
     "get_job",
     "list_jobs",
     "list_models",
+    "list_checkpoints",
     "list_packages",
     "model_readiness",
     "run_model",
@@ -68,7 +70,7 @@ def _with_client(root: Path, body: Callable[[Client], Awaitable[None]]) -> None:
 
 type ToolPayload = (
     ModelListPayload | ModelDescription | ReadinessPayload | RuntimeToolPayload
-    | PackageListPayload | JobListPayload | JobPayload
+    | PackageListPayload | JobListPayload | JobPayload | CheckpointListPayload
 )
 
 
@@ -76,6 +78,12 @@ type ToolPayload = (
 async def _call(
     client: Client, tool: Literal["list_models"], arguments: dict[str, object]
 ) -> ModelListPayload: ...
+
+
+@overload
+async def _call(
+    client: Client, tool: Literal["list_checkpoints"], arguments: dict[str, object]
+) -> CheckpointListPayload: ...
 
 
 @overload
@@ -324,16 +332,25 @@ def test_readiness_and_description_come_from_the_package(
     async def body(client: Client) -> None:
         readiness = await _call(client, "model_readiness", {"model_ids": ["threshold", "sleeper"]})
         assert readiness["mlx_usable"] is True
-        assert readiness["models"] == [
+        assert [row["runtime_ready"] for row in readiness["models"]] == [False, True]
+        assert [row["ready"] for row in readiness["models"]] == [False, None]
+        assert [
+            {key: row[key] for key in ("id", "reason", "setup_hint")}
+            for row in readiness["models"]
+        ] == [
             {
                 "id": "threshold",
-                "ready": False,
                 "reason": "weights not staged",
                 "setup_hint": "stage the weights",
             },
-            {"id": "sleeper", "ready": True, "reason": None, "setup_hint": None},
+            {"id": "sleeper", "reason": None, "setup_hint": None},
         ]
         described = await _call(client, "describe_model", {"model_id": "threshold"})
+        assert described["instructions"] is not None
+        assert "Threshold a JSON array." in described["instructions"]
+        assert described["parameters"][2]["description"] == (
+            "Unitless cutoff; values strictly greater become foreground."
+        )
         assert (described["package"], described["version"]) == ("fakemlx", "1.2.3")
         assert described["family"] == "segment"
         assert [
@@ -380,7 +397,7 @@ def test_readiness_fails_every_model_when_mlx_is_unusable(
         assert threshold["ready"] is False
         assert threshold["reason"] == f"weights not staged; MLX is not usable: {reason}"
         assert threshold["setup_hint"] == "stage the weights"
-        assert sleeper == {
+        assert {key: sleeper[key] for key in ("id", "ready", "reason", "setup_hint")} == {
             "id": "sleeper",
             "ready": False,
             "reason": f"MLX is not usable: {reason}",
@@ -473,5 +490,59 @@ def test_list_packages_shows_families_sub_packages_and_their_models(
         listed = await _call(client, "list_models", {"family": "segment"})
         assert sorted(model["id"] for model in listed["models"]) == _SERVED
         assert {model["family"] for model in listed["models"]} == {"segment"}
+
+    _with_client(tmp_path, body)
+
+
+def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
+    model_site: Path, tmp_path: Path,
+) -> None:
+    (tmp_path / "image.json").write_text("[0.2, 0.8]")
+
+    async def body(client: Client) -> None:
+        missing = await _call(client, "model_readiness", {
+            "model_ids": ["threshold"],
+            "arguments": {"image_path": "absent.json", "output_path": "mask.json"},
+        })
+        row = missing["models"][0]
+        assert row["ready"] is False
+        assert row["arguments_valid"] is True
+        assert row["path_checks"] == [{
+            "parameter": "image_path", "path": str(tmp_path / "absent.json"),
+            "available": False,
+        }]
+        present = await _call(client, "model_readiness", {
+            "model_ids": ["threshold"],
+            "arguments": {"image_path": "image.json", "output_path": "mask.json"},
+        })
+        assert present["models"][0]["path_checks"][0]["available"] is True
+        assert present["models"][0]["weights_validated"] is False
+        assert present["models"][0]["inputs_validated"] is False
+        invalid = await _call(client, "model_readiness", {
+            "model_ids": ["sleeper"], "arguments": {"misspelled": 0},
+        })
+        assert invalid["models"][0]["ready"] is False
+        assert invalid["models"][0]["arguments_valid"] is False
+        assert not (tmp_path / "mask.json").exists()
+        assert (await _call(client, "list_jobs", {}))["jobs"] == []
+
+    _with_client(tmp_path, body)
+
+
+def test_checkpoint_catalog_does_not_register_or_qualify_research_sources(tmp_path: Path) -> None:
+    async def body(client: Client) -> None:
+        listed = await _call(client, "list_checkpoints", {"model_id": "nnunet"})
+        assert listed["checkpoints"]
+        assert all(row["model_id"] == "nnunet" for row in listed["checkpoints"])
+        autopet = next(row for row in listed["checkpoints"]
+                       if row["dataset"] == "Dataset221_AutoPETII_2023")
+        assert autopet["source_url"] == "https://zenodo.org/records/8362371"
+        assert autopet["input_channels"] == ["CT (HU)", "FDG PET (SUV)"]
+        assert autopet["integration"] == "catalog_only"
+        assert autopet["qualification"] == "not_assessed_by_catalog"
+        models = await _call(client, "list_models", {})
+        assert autopet["id"] not in {row["id"] for row in models["models"]}
+        assert (await _call(client, "list_jobs", {}))["jobs"] == []
+        assert list(tmp_path.iterdir()) == []
 
     _with_client(tmp_path, body)

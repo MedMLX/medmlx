@@ -18,12 +18,14 @@ dependencies = ["medmlx-core==0.2.3", "packaging>=24"]
 medmlx = "medmlx.cli:main"
 
 [project.entry-points."medmlx.models"]
+fdg-pet-ct = "medmlx.adapters.fdg_pet:MODEL"
 nnunet-pancreas = "medmlx.adapters.nnunet:PANCREAS"
 nnunet-brats2021 = "medmlx.adapters.nnunet:BRATS"
 mrsegmentator = "medmlx.adapters.nnunet:MRSEGMENTATOR"
 
 [project.optional-dependencies]
 segment = [
+  "sam3-mlx[video]==0.1.3",
   "biomedparse-mlx==0.1.1",
   "flexible-unet-mlx==0.2.1",
   "swin-unetr-mlx==0.2.1",
@@ -37,6 +39,8 @@ segment = [
   "totalsegmentator-mlx==0.1.1",
 ]
 generate = [
+  "nibabel>=5.4.2,<6",
+  "mlx-reason-ct==0.3.2",
   "fdg-pet-ct-mlx==0.2.1",
   "nv-generate-mlx==0.3.1",
   "lesiondiffusion-mlx==0.2.1",
@@ -47,6 +51,9 @@ vision = [
   "lung-nodule-mlx==0.2.1",
 ]
 all = [
+  "nibabel>=5.4.2,<6",
+  "sam3-mlx[video]==0.1.3",
+  "mlx-reason-ct==0.3.2",
   "biomedparse-mlx==0.1.1",
   "fdg-pet-ct-mlx==0.2.1",
   "flexible-unet-mlx==0.2.1",
@@ -86,6 +93,8 @@ members = ["packages/core"]
 exclude = ["conversion"]
 
 [tool.uv.sources]
+sam3-mlx = { git = "https://github.com/MedMLX/sam3-mlx.git", rev = "3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" }
+mlx-reason-ct = { git = "https://github.com/MedMLX/MLX-Reason-CT.git", rev = "97cc51938fd5a5bace2cc7a63b28d0af1ed7c99f" }
 biomedparse-mlx = { git = "https://github.com/MedMLX/biomedparse-mlx.git", rev = "a11d909b22ec6119a5cf28e01016fc2f471731a9" }
 fdg-pet-ct-mlx = { git = "https://github.com/MedMLX/fdg-pet-ct-mlx.git", rev = "fc6c5dcbd09052c8b102883c96f86345363d5266" }
 flexible-unet-mlx = { git = "https://github.com/MedMLX/flexible-unet-mlx.git", rev = "ee5e6cedaba026c3c63e76bda57ca16983134f45" }
@@ -130,7 +139,7 @@ ban-relative-imports = "all"
 "typing_extensions.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
 
 [tool.pyright]
-include = ["src", "tests", "tools/extraction/tests"]
+include = ["src", "tests", "typings", "tools/extraction/tests"]
 extraPaths = ["src", "packages/core/src"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"

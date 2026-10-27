@@ -19,7 +19,7 @@ MODEL = {
 ```
 
 - `run` receives the JSON keyword arguments from `run_model` and returns a JSON object (`dict`) containing JSON values. The runner converts paths to strings and arrays to lists before returning. Non-finite numbers and unsupported objects fail the run. Raise an exception to fail the run; its type and message reach the client.
-- `readiness` takes no arguments and returns `{"ready": bool, "reason": str | None, "setup_hint": str | None}`. Keep it cheap, because it runs in the server process. Without one, a model is ready when its `run` function imports. The server separately reports a model as not ready when MLX itself is unusable, so packages do not repeat that check.
+- `readiness` takes no arguments and returns `{"ready": bool, "reason": str | None, "setup_hint": str | None}`. Keep it cheap, because it runs in the server process. Without one, only runner importability is checked. The frontend reports this with Metal availability as `runtime_ready`; `ready` is `null` while run inputs and checkpoint contents remain unverified, or `false` for a known blocker. Optional argument checks inspect signature binding and conventional input/weight paths without reading their contents. Packages do not repeat the Metal check.
 - A declaration with a missing or unknown field, a bad reference, or an import error is reported in `discovery_errors`. When two entry points declare the same id, neither is served.
 
 ## Conventions for registered MedMLX runners
@@ -57,3 +57,36 @@ explicit `fold` takes precedence. Missing or incompatible model folders fail.
 `totalsegmentator-mlx` owns its own CT pipeline and `totalsegmentator` entry point.
 Its README documents converted model directories, modes and organ selection.
 These adapters preserve each runtime's existing qualification scope.
+
+## Checkpoint discovery
+
+`list_checkpoints` (CLI: `medmlx checkpoints`) returns source references separately
+from installed model declarations. Its `runner_installed` flag means only that the
+referenced runner was discovered. `qualification=not_assessed_by_catalog` preserves
+that boundary even for named adapters. Liver (Zenodo 18807203) and AutoPET II
+(Zenodo 8362371) are catalog-only entries requiring explicit conversion and validation
+before using the general `nnunet` runner. AutoPET channels are CT, then SUV PET.
+
+## Standalone FDG PET synthesis
+
+The generate extra exposes `fdg-pet-ct`. It calls the independent fdg-pet-ct-mlx
+activity and acquisition kernels with no learned weights. Supply `image_path`
+(CT HU), `labels_path` (MAISI labels), `profile_path` and `output_dir`.
+The two NIfTI volumes must have matching 3-D shape/affine and declare mm spatial
+units. The result is `pet.nii.gz` in SUV on that grid. This is image-space synthesis;
+projection physics, reconstruction and lesion insertion are outside this adapter.
+
+A profile JSON has exactly `tissues` and `scanner` objects. Every tissue specifies
+`suv_mean`, `suv_std` and `maisi_labels`; `unclassified_soft_tissue` is required for
+unlisted IDs. Means and standard deviations are finite/nonnegative SUV, and MAISI
+IDs are unique integers in [0, 200]. Scanner settings are `scatter_fraction` and
+`randoms_fraction` in [0, 1], three nonnegative `fwhm_mm` values in array-axis order,
+and positive `counts_per_suv`. Profiles are caller-owned; the adapter does not
+supply physiological defaults. `count_level` is a finite positive count multiplier.
+`seed` is in [0, 4294967294]; acquisition uses seed+1. Existing outputs require
+`overwrite=True`, and aliases of the inputs are refused.
+
+The tiny synthetic adapter integration test is opt-in:
+`MEDMLX_TEST_METAL=1 make test TESTS=tests/test_fdg_pet.py`.
+It checks geometry, output protection and a zero-activity profile; it is not a
+clinical or checkpoint qualification test. Other FDG adapter tests run on the CPU.

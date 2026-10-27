@@ -31,6 +31,13 @@ INVALID = {"id": "invalid", "label": "Invalid", "task": "testing"}
 
 
 def threshold(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
+    """Threshold a JSON array.
+
+    Args:
+        image_path: JSON array of finite scalar values.
+        output_path: Destination JSON mask.
+        level: Unitless cutoff; values strictly greater become foreground.
+    """
     values = json.loads(Path(image_path).read_text())
     mask = [value > level for value in values]
     Path(output_path).write_text(json.dumps(mask))

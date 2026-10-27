@@ -40,12 +40,16 @@ def _parser() -> argparse.ArgumentParser:
     models = commands.add_parser("models", help="List installed model declarations.")
     models.add_argument("--task")
     models.add_argument("--family", choices=("segment", "generate", "vision"))
+    checkpoints = commands.add_parser("checkpoints", help="List checkpoint sources; no downloads.")
+    checkpoints.add_argument("--model-id")
     commands.add_parser("packages", help="Show optional runtime families and versions.")
     commands.add_parser("runtime", help="Probe the MLX Metal runtime.")
     describe = commands.add_parser("describe", help="Show a runner's keyword arguments.")
     describe.add_argument("model_id")
     ready = commands.add_parser("readiness", help="Check model and Metal readiness.")
     ready.add_argument("model_ids", nargs="*")
+    ready.add_argument("--arguments", type=Path, help="Check one model's argument JSON and paths.")
+    ready.add_argument("--root", type=Path, default=Path.cwd())
     run = commands.add_parser("run", help="Run a model and wait for its result.")
     run.add_argument("model_id")
     run.add_argument("--arguments", type=Path, required=True, help="JSON keyword-argument file.")
@@ -128,6 +132,8 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
         case "models":
             payload = api.list_models(options.task, options.family)
             return payload, int(bool(payload["discovery_errors"]))
+        case "checkpoints":
+            return api.list_checkpoints(options.model_id), 0
         case "packages":
             return api.list_packages(), 0
         case "runtime":
@@ -135,7 +141,10 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
         case "describe":
             return api.describe_model(options.model_id), 0
         case "readiness":
-            return api.model_readiness(options.model_ids or None), 0
+            arguments = None if options.arguments is None else read_arguments(options.arguments)
+            return api.model_readiness(
+                options.model_ids or None, arguments=arguments, root=options.root,
+            ), 0
         case "run":
             return api.run(
                 options.model_id, arguments=read_arguments(options.arguments), root=options.root

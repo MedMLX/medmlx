@@ -92,10 +92,12 @@ class ParameterPayload(TypedDict):
     required: bool
     default: JsonValue
     annotation: str | None
+    description: str | None
 
 
 class ModelDescription(ModelListItem):
     parameters: list[ParameterPayload]
+    instructions: str | None
 
 
 class Readiness(TypedDict):
@@ -106,8 +108,28 @@ class Readiness(TypedDict):
     setup_hint: object
 
 
-class ModelReadiness(Readiness):
+class PathCheck(TypedDict):
+    parameter: str
+    path: str
+    available: bool
+
+
+class ModelReadiness(TypedDict):
+    """Separate runtime availability from unproven input/checkpoint compatibility.
+
+    ``ready=None`` means no known blocker, but the run is not validated. Path
+    existence alone cannot establish valid image contents or compatible weights.
+    """
+
     id: str
+    ready: bool | None
+    runtime_ready: bool
+    reason: object
+    setup_hint: object
+    arguments_valid: bool | None
+    path_checks: list[PathCheck]
+    inputs_validated: bool
+    weights_validated: bool
 
 
 class ReadinessPayload(TypedDict):
@@ -136,3 +158,21 @@ class PackageListPayload(TypedDict):
 
 class JobListPayload(TypedDict):
     jobs: list[JobPayload]
+
+
+class CheckpointPayload(TypedDict):
+    id: str
+    label: str
+    model_id: str
+    source_url: str
+    dataset: str
+    input_channels: list[str]
+    integration: Literal["named_adapter", "catalog_only"]
+    asset_hint: str
+    runner_installed: bool
+    qualification: Literal["not_assessed_by_catalog"]
+
+
+class CheckpointListPayload(TypedDict):
+    checkpoints: list[CheckpointPayload]
+    notice: str

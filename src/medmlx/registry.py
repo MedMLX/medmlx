@@ -154,10 +154,16 @@ def resolve(reference: str) -> Callable[..., object]:
 
 
 def parameters(spec: ModelSpec) -> list[ParameterPayload]:
-    """Describe the run function's parameters from its signature."""
+    """Describe the signature and provider-authored Google-style argument prose.
 
+    Descriptions are documentation, not inferred validation constraints. The full
+    runner docstring remains available for providers using other formats.
+    """
+
+    runner = resolve(spec.run)
+    descriptions = _argument_descriptions(inspect.getdoc(runner) or "")
     rows: list[ParameterPayload] = []
-    for parameter in inspect.signature(resolve(spec.run)).parameters.values():
+    for parameter in inspect.signature(runner).parameters.values():
         if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
             continue
         required = parameter.default is inspect.Parameter.empty
@@ -166,6 +172,7 @@ def parameters(spec: ModelSpec) -> list[ParameterPayload]:
                 "name": parameter.name,
                 "required": required,
                 "default": None if required else _json_value(parameter.default),
+                "description": descriptions.get(parameter.name),
                 "annotation": None
                 if parameter.annotation is inspect.Parameter.empty
                 else str(parameter.annotation),
@@ -174,8 +181,33 @@ def parameters(spec: ModelSpec) -> list[ParameterPayload]:
     return rows
 
 
+def _argument_descriptions(docstring: str) -> dict[str, str]:
+    """Extract Args prose without interpreting it as a schema or range guarantee."""
+    descriptions: dict[str, str] = {}
+    names: list[str] = []
+    in_args = False
+    for line in docstring.splitlines():
+        if line.strip() in {"Args:", "Arguments:", "Parameters:"}:
+            in_args = True
+            names = []
+            continue
+        if not in_args:
+            continue
+        if line and not line[0].isspace():
+            break
+        match = re.match(r"^    ([\w, ]+)(?: \([^)]*\))?:\s*(.*)$", line)
+        if match:
+            names = [name.strip() for name in match.group(1).split(",")]
+            for name in names:
+                descriptions[name] = match.group(2).strip()
+        elif line.strip():
+            for name in names:
+                descriptions[name] += " " + line.strip()
+    return descriptions
+
+
 def readiness(spec: ModelSpec) -> Readiness:
-    """Report whether a model can run; a model without a check is ready if it imports."""
+    """Report the provider/import check; this does not certify run inputs or weights."""
 
     try:
         if spec.readiness is None:

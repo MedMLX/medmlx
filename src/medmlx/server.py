@@ -17,6 +17,7 @@ from pydantic import Field
 from medmlx import __version__, api
 from medmlx.jobs import Jobs
 from medmlx.payloads import (
+    CheckpointListPayload,
     JobListPayload,
     JobPayload,
     JsonValue,
@@ -35,10 +36,16 @@ _INSTRUCTIONS = """\
 MedMLX runs native MLX medical imaging models on macOS Apple Silicon with Metal.
 Model families are optional segment, generate and vision installs.
 list_packages reports their independently maintained runtime packages.
+list_checkpoints exposes source references, including catalog-only checkpoints;
+it does not download weights or assert that checkpoints have been qualified.
 Typical flow: list_models -> describe_model -> model_readiness -> run_model ->
 get_job (with wait_seconds). runtime_info reports MLX Metal availability and device.
-Readiness may only check imports and Metal; supplied input and weight paths are
-validated by the provider during the run.
+Readiness separates runtime_ready from ready: null means input/checkpoint contents
+are unverified, false identifies a blocker. Supply arguments with one model id to
+check argument binding and local input/weight paths without inference or downloads.
+describe_model includes provider instructions and argument descriptions.
+Some providers fetch default weights when assets are omitted (for example SAM3
+checkpoint_path). Read those instructions and supply local assets for offline runs.
 run_model takes the model's run-function keyword arguments, as listed by
 describe_model. Runs execute with the server root as working directory, so
 relative paths resolve against: {root}.
@@ -48,7 +55,8 @@ requires human review.
 """
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
-_RUNS = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
+_RUNS = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=True)
+_CANCELS = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
 
 Tool = Callable[..., object]
 
@@ -92,18 +100,27 @@ def build_server(root: Path) -> MCPServer[Jobs]:
         """List installed models, filtered by task or segment/generate/vision family."""
         return api.list_models(task, family)
 
+    def list_checkpoints(model_id: str | None = None) -> CheckpointListPayload:
+        """List checkpoint source references and channel order; no downloads or qualification."""
+        return api.list_checkpoints(model_id)
+
     def describe_model(model_id: str) -> ModelDescription:
         """Return one model's declaration and run arguments."""
         with _tool_errors():
             return api.describe_model(model_id)
 
-    def model_readiness(model_ids: list[str] | None = None) -> ReadinessPayload:
-        """Report Metal and provider checks; without a provider check, only imports are tested.
+    def model_readiness(
+        model_ids: list[str] | None = None,
+        arguments: dict[str, JsonValue] | None = None,
+    ) -> ReadinessPayload:
+        """Check runtime and optional input/weight paths for one model without running it.
 
-        Input and weight paths supplied later to ``run_model`` are not checked here.
+        ready=null means input/checkpoint contents remain unverified. runtime_ready
+        reports imports/provider checks plus Metal separately. Optional arguments
+        require exactly one model id and resolve paths against the server root.
         """
         with _tool_errors():
-            return api.model_readiness(model_ids)
+            return api.model_readiness(model_ids, arguments=arguments, root=root)
 
     def runtime_info() -> RuntimeToolPayload:
         """Report the platform, package versions, and MLX Metal availability and device."""
@@ -149,13 +166,14 @@ def build_server(root: Path) -> MCPServer[Jobs]:
     tools: tuple[tuple[Tool, ToolAnnotations], ...] = (
         (list_packages, _READ_ONLY),
         (list_models, _READ_ONLY),
+        (list_checkpoints, _READ_ONLY),
         (describe_model, _READ_ONLY),
         (model_readiness, _READ_ONLY),
         (runtime_info, _READ_ONLY),
         (run_model, _RUNS),
         (get_job, _READ_ONLY),
         (list_jobs, _READ_ONLY),
-        (cancel_job, _RUNS),
+        (cancel_job, _CANCELS),
     )
     for tool, hints in tools:
         server.add_tool(tool, annotations=hints)
