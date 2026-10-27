@@ -258,7 +258,3 @@ Original contributions are Apache-2.0. Adapted Apple export recipe portions reta
 BSD-3-Clause terms; see [THIRD_PARTY_NOTICES.md](https://github.com/MedMLX/medmlx/blob/main/conversion/THIRD_PARTY_NOTICES.md).
 Each model's source and weights carry their own terms; see the survey before
 redistributing converted models.
-
-## Implementation mapping
-
-[Central implementation map](https://github.com/MedMLX/Med-MLX/blob/main/implementation-maps/medmlx.json) records upstream-to-native changes, source references and qualification scope.

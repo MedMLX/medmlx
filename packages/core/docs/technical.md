@@ -140,3 +140,27 @@ alone does not establish static-check status.
 
 Fixtures are synthetic helper references. Clinical accuracy, released model
 weights and full-volume memory/performance are not qualified by these fixtures.
+
+## Precision profiles
+
+`medmlx_core.compensated` provides explicit accuracy profiles using FP32 Metal
+storage. `CompensatedFloat32Operators` keeps product and summation residuals
+inside convolution, GroupNorm, frozen BatchNorm, ELU, softmax and Gaussian
+filtering, with FP32 outputs. `CompensatedFloat48Operators` carries both words
+between convolution, GroupNorm, transpose-convolution, addition and ReLU layers.
+The latter packs high and low words along the batch axis (all high words, then
+all low words). The package tests compare both profiles with float64 reference
+operators on small synthetic inputs.
+
+For paired network outputs, `sliding_window_inference(...,
+predictor_input="numpy")` accepts a host NumPy callback and float64 windows and
+stitching. This explicit mode lets the callback run a paired Metal network and
+export both words for host blending. The default callback still uses MLX arrays
+and FP16/FP32 inputs.
+
+## Development
+
+Source lives in `packages/core` of the unified MedMLX repository. Static checks
+run with `make qa-core` at the repository root. Select affected tests with
+`make test-core CORE_TESTS=packages/core/tests/path.py`; `make test-core` runs the
+full core suite.
