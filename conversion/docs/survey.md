@@ -210,19 +210,17 @@ Qwen3-Embedding).
   it with fixed slots and a mask.
 - Host: frame loop, per-object memory bank, hole filling.
 
-### sam3-mlx: Core ML verified, Core AI verified
+### sam3-mlx: Core ML and Core AI recheck required
 
-- The 2026-10-13 closeout rerun passes all five outputs in both formats.
-  Core AI/Core ML mask errors are 0.01971/0.05033 against 0.1; the other outputs
-  remain below 0.01. Receipt: `docs/validation/sam3-20261013-closeout.verification.json`.
-  The earlier Core ML mask/semantic errors of 19.6/1.22 against 0.1/0.01 remain
-  recorded in `docs/validation/sam3-20261013.verification.json`;
-  their cause is unverified.
+- The 2026-10-13 closeout receipt reports numerical agreement for five outputs,
+  but does not record a checkpoint loading report. With transformers 5.10.1,
+  loading this video checkpoint directly as an image model leaves detector weights
+  missing. The prior receipts cannot establish a fully loaded source model.
 - Recipe: `recipes/sam3`, following apple/coreai-models' SAM 3 `--full` export: the
-  Hugging Face `Sam3Model` (transformers 5.x) from gated `facebook/sam3@3c879f39` at
-  1008×1008, with the text prompt padded to 32 tokens plus its attention mask.
-  Boxes, logits, presence and semantic maps match to ≤4.1e-4; mask logits (up to ~100)
-  to 5.1e-2. Padding the prompt changes outputs by ≤1.3e-3.
+  image detector of the Hugging Face `Sam3VideoModel` from gated
+  `facebook/sam3@3c879f39` at 1008×1008, with a 32-token text prompt and
+  attention mask. It rejects any missing, unexpected, mismatched or failed
+  checkpoint loads before converting the detector.
 - The DETR decoder reads its feature grid from a tensor, which torch.export treats as
   data-dependent; the recipe records the 72×72 grid and passes it as integers.
 - Apple's lite bundle (336 px, int4/int6 palettized, for iOS) is produced by Apple's own

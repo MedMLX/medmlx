@@ -14,7 +14,6 @@ import torch
 from medmlx_convert import export_and_check, recipe_args
 from medmlx_convert.boundary import (
     Module,
-    as_module,
     as_sequence,
     as_tensor,
     attribute,
@@ -27,6 +26,7 @@ from medmlx_convert.boundary import (
 )
 from medmlx_convert.check import check_source_outputs
 from medmlx_convert.provenance import BuildSource
+from medmlx_convert.sam3 import load_detector
 
 # Gated: accept the SAM License on Hugging Face and log in (`hf auth login`) first.
 REPO = "facebook/sam3"
@@ -66,12 +66,7 @@ options = recipe_args("sam3")
 out_dir = options.out
 transformers = library("transformers")
 snapshot = hf_snapshot(REPO, REVISION, ["model.safetensors", "*.json", "*.txt"])
-model = as_module(
-    function(class_(transformers, "Sam3Model"), "from_pretrained")(
-        str(snapshot), local_files_only=True
-    ),
-    "Sam3Model",
-)
+model = load_detector(snapshot)
 processor = function(class_(transformers, "Sam3Processor"), "from_pretrained")(
     str(snapshot), local_files_only=True
 )
