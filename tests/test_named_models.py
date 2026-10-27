@@ -49,8 +49,9 @@ def test_named_checkpoint_admission_and_input_order(
             runner(**arguments)
         assert calls == []
         return
-    result = runner(**arguments)
+    result = runner(**arguments, overwrite=True)
     assert result["outputs"] == {"mask": "out/mask.nii.gz"}
+    assert calls[0]["overwrite"] is True
     assert calls[0]["image_paths"] == (
         ["t1.nii.gz", "t1ce.nii.gz", "t2.nii.gz", "flair.nii.gz"]
         if model == "brats" else ["image.nii.gz"]
@@ -60,3 +61,5 @@ def test_named_checkpoint_admission_and_input_order(
         "mrsegmentator-1.2-base" if model == "mrsegmentator" else "nnunet-v2.8.1-default"
     )
     assert calls[0]["arithmetic"] == ("torch-order-fp32" if model == "mrsegmentator" else "native")
+    runner(**arguments)
+    assert calls[1]["overwrite"] is False
