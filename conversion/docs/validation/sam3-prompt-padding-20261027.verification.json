@@ -1,0 +1,142 @@
+{
+  "schema_version": 3,
+  "recorded_at": "2026-10-27T23:10:56.676475+00:00",
+  "model": "sam3_prompt_padding_source",
+  "inputs": [
+    {
+      "name": "pixel_values",
+      "shape": [
+        1,
+        3,
+        1008,
+        1008
+      ],
+      "dtype": "float32"
+    },
+    {
+      "name": "input_ids",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    },
+    {
+      "name": "attention_mask",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    }
+  ],
+  "comparisons": [
+    {
+      "framework": "source_prompt_padding",
+      "output": "pred_masks",
+      "shape": [
+        1,
+        200,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0034332275390625,
+      "reference_max": 104.34078216552734,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 119.02061618027993,
+      "normalized_psnr_db": 99.98946518404794,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_prompt_padding",
+      "output": "pred_boxes",
+      "shape": [
+        1,
+        200,
+        4
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 1.5467405319213867e-05,
+      "reference_max": 1.0075297355651855,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 100.08109586536176,
+      "normalized_psnr_db": 100.01635102764982,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_prompt_padding",
+      "output": "pred_logits",
+      "shape": [
+        1,
+        200
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 2.8371810913085938e-05,
+      "reference_max": 2.4898457527160645,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 107.57120206590118,
+      "normalized_psnr_db": 99.97733762299913,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_prompt_padding",
+      "output": "presence_logits",
+      "shape": [
+        1,
+        1
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 1.7881393432617188e-07,
+      "reference_max": 0.4652630388736725,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 93.39641730294355,
+      "normalized_psnr_db": 100.03721661487364,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_prompt_padding",
+      "output": "semantic_seg",
+      "shape": [
+        1,
+        1,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 1.0967254638671875e-05,
+      "reference_max": 7.750692367553711,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 117.81590213968968,
+      "normalized_psnr_db": 100.04344876873448,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    }
+  ],
+  "packages": {
+    "torch": "2.13.0",
+    "coreai-core": "1.0.0b3",
+    "coreai-torch": "0.4.3",
+    "coremltools": "9.0",
+    "numpy": "2.4.6"
+  },
+  "reference": "PyTorch CPU FP32",
+  "compute_policy": "PyTorch source_prompt_padding on cpu",
+  "scope": "Fixed-shape network tensors; no host pipeline or clinical test",
+  "source": null,
+  "build_profile": "macos-fp32-reference"
+}

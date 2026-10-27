@@ -182,7 +182,7 @@ distribution coverage are separate: the observed FleXray upload has only
 | lung-nodule-mlx | Verified | Verified | `recipes/lung_nodule` |
 | mlx-segment-ct | Verified | Verified | `recipes/vista3d` |
 | medsam2-mlx | Verified | Verified | `recipes/medsam2` |
-| sam3-mlx | Recheck required | Recheck required | `recipes/sam3`; checkpoint loading corrected |
+| sam3-mlx | Verified | Verified | `recipes/sam3`; full video checkpoint loading checked |
 | synthseg-mlx: 1.0 logits at 64³ | Verified | Verified | `recipes/synthseg` |
 | synthseg-mlx: 2.0, robust, parcellation, QC | Not exported | Not exported | 2.0, parcellation and QC weights local; exports pending |
 | MLX-Reason-CT | Vision probe passed | Vision probe passed | Language/cache/generation pending |
