@@ -37,6 +37,8 @@ Model families are optional segment, generate and vision installs.
 list_packages reports their independently maintained runtime packages.
 Typical flow: list_models -> describe_model -> model_readiness -> run_model ->
 get_job (with wait_seconds). runtime_info reports MLX Metal availability and device.
+Readiness may only check imports and Metal; supplied input and weight paths are
+validated by the provider during the run.
 run_model takes the model's run-function keyword arguments, as listed by
 describe_model. Runs execute with the server root as working directory, so
 relative paths resolve against: {root}.
@@ -96,7 +98,10 @@ def build_server(root: Path) -> MCPServer[Jobs]:
             return api.describe_model(model_id)
 
     def model_readiness(model_ids: list[str] | None = None) -> ReadinessPayload:
-        """Report provider readiness and Metal availability."""
+        """Report Metal and provider checks; without a provider check, only imports are tested.
+
+        Input and weight paths supplied later to ``run_model`` are not checked here.
+        """
         with _tool_errors():
             return api.model_readiness(model_ids)
 

@@ -33,6 +33,8 @@ medmlx run totalsegmentator --arguments arguments.json --root /path/to/work
 ```
 
 `describe` lists the arguments to put in `arguments.json`. Relative paths resolve against `--root`.
+Readiness checks Metal and any provider check; providers without a check are marked
+ready when their runner imports. Input and weight paths are checked during a run.
 
 ```python
 import json

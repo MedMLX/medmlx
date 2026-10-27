@@ -143,7 +143,9 @@ def model_readiness(model_ids: list[str] | None = None) -> ReadinessPayload:
     Returns:
         ``mlx_usable`` and one ``{id, ready, reason, setup_hint}`` row per model.
         A model is reported not ready whenever MLX is unusable on this host,
-        even if its own check passed.
+        even if its own check passed. If a provider declares no readiness check,
+        readiness only confirms that its runner imports; it does not check the
+        input or weight paths supplied later to a run.
 
     Raises:
         LookupError: A requested id is not a discovered model.
