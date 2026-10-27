@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 import time
 import venv
 from pathlib import Path
@@ -261,27 +262,34 @@ def test_supervision_stops_the_isolated_helper_and_its_descendant(
     arguments = _arguments(inputs, prompt="hang", timeout_seconds=1 if stop == "timeout" else 300)
     pidfile = Path(inputs["image_path"]).with_suffix(".pids")
     jobs = Jobs(Path(inputs["model_dir"]).parent)
+    unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                 start_new_session=True)
     try:
         started = api.start_model(jobs, "medgemma", arguments)
         deadline = time.monotonic() + 5
         while not pidfile.exists():
-            assert time.monotonic() < deadline, jobs.get(started["job_id"]).to_payload()
+            assert time.monotonic() < deadline, "Isolated helper did not start"
             time.sleep(0.02)
         pids = [int(value) for value in pidfile.read_text().split()]
-        control_dir = jobs.get(started["job_id"]).control_dir
-        helper_dirs = [path for path in control_dir.iterdir() if path.is_dir()]
-        assert len(helper_dirs) == 1, "Helper control files must belong to the supervised job"
         if stop == "cancel":
-            finished = jobs.cancel(started["job_id"]).to_payload()
-            assert finished["state"] == "cancelled"
-        else:
-            while (finished := jobs.get(started["job_id"]).to_payload())["state"] == "running":
-                assert time.monotonic() < deadline, finished
-                time.sleep(0.02)
-            assert finished["state"] == "failed"
-            assert "exceeded timeout_seconds" in str(finished.get("error"))
+            control_dir = jobs.get(started["job_id"]).control_dir
+            helper_dirs = [path for path in control_dir.iterdir() if path.is_dir()]
+            assert len(helper_dirs) == 1, "Helper control files must belong to the supervised job"
+            cancelled = jobs.cancel(started["job_id"]).to_payload()
+            assert cancelled["state"] == "cancelled"
+
+        # Timeout cleanup must happen before the client polls or closes the session.
+        _assert_stopped(pids)
+        assert unrelated.poll() is None, "Cleanup stopped a process outside the job"
+        finished = jobs.get(started["job_id"])
+        control_dir = finished.control_dir
+        if stop == "timeout":
+            payload = finished.to_payload()
+            assert payload["state"] == "failed"
+            assert "exceeded timeout_seconds" in str(payload.get("error"))
     finally:
         jobs.close()
-    _assert_stopped(pids)
+        unrelated.terminate()
+        unrelated.wait(timeout=5)
     assert not control_dir.exists()
     assert not Path(inputs["output_dir"]).exists()

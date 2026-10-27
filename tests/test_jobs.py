@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -41,14 +42,62 @@ def run(*, pid_path, outcome):
 """
 
 
-def _stopped(pid: int) -> bool:
-    state = subprocess.run(
+_ZOMBIE_SUPERVISOR = """
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+os.setpgid(0, 0)
+Path(sys.argv[2]).write_text(str(os.getpid()))
+group = int(sys.argv[1])
+child = subprocess.Popen([sys.executable, "-c", "pass"],
+                         preexec_fn=lambda: os.setpgid(0, group))
+deadline = time.monotonic() + 5
+while True:
+    state = subprocess.run(["ps", "-p", str(child.pid), "-o", "stat="],
+                           capture_output=True, text=True, check=False).stdout.strip()
+    if state.startswith("Z"):
+        break
+    if time.monotonic() >= deadline:
+        raise RuntimeError("child did not become a zombie")
+    time.sleep(0.01)
+Path(sys.argv[3]).write_text(str(child.pid))
+time.sleep(60)
+"""
+
+_ZOMBIE_RUNNER = """
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+def run(*, supervisor_script, supervisor_pid, zombie_pid):
+    subprocess.Popen([sys.executable, supervisor_script, str(os.getpgrp()),
+                      supervisor_pid, zombie_pid])
+    deadline = time.monotonic() + 5
+    while not Path(zombie_pid).exists():
+        if time.monotonic() >= deadline:
+            raise RuntimeError("zombie child did not start")
+        time.sleep(0.01)
+    return {}
+"""
+
+
+def _state(pid: int) -> str:
+    return subprocess.run(
         ["ps", "-p", str(pid), "-o", "stat="],
         capture_output=True,
         text=True,
         check=False,
         timeout=5,
     ).stdout.strip()
+
+
+def _stopped(pid: int) -> bool:
+    state = _state(pid)
     # An orphaned zombie has terminated and awaits the OS reaper.
     return not state or state.startswith("Z")
 
@@ -61,9 +110,13 @@ def _kill_child(pid: int) -> None:
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX process-group ownership")
-@pytest.mark.parametrize("outcome", ["completed", "crash", "running"])
-def test_session_close_stops_children_even_after_worker_exit(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, outcome: str
+@pytest.mark.parametrize(
+    ("outcome", "close_session"),
+    [("completed", True), ("crash", True), ("running", True),
+     ("completed", False), ("crash", False)],
+)
+def test_worker_exit_or_session_close_stops_children(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, outcome: str, close_session: bool
 ) -> None:
     (tmp_path / "child_runner.py").write_text(_RUNNER)
     monkeypatch.setenv("PYTHONPATH", f"{tmp_path}{os.pathsep}{os.environ.get('PYTHONPATH', '')}")
@@ -80,11 +133,86 @@ def test_session_close_stops_children_even_after_worker_exit(
         child_pid = int(pid_path.read_text())
         if outcome != "running":
             job.process.wait(timeout=5)
-        jobs.close()
+        if close_session:
+            jobs.close()
         deadline = time.monotonic() + 5
         while not _stopped(child_pid) and time.monotonic() < deadline:
             time.sleep(0.01)
-        assert _stopped(child_pid), "worker child outlived its MCP session"
+        assert _stopped(child_pid), "worker child outlived its completed job or MCP session"
+        if not close_session:
+            while job.state == "running" and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert job.state == ("completed" if outcome == "completed" else "failed")
+    finally:
+        jobs.close()
+        if pid_path.exists():
+            _kill_child(int(pid_path.read_text()))
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Darwin zombie-only group semantics")
+def test_zombie_only_group_finalizes_without_polling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "zombie_runner.py").write_text(_ZOMBIE_RUNNER)
+    supervisor_script = tmp_path / "zombie_supervisor.py"
+    supervisor_script.write_text(_ZOMBIE_SUPERVISOR)
+    supervisor_pid = tmp_path / "supervisor.pid"
+    zombie_pid = tmp_path / "zombie.pid"
+    monkeypatch.setenv("PYTHONPATH", f"{tmp_path}{os.pathsep}{os.environ.get('PYTHONPATH', '')}")
+    jobs = Jobs(tmp_path)
+    try:
+        job = jobs.start("zombie-test", "zombie_runner:run", {
+            "supervisor_script": str(supervisor_script),
+            "supervisor_pid": str(supervisor_pid), "zombie_pid": str(zombie_pid),
+        })
+        deadline = time.monotonic() + 5
+        while not zombie_pid.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert zombie_pid.exists(), job.to_payload()
+        assert _state(int(zombie_pid.read_text())).startswith("Z")
+        while job.state == "running" and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert job.state == "completed", job.to_payload()
+        assert not _stopped(int(supervisor_pid.read_text()))
+    finally:
+        try:
+            jobs.close()
+        finally:
+            if supervisor_pid.exists():
+                _kill_child(int(supervisor_pid.read_text()))
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Darwin group inspection")
+@pytest.mark.parametrize("inspection", ["live", "failure"])
+def test_group_signal_denial_remains_visible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, inspection: str,
+) -> None:
+    (tmp_path / "child_runner.py").write_text(_RUNNER)
+    monkeypatch.setenv("PYTHONPATH", f"{tmp_path}{os.pathsep}{os.environ.get('PYTHONPATH', '')}")
+    pid_path = tmp_path / "child.pid"
+    jobs = Jobs(tmp_path)
+
+    def denied(group: int, sig: int) -> None:
+        raise PermissionError("original signal denial")
+
+    def failed_inspection(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise OSError("inspection unavailable")
+
+    try:
+        job = jobs.start("child-test", "child_runner:run", {
+            "pid_path": str(pid_path), "outcome": "running",
+        })
+        deadline = time.monotonic() + 5
+        while not pid_path.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert pid_path.exists(), job.to_payload()
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "killpg", denied)
+            if inspection == "failure":
+                patch.setattr(subprocess, "run", failed_inspection)
+            with pytest.raises(PermissionError, match="original signal denial"):
+                jobs.cancel(job.job_id)
+        assert job.process.poll() is None
     finally:
         jobs.close()
         if pid_path.exists():

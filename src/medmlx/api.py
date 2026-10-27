@@ -274,7 +274,7 @@ def start_model(jobs: Jobs, model_id: str, arguments: dict[str, JsonValue]) -> J
     their values are validated by the runner itself in the worker.
 
     Returns:
-        The job payload in the ``running`` state; poll ``jobs`` for completion.
+        The job payload, which may already be finished; poll ``jobs`` for completion.
 
     Raises:
         LookupError: ``model_id`` is not a discovered model.

@@ -44,17 +44,20 @@ class Job:
         ``error`` only after a failed one; both are absent while running and
         after a cancellation that left no response.
         """
+        # Finalization publishes terminal state last; use one state snapshot so
+        # a concurrent completion cannot expose a response on a running job.
+        state = self.state
         payload: JobPayload = {
             "job_id": self.job_id,
             "model_id": self.model_id,
-            "state": self.state,
+            "state": state,
             "pid": self.process.pid,
             "started_at": self.started_at,
-            "finished_at": self.finished_at,
-            "exit_code": self.exit_code,
+            "finished_at": self.finished_at if state != "running" else None,
+            "exit_code": self.exit_code if state != "running" else None,
             "log_tail": _tail(self.control_dir / "worker.log"),
         }
-        if self.response is not None:
+        if state != "running" and self.response is not None:
             if self.response.get("ok"):
                 payload["result"] = self.response.get("result")
             else:
@@ -81,9 +84,9 @@ class Jobs:
     def start(self, model_id: str, run: str, arguments: dict[str, JsonValue]) -> Job:
         """Start a worker for one validated run call and return without waiting.
 
-        The returned job is initially running. Call ``get`` or ``all`` to
-        collect the worker's completion status and response after it exits.
-        A closed session rejects new runs before creating files or processes.
+        Worker exit is finalized automatically, even if the client never polls.
+        The job may finish before the caller observes it. A closed session
+        rejects new runs before creating files or processes.
         MEDMLX_WORKER_CONTROL_DIR gives adapters a job-owned location for helper
         control files, which remains removable when a worker is killed.
         """
@@ -131,7 +134,12 @@ class Jobs:
             started_at=_now(),
         )
         self._jobs[job_id] = job
+        threading.Thread(target=self._wait, args=(job,), daemon=True).start()
         return job
+
+    def _wait(self, job: Job) -> None:
+        """Finalize worker exit even when the client never polls the job."""
+        self._finalize(job, job.process.wait())
 
     def get(self, job_id: str) -> Job:
         """Return one job, finalizing it if its worker has exited."""
@@ -156,14 +164,19 @@ class Jobs:
         """Terminate a running worker, escalating to a kill if it does not stop."""
 
         job = self.get(job_id)
-        if job.state != "running":
-            return job
-        job.cancel_requested = True
-        _stop(job.process, kill=False)
+        # Finalization and cancellation must agree on the terminal state and
+        # signal only a group that still belongs to an unfinished job.
+        with self._lock:
+            if job.state != "running":
+                return job
+            job.cancel_requested = True
+            _stop(job.process, kill=False)
         try:
             code = job.process.wait(timeout=_TERMINATE_GRACE_SECONDS)
         except subprocess.TimeoutExpired:
-            _stop(job.process, kill=True)
+            with self._lock:
+                if job.state == "running":
+                    _stop(job.process, kill=True)
             code = job.process.wait()
         self._finalize(job, code)
         return job
@@ -216,9 +229,32 @@ def _stop(process: subprocess.Popen[bytes], *, kill: bool) -> None:
         if os.name == "nt":
             process.kill() if kill else process.terminate()
         else:
-            os.killpg(process.pid, signal.SIGKILL if kill else signal.SIGTERM)
+            try:
+                os.killpg(process.pid, signal.SIGKILL if kill else signal.SIGTERM)
+            except PermissionError:
+                # Darwin's killpg returns EPERM when a group contains only zombies:
+                # https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c
+                if sys.platform != "darwin" or not _group_stopped(process.pid):
+                    raise
     except ProcessLookupError:
         return
+
+
+def _group_stopped(group: int) -> bool:
+    """Confirm a Darwin process group is absent or contains only zombies."""
+    try:
+        result = subprocess.run(
+            ["/bin/ps", "-g", str(group), "-o", "stat="],
+            capture_output=True, text=True, check=False, timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    if result.stderr.strip():
+        return False
+    states = result.stdout.split()
+    if not states:
+        return result.returncode == 1
+    return result.returncode == 0 and all(state.startswith("Z") for state in states)
 
 
 def _tail(path: Path) -> str:
