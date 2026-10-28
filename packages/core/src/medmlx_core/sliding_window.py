@@ -30,7 +30,7 @@ __all__ = ["compute_importance_map", "dense_patch_slices", "sliding_window_infer
 def _tuple_rep[T: int | float | None](value: T | Sequence[T], dimensions: int) -> tuple[T, ...]:
     if np.isscalar(value) or value is None:
         return (cast(T, value),) * dimensions
-    result = tuple(value)
+    result = tuple(cast(Sequence[T], value))
     if len(result) != dimensions:
         raise ValueError(f"Expected {dimensions} values, got {len(result)}")
     return result
@@ -218,6 +218,7 @@ def sliding_window_inference(
     with_coord: bool = False,
     *args: object,
     predictor_input: Literal["mlx", "numpy"] = "mlx",
+    preserve_window_strides: bool = False,
     **kwargs: object,
 ) -> FloatArray:
     """Predict and blend 1D/2D/3D windows, returning host NumPy logits.
@@ -250,6 +251,10 @@ def sliding_window_inference(
         cval: Fill value for ``'constant'`` padding; other modes require 0.
         roi_weight_map: Window weights replacing the ``mode`` map, shaped
             ``roi_size`` or ``(1, 1, *roi_size)``.
+        preserve_window_strides: With ``sw_batch_size=1``, pass a slice of the
+            padded input instead of copying it. Padding materializes contiguous
+            storage; unpadded inputs retain their strides. NumPy predictors must
+            not modify these borrowed views. Larger batches still concatenate.
         *args, **kwargs: Passed through to ``predictor``.
 
     Returns:
@@ -301,6 +306,9 @@ def sliding_window_inference(
     if any(not 0 <= amount < 1 for amount in amounts):
         raise ValueError(f"overlap must be >= 0 and < 1, got {amounts}")
     padded, crop = _pad_input(host, roi, padding_mode, cval)
+    if preserve_window_strides and sw_batch_size == 1 and padded is not host:
+        # Torch padding is contiguous even when the original input is not.
+        padded = np.ascontiguousarray(padded)
     image_size = padded.shape[2:]
     intervals = _get_scan_interval(image_size, roi, len(spatial), amounts)
     windows = dense_patch_slices(image_size, roi, intervals)
@@ -330,7 +338,12 @@ def sliding_window_inference(
             ]
             for index in range(start, min(start + sw_batch_size, num_windows * host.shape[0]))
         ]
-        patches = np.concatenate([padded[tuple(coord)] for coord in coordinates], axis=0)
+        # Preserve the existing layout unless a stride-sensitive predictor opts in.
+        patches = (
+            padded[tuple(coordinates[0])]
+            if preserve_window_strides and sw_batch_size == 1
+            else np.concatenate([padded[tuple(coord)] for coord in coordinates], axis=0)
+        )
         with mx.stream(sw_device if sw_device is not None else mx.default_device()):
             batch = patches if predictor_input == "numpy" else make_array(patches)
             prediction = (

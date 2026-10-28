@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from typing import Literal, Never, TypedDict, cast
+from unittest.mock import patch
 
 import mlx.core as mx
 import numpy as np
@@ -99,6 +100,95 @@ def test_float64_host_windows_preserve_sub_float32_values_against_monai() -> Non
         values, (6, 5), 3, host_prediction, overlap=0.5, predictor_input="numpy"
     )
     np.testing.assert_array_equal(actual, expected.numpy())
+
+
+@pytest.mark.parametrize("layout", ["contiguous", "transposed", "reversed", "fortran"])
+def test_single_window_views_preserve_input_strides_without_copying(layout: str) -> None:
+    values = np.arange(2 * 2 * 6 * 7 * 8, dtype=np.float32).reshape(2, 2, 6, 7, 8)
+    if layout == "transposed":
+        values = values.swapaxes(2, 4)
+    elif layout == "reversed":
+        values = values[:, :, ::-1]
+    elif layout == "fortran":
+        values = np.asfortranarray(values)
+    calls = 0
+
+    def predict(window: FloatArray, coordinates: Coordinates) -> FloatArray:
+        nonlocal calls
+        calls += 1
+        assert len(coordinates) == 1
+        assert window.strides == values.strides
+        assert np.shares_memory(window, values)
+        np.testing.assert_array_equal(window, values[tuple(coordinates[0])])
+        return window
+
+    with patch("numpy.concatenate", wraps=np.concatenate) as concatenate:
+        result = sliding_window_inference(
+            values,
+            (4, 4, 4),
+            1,
+            predict,
+            overlap=0.5,
+            with_coord=True,
+            predictor_input="numpy",
+            preserve_window_strides=True,
+        )
+    assert concatenate.call_count == 0
+    assert calls > 1
+    np.testing.assert_array_equal(result, values)
+
+
+@pytest.mark.parametrize("batch_size,preserve", [(1, False), (3, False), (3, True)])
+def test_window_views_do_not_change_default_or_multiwindow_layout(
+    batch_size: int, preserve: bool
+) -> None:
+    values = np.arange(6**3, dtype=np.float32).reshape(1, 1, 6, 6, 6)
+
+    def predict(window: FloatArray) -> FloatArray:
+        assert window.flags.c_contiguous
+        assert not np.shares_memory(window, values)
+        return window
+
+    result = sliding_window_inference(
+        values,
+        (4, 4, 4),
+        batch_size,
+        predict,
+        overlap=0.5,
+        predictor_input="numpy",
+        preserve_window_strides=preserve,
+    )
+    np.testing.assert_array_equal(result, values)
+
+
+@pytest.mark.parametrize("mode", ["constant", "reflect", "replicate", "circular"])
+def test_single_window_views_pad_once_into_contiguous_storage(mode: str) -> None:
+    values = np.asfortranarray(np.arange(3 * 5 * 3, dtype=np.float32).reshape(1, 1, 3, 5, 3))
+    modes: dict[str, Literal["constant", "reflect", "edge", "wrap"]] = {
+        "constant": "constant",
+        "reflect": "reflect",
+        "replicate": "edge",
+        "circular": "wrap",
+    }
+    expected = np.pad(values, [(0, 0), (0, 0), (0, 1), (0, 1), (0, 1)], mode=modes[mode])
+
+    def predict(window: FloatArray) -> FloatArray:
+        assert window.flags.c_contiguous
+        np.testing.assert_array_equal(window, expected)
+        return window
+
+    with patch("numpy.pad", wraps=np.pad) as pad:
+        result = sliding_window_inference(
+            values,
+            (4, 6, 4),
+            1,
+            predict,
+            padding_mode=mode,
+            predictor_input="numpy",
+            preserve_window_strides=True,
+        )
+    assert pad.call_count == 1
+    np.testing.assert_array_equal(result, values)
 
 
 def mlx_predict(patch: mx.array) -> mx.array:
