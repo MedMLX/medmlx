@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -91,3 +94,52 @@ def test_report_serializes_without_backend_objects() -> None:
     with patch.object(runtime, "_load_mlx_core", return_value=backend):
         report = runtime.probe_mlx_runtime()
     assert json.loads(json.dumps(report.to_payload())) == report.to_payload()
+
+
+@pytest.mark.parametrize(("value", "expected"), [(None, "0"), ("0", "0"), ("1", "1")])
+def test_full_float32_default_keeps_an_explicit_choice(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: str
+) -> None:
+    if value is None:
+        monkeypatch.delenv(runtime.TF32_VARIABLE, raising=False)
+    else:
+        monkeypatch.setenv(runtime.TF32_VARIABLE, value)
+    runtime.default_full_float32()
+    assert os.environ[runtime.TF32_VARIABLE] == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "reduced", "refused"),
+    [
+        ("0", False, False),
+        ("0", True, True),
+        ("1", True, False),
+    ],
+)
+def test_reduced_float32_is_refused_without_opt_in(
+    monkeypatch: pytest.MonkeyPatch, value: str, reduced: bool, refused: bool
+) -> None:
+    monkeypatch.setenv(runtime.TF32_VARIABLE, value)
+    with patch.object(runtime, "_reduced_float32_matmul", return_value=reduced):
+        if refused:
+            with pytest.raises(errors.MissingDependencyError, match="reduced precision") as caught:
+                runtime.require_full_float32()
+            assert caught.value.hint is not None
+            assert "MLX_ENABLE_TF32=0" in caught.value.hint
+        else:
+            runtime.require_full_float32()
+
+
+def test_import_selects_full_float32_before_mlx_reads_it() -> None:
+    # MLX fixes the setting at its first matmul, so each case needs a fresh process.
+    code = """
+import os
+import medmlx_core
+assert os.environ["MLX_ENABLE_TF32"] == "0"
+mx = medmlx_core.import_mlx()
+value = mx.full((64, 64), 1.0 + 2.0**-15, dtype=mx.float32)
+product = mx.matmul(value, mx.ones((64, 64), dtype=mx.float32))
+assert product[0, 0].item() == 64.0 + 2.0**-9
+"""
+    environment = {k: v for k, v in os.environ.items() if k != "MLX_ENABLE_TF32"}
+    subprocess.run([sys.executable, "-c", code], check=True, env=environment)

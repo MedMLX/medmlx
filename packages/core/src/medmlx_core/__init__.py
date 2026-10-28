@@ -48,19 +48,27 @@ from medmlx_core.ops import (
 from medmlx_core.precision import Float32Operators
 from medmlx_core.runtime import (
     MLX_EXTRA,
+    TF32_VARIABLE,
     MlxHostReport,
+    default_full_float32,
     import_mlx,
     mlx_default_device_name,
     probe_mlx_runtime,
+    require_full_float32,
     require_mlx_device,
     require_mlx_runtime,
 )
 from medmlx_core.upsample import deconv2x_ncdhw, upsample_add_ncdhw
 
-__version__ = "0.2.3"
+# Imports above load MLX modules but run no MLX operation, so MLX has not yet
+# read MLX_ENABLE_TF32 when this applies the full-float32 default.
+default_full_float32()
+
+__version__ = "0.2.4"
 
 __all__ = [
     "MLX_EXTRA",
+    "TF32_VARIABLE",
     "AssetNotReadyError",
     "Float32Operators",
     "InvalidInputError",
@@ -77,6 +85,7 @@ __all__ = [
     "conv_transpose3d_ncdhw",
     "conv_transpose3d_weight_to_mlx",
     "deconv2x_ncdhw",
+    "default_full_float32",
     "dense_patch_slices",
     "group_norm_ncdhw",
     "import_mlx",
@@ -86,6 +95,7 @@ __all__ = [
     "mlx_default_device_name",
     "pad_spatial_trailing_ncdhw",
     "probe_mlx_runtime",
+    "require_full_float32",
     "require_mlx_device",
     "require_mlx_runtime",
     "require_ncdhw",

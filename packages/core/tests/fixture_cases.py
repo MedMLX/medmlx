@@ -585,6 +585,7 @@ def darwin_contracts(module: RuntimeAPI) -> RuntimeContracts:
         patch.object(module.platform, "mac_ver", return_value=("15.0", ("", "", ""), "")),
         patch("subprocess.run", side_effect=sysctl),
         patch.object(module, "_load_mlx_core", return_value=backend),
+        patch.object(module, "_reduced_float32_matmul", return_value=False),
     ):
         report = cast(ReportPayload, module.probe_mlx_runtime().to_payload())
         required = cast(ReportPayload, module.require_mlx_runtime().to_payload())

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import platform
 from dataclasses import dataclass
+from functools import cache
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
@@ -18,6 +20,46 @@ MLX_EXTRA: str | None = None
 _UNSUPPORTED_HINT = (
     "Install medmlx-core on macOS Apple Silicon with Metal available, then call import_mlx()."
 )
+TF32_VARIABLE = "MLX_ENABLE_TF32"
+
+
+def default_full_float32() -> None:
+    """Keep MLX float32 matmul and convolution in full float32 unless the user chose otherwise.
+
+    With ``MLX_ENABLE_TF32`` unset, MLX lets float32 matmul and some convolutions
+    use reduced-precision products on M5, which breaks the float32 parity of the
+    model packages. MLX reads the variable when the process first runs such an
+    operation and keeps that choice for the life of the process. This sets it to
+    ``"0"`` only when it is unset; an explicit value, including ``"1"``, is kept.
+    Importing ``medmlx_core`` calls it, so it is process-wide like
+    :func:`import_mlx`'s device selection.
+    """
+
+    os.environ.setdefault(TF32_VARIABLE, "0")
+
+
+def require_full_float32() -> None:
+    """Refuse to run when MLX float32 matmul is not full float32.
+
+    An explicit ``MLX_ENABLE_TF32`` other than ``"0"`` is the user's choice of
+    reduced precision and is accepted. Otherwise a reduced product means MLX had
+    already fixed its setting before :func:`default_full_float32` ran.
+
+    Raises:
+        MissingDependencyError: Float32 matmul uses reduced precision without an
+            explicit opt-in.
+    """
+
+    if os.environ.get(TF32_VARIABLE, "0") != "0":
+        return
+    if _reduced_float32_matmul():
+        raise MissingDependencyError(
+            "MLX float32 matmul is using reduced precision; float32 results would not "
+            "match the reference implementations",
+            extra=MLX_EXTRA,
+            hint=f"Set {TF32_VARIABLE}=0 before the process runs any MLX operation, "
+            f"or set {TF32_VARIABLE}=1 to accept reduced precision.",
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +230,17 @@ def _load_mlx_core():
     return mx
 
 
+@cache
+def _reduced_float32_matmul() -> bool:
+    # 1 + 2**-15 needs 16 mantissa bits and TF32 keeps 10, so a reduced product
+    # rounds it to 1. MLX takes the reduced path from 2x2 upward; the setting is
+    # fixed per process, so one probe answers for the process.
+    mx = _load_mlx_core()
+    value = mx.full((2, 2), 1.0 + 2.0**-15, dtype=mx.float32)
+    product = mx.matmul(value, mx.ones((2, 2), dtype=mx.float32))
+    return product[0, 0].item() != 2.0 + 2.0**-14
+
+
 def _mlx_version() -> tuple[str | None, str | None]:
     try:
         mx = _load_mlx_core()
@@ -264,7 +317,7 @@ def _memory_bytes(system: str) -> int | None:
 
 
 def import_mlx():
-    """Import ``mlx.core`` and make the Metal GPU the default device.
+    """Import ``mlx.core``, make the Metal GPU the default device and check float32.
 
     The default device is process-global, so this changes it for every MLX user
     in the process.
@@ -274,8 +327,9 @@ def import_mlx():
 
     Raises:
         MissingDependencyError: The host is not supported, MLX is missing or an
-            unsupported version, Metal is unavailable, or the default device is
-            still not the GPU after selecting it.
+            unsupported version, Metal is unavailable, the default device is
+            still not the GPU after selecting it, or float32 matmul is reduced
+            precision without an explicit opt-in (:func:`require_full_float32`).
     """
 
     require_mlx_runtime()
@@ -294,6 +348,7 @@ def import_mlx():
             extra=MLX_EXTRA,
             hint=_UNSUPPORTED_HINT,
         )
+    require_full_float32()
     return mx
 
 

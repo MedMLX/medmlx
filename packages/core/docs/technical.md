@@ -9,6 +9,15 @@ The existing `require_mlx_device("mlx")` API checks explicit MLX readiness.
 Python is `>=3.13,<3.15`; MLX is `>=0.32.4,<0.33`. Runtime admission rejects
 older or unsupported MLX versions before inference.
 
+With `MLX_ENABLE_TF32` unset, MLX on M5 lets float32 matmul and some
+convolutions use reduced-precision products. MLX reads the variable at the
+first such operation and keeps it for the process. Importing `medmlx_core` sets
+it to `0` when it is unset, so float32 inference matches the reference
+implementations; an explicit value, including `1`, is kept. `import_mlx()`
+checks one exact float32 product and raises `MissingDependencyError` when it was
+reduced without an explicit opt-in, which happens when the process ran MLX
+before importing `medmlx_core`.
+
 The `conversion` extra supplies Torch for `load_torch_checkpoint()`. Safe
 `weights_only=True` loading is the default. Explicit `weights_only=False` remains
 available for trusted legacy payloads. Missing Torch reports `extra="conversion"`
