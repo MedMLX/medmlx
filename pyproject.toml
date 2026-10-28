@@ -12,7 +12,7 @@ requires-python = ">=3.13,<3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
-dependencies = ["medmlx-core==0.2.3", "packaging>=24"]
+dependencies = ["medmlx-core==0.2.4", "packaging>=24"]
 
 [project.scripts]
 medmlx = "medmlx.cli:main"
@@ -88,7 +88,7 @@ constraint-dependencies = ["certifi>=2026.10.19", "pillow>=13,<14", "urllib3>=2.
 # uv treats runtimes' pinned Git subdirectory and the workspace as conflicting
 # core sources; this override selects the workspace member for every provider.
 override-dependencies = [
-  "medmlx-core==0.2.3",
+  "medmlx-core==0.2.4",
 ]
 
 [tool.uv.workspace]
