@@ -175,17 +175,24 @@ Qwen3-Embedding).
 - The decoder's InstanceNorm3d needs the Core ML rewrite.
 - Host: resample to 1 mm, sliding window 96³ with overlap 0.5.
 
-### lung-nodule-mlx: Core ML verified, Core AI verified
+### lung-nodule-mlx: verified with tiled normalization
 
-- The 2026-10-13 closeout rerun passes all six outputs in both formats, with
+- Re-exporting with tiled GroupNorm passes all six heads on the M5 Max, with
+  maximum differences 6.19888e-5 (Core AI) and 6.00815e-5 (Core ML) against
+  the unchanged 0.01 limit. All 60 calls across three competing processes
+  passed. The previous export failed a fresh Core AI check with a
+  `box_regression_0` error of 0.24204. See
+  [the investigation](validation/coreai-overlap-20261027.md#lung-detector-follow-up)
+  and [export comparison](validation/lung-nodule-20261028.verification.json).
+- The historical 2026-10-13 closeout rerun passed all six outputs in both formats, with
   maximum error 6.58e-5. Receipt:
   `docs/validation/lung-nodule-20261013-closeout.verification.json`.
   The earlier Core AI `classification_0` error of 0.764 against 0.01 remains
   recorded in `docs/validation/lung-nodule-20261013.verification.json`;
   its cause is unverified.
 - Recipe: `recipes/lung_nodule` exports the six head maps at a 256×256×128 window.
-  Max difference 6.6e-5. Core AI uses the max-pool rewrite; Core ML decomposes the
-  FPN's functional nearest upsample and uses the GroupNorm rewrite.
+  Core AI uses the max-pool rewrite; Core ML decomposes the FPN's functional
+  nearest upsample. Both formats now use tiled GroupNorm reductions.
 - MONAI `lung_nodule_ct_detection` 0.6.10. 3D RetinaNet, 20.9M params.
 - The FPN's 3D nearest upsample needs a rewrite for both converters. Core AI
   also lacks `max_pool3d`. Fix the input at the 512×512×192 window.

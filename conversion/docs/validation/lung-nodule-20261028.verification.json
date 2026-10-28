@@ -1,0 +1,312 @@
+{
+  "schema_version": 3,
+  "recorded_at": "2026-10-28T05:08:06.123068+00:00",
+  "model": "lung_nodule_retinanet",
+  "inputs": [
+    {
+      "name": "image",
+      "shape": [
+        1,
+        1,
+        256,
+        256,
+        128
+      ],
+      "dtype": "float32"
+    }
+  ],
+  "comparisons": [
+    {
+      "framework": "coreai",
+      "output": "classification_0",
+      "shape": [
+        1,
+        3,
+        64,
+        64,
+        64
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 6.198883056640625e-05,
+      "reference_max": 13.891509056091309,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 119.27804018428021,
+      "normalized_psnr_db": 100.01449335638411,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "classification_1",
+      "shape": [
+        1,
+        3,
+        32,
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 5.435943603515625e-05,
+      "reference_max": 13.422417640686035,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 119.03657055205358,
+      "normalized_psnr_db": 100.01314144455007,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "classification_2",
+      "shape": [
+        1,
+        3,
+        16,
+        16,
+        16
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 4.38690185546875e-05,
+      "reference_max": 12.842726707458496,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 118.82726652691983,
+      "normalized_psnr_db": 100.01266619298418,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "box_regression_0",
+      "shape": [
+        1,
+        18,
+        64,
+        64,
+        64
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 7.3909759521484375e-06,
+      "reference_max": 3.867950439453125,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 111.77734897842113,
+      "normalized_psnr_db": 100.04262556465062,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "box_regression_1",
+      "shape": [
+        1,
+        18,
+        32,
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 8.344650268554688e-06,
+      "reference_max": 4.440915107727051,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 112.97746100814516,
+      "normalized_psnr_db": 100.04289715970654,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "box_regression_2",
+      "shape": [
+        1,
+        18,
+        16,
+        16,
+        16
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 5.7220458984375e-06,
+      "reference_max": 3.7961583137512207,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 111.61936644431405,
+      "normalized_psnr_db": 100.04291537745195,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "classification_0",
+      "shape": [
+        1,
+        3,
+        64,
+        64,
+        64
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 6.008148193359375e-05,
+      "reference_max": 13.891509056091309,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 119.27339494727167,
+      "normalized_psnr_db": 100.01443829103417,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "classification_1",
+      "shape": [
+        1,
+        3,
+        32,
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 5.626678466796875e-05,
+      "reference_max": 13.422417640686035,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 119.03378594156155,
+      "normalized_psnr_db": 100.0131065662974,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "classification_2",
+      "shape": [
+        1,
+        3,
+        16,
+        16,
+        16
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 4.482269287109375e-05,
+      "reference_max": 12.842726707458496,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 118.81282639463494,
+      "normalized_psnr_db": 100.01247616413993,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "box_regression_0",
+      "shape": [
+        1,
+        18,
+        64,
+        64,
+        64
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 6.9141387939453125e-06,
+      "reference_max": 3.867950439453125,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 111.77730613824107,
+      "normalized_psnr_db": 100.04262269137762,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "box_regression_1",
+      "shape": [
+        1,
+        18,
+        32,
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 7.3909759521484375e-06,
+      "reference_max": 4.440915107727051,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 112.97760726759053,
+      "normalized_psnr_db": 100.04290460113779,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "box_regression_2",
+      "shape": [
+        1,
+        18,
+        16,
+        16,
+        16
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 6.4373016357421875e-06,
+      "reference_max": 3.7961583137512207,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 111.61918805674833,
+      "normalized_psnr_db": 100.04290296882495,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    }
+  ],
+  "packages": {
+    "torch": "2.13.0",
+    "coreai-core": "1.0.0b3",
+    "coreai-torch": "0.4.3",
+    "coremltools": "9.0",
+    "numpy": "2.4.6"
+  },
+  "reference": "PyTorch CPU FP32",
+  "compute_policy": "Core ML ALL; Core AI default specialization",
+  "scope": "Fixed-shape network tensors; no host pipeline or clinical test",
+  "source": {
+    "kind": "released",
+    "checkpoint": "~/.cache/huggingface/hub/models--MONAI--lung_nodule_ct_detection/snapshots/9d6622fda0e52be0a4155fed2e0afb9c17bcd80b/models/model.pt",
+    "origin": "MONAI/lung_nodule_ct_detection@9d6622fda0e52be0a4155fed2e0afb9c17bcd80b",
+    "configuration": {
+      "config": "configs/inference.json",
+      "network_key": "network_def",
+      "set/use_list_output": "True"
+    },
+    "recipe": "conversion/recipes/lung_nodule/export.py",
+    "revision": {
+      "repository": "medmlx",
+      "revision": "cd69c0ccc508e5d6c36ebbb8eaab5a897cb7c70f",
+      "dirty": false
+    },
+    "packages": {
+      "torch": "2.13.0",
+      "coreai-core": "1.0.0b3",
+      "coreai-torch": "0.4.3",
+      "coremltools": "9.0",
+      "numpy": "2.4.6",
+      "monai": "1.6.1",
+      "nnunetv2": "2.8.1",
+      "transformers": "5.10.1",
+      "keras": "3.15.0",
+      "h5py": "3.15.1",
+      "safetensors": "0.8.0"
+    }
+  },
+  "build_profile": "macos-fp32-reference"
+}

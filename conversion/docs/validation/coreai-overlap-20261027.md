@@ -1,8 +1,8 @@
 # Normalization overlap failure and verified tiled-reduction workaround
 
 The converter now uses bounded reductions for GroupNorm and input-statistics
-InstanceNorm3d in both Apple formats. The full BraTS and pancreas exports pass
-their original 0.01 tolerance. This avoids the observed failing execution path;
+InstanceNorm3d in both Apple formats. The full BraTS, pancreas, and lung detector
+exports pass their original 0.01 tolerance. This avoids the observed failing execution path;
 the underlying Apple kernel or runtime defect has not been identified.
 
 ## Original failure
@@ -104,7 +104,8 @@ Focused regression checks cover unequal/padded reduction lengths (including
 three stages), independent batches and groups, constant/near-constant input,
 affine parameters, FP16 parameter preservation, and both native converters.
 The three new checks passed; `make qa` passed Ruff and strict Pyright.
-Other recipes sharing the 3D rewrite lists were not requalified in this run.
+Other recipes sharing the 3D rewrite lists were not requalified in that initial run;
+the subsequent lung detector qualification is recorded below.
 The corrected assets, fixtures, and verification records are installed at the
 usual `build/segresnet/brats_mri_segmentation` and
 `build/nnunet_pancreas/nnunet_pancreas_fold_all` stems. Input and source-oracle
@@ -119,6 +120,48 @@ zero of 7,077,888 pancreas labels. These synthetic fixtures contain no predicted
 BraTS tumor regions, 43 predicted pancreas voxels, and no predicted cancer.
 This confirms agreement on these inputs, not unchanged lesion accuracy on real
 scans. Results are in `build/norm-investigation/segmentation-decisions.json`.
+
+## Lung detector follow-up
+
+The M5 lung detector asset still contained the original GroupNorm lowering.
+A fresh check reproduced a Core AI failure on the fifth timed call:
+`box_regression_0` differed by 0.24204 against its original 0.01 tolerance.
+The earlier passing export comparison therefore did not resolve the repeated-call
+failure. The failed check is retained in
+`build/status-investigation-20261027/lung-coreai.json`.
+
+Re-exporting the existing `recipes/lung_nodule` recipe applies the shared tiled
+GroupNorm rewrite to both Apple formats. The input and all six CPU reference
+arrays are exactly equal to the previous fixture. Both formats pass every
+rewrite, capture, decomposition, and saved-runtime comparison. The maximum
+errors across the six detector heads are 6.19888e-5 for Core AI and 6.00815e-5
+for Core ML, with the unchanged 0.01 tolerance.
+
+Two Core AI GPU processes and one Core ML CPU_AND_GPU process then ran
+simultaneously, each making one initial call, three warmups, and sixteen further
+calls. Every call checked all six outputs:
+
+| Corrected export | Passing calls | Maximum error |
+|---|---:|---:|
+| Core AI, process 1 | 20/20 | 6.19888e-5 |
+| Core AI, process 2 | 20/20 | 6.19888e-5 |
+| Core ML | 20/20 | 6.00815e-5 |
+
+The per-call records are
+`build/status-investigation-20261027/lung-tiled-coreai-{1,2}.json` and
+`build/status-investigation-20261027/lung-tiled-coreml.json`. These concurrent
+checks establish output agreement on the saved network fixture; the controlled
+five-process timing campaign is separate. Detector decoding and NMS remain on
+the host and were not changed.
+
+The fix is committed as `cd69c0c`. A fresh export from that clean revision is
+recorded in [the saved comparison](lung-nodule-20261028.verification.json).
+It is installed at `build/lung_nodule/lung_nodule_retinanet`; the previous assets
+are preserved in `build/norm-original/lung_nodule/`. Repeating the original
+runtime check against the installed Core AI export passed all fourteen calls
+(one initial call, three warmups, ten timed calls), with maximum error
+6.19888e-5. That check is saved in
+`build/status-investigation-20261027/lung-installed-coreai.json`.
 
 ## Upstream investigation
 

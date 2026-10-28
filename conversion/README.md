@@ -179,7 +179,7 @@ distribution coverage are separate: the observed FleXray upload has only
 | radimagenet-mlx: ResNet50 features | Verified | Verified | `recipes/radimagenet` |
 | swin-unetr-mlx | Verified | Verified | `recipes/swin_unetr` |
 | unest-mlx | Verified | Verified | `recipes/unest` |
-| lung-nodule-mlx | Verified | Verified | `recipes/lung_nodule` |
+| lung-nodule-mlx | [Verified with tiled norms](docs/validation/coreai-overlap-20261027.md#lung-detector-follow-up) | Verified with tiled norms | `recipes/lung_nodule` |
 | mlx-segment-ct | Verified | Verified | `recipes/vista3d` |
 | medsam2-mlx | Verified | Verified | `recipes/medsam2` |
 | sam3-mlx | Verified | Verified | `recipes/sam3`; text geometry aligned |
