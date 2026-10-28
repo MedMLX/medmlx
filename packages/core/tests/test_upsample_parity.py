@@ -18,6 +18,8 @@ from medmlx_core.typing import MlxRuntime
         ((1, 4, 48, 48, 48), 3, True, False),
         ((2, 5, 3, 4, 6), 7, False, True),
         ((2, 5, 3, 4, 6), 7, True, True),
+        pytest.param((1, 32, 4, 4, 4), 32, True, False, id="renal-32-channels"),
+        pytest.param((1, 64, 12, 12, 12), 64, True, False, id="renal-64-channels"),
     ],
 )
 def test_deconv2x_matches_torch_repeated(
@@ -26,7 +28,7 @@ def test_deconv2x_matches_torch_repeated(
     with_bias: bool,
     strided: bool,
 ) -> None:
-    """Exercise the lazy phase-view-sensitive 48-cubed decoder operation."""
+    """Check phase views and renal channel counts that allow reduced-precision matmul."""
 
     from medmlx_core.upsample import deconv2x_ncdhw
 

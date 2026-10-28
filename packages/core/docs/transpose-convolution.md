@@ -2,9 +2,17 @@
 
 `conv_transpose3d_ncdhw` dispatches float32 kernel-2/stride-2 convolution with
 zero padding and output padding to the existing `deconv2x_ncdhw` operator. It
-computes eight matrix-product phases with the original Torch weight layout and
-interleaves them into the output. Other geometries and dtypes use the native
-MLX operation. No evaluation boundary is added to model graphs.
+packs eight phases from the original Torch weights into one ordered FP32
+1x1x1 convolution, interleaves them into the output, then adds bias. Other
+geometries and dtypes use the native MLX operation. No evaluation boundary is
+added to model graphs.
+
+The ordered projection also preserves full FP32 products on M5. An ordinary
+MLX matrix multiplication can use reduced-precision products even when its
+inputs and output are float32; see the [MLX numerical precision documentation](https://ml-explore.github.io/mlx/build/html/usage/precision.html#numerical-precision).
+The decoder uses explicit FP32 accumulation regardless of `MLX_ENABLE_TF32`.
+The Torch oracle includes the renal decoder's 32- and 64-channel projections;
+run it with `MLX_ENABLE_TF32=1` to exercise this regression on M5.
 
 On MLX 0.32.3 and an M1 Max, the native path can return corrupted values when a
 lazy decoder adds bias and a skip tensor to a large output. Isolated evaluation
