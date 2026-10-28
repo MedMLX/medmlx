@@ -173,9 +173,9 @@ distribution coverage are separate: the observed FleXray upload has only
 | nnunet-mlx: TotalSegmentator fast | Verified | Verified | `recipes/totalsegmentator` |
 | nnunet-mlx: liver | Verified | Verified | `recipes/nnunet_liver` |
 | nnunet-mlx: BraTS, all five folds | Verified | Verified | `recipes/nnunet_brats` |
-| nnunet-mlx: PANTHER pancreas fold_all | Verified | Verified | `recipes/nnunet_pancreas` |
+| nnunet-mlx: PANTHER pancreas fold_all | [Verified with tiled norms](docs/validation/coreai-overlap-20261027.md) | Verified with tiled norms | `recipes/nnunet_pancreas` |
 | nnunet-mlx: AutoPET II, all five folds | Verified | Verified | `recipes/nnunet_autopet` |
-| segresnet-mlx | Verified | Verified | `recipes/segresnet` |
+| segresnet-mlx | [Verified; BraTS tiled norms](docs/validation/coreai-overlap-20261027.md) | Verified; BraTS tiled norms | `recipes/segresnet` |
 | radimagenet-mlx: ResNet50 features | Verified | Verified | `recipes/radimagenet` |
 | swin-unetr-mlx | Verified | Verified | `recipes/swin_unetr` |
 | unest-mlx | Verified | Verified | `recipes/unest` |

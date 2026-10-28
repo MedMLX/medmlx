@@ -30,6 +30,32 @@ class Subtract(Module):
         return difference, torch.nn.functional.elu(difference)
 
 
+class SpatialNorms(Module):
+    """Exercise both group and per-instance statistics on the same fixed input."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.group = torch.nn.GroupNorm(2, 4, eps=1e-3)
+        self.instance = torch.nn.InstanceNorm3d(4, affine=True, eps=1e-3)
+
+    def forward(self, image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        return self.group(image), self.instance(image)
+
+
+def test_tiled_normalization_native_roundtrip() -> None:
+    """Keep padded, three-stage statistics equivalent through both native compilers."""
+    stem = Path("build/tiled_norm_roundtrip/norms")
+    stem.parent.mkdir(parents=True, exist_ok=True)
+    image = 2.75 + torch.randn((1, 4, 1, 1, 1048583),
+                               generator=torch.Generator().manual_seed(0))
+    assert export_and_check(
+        SpatialNorms().eval(), {"image": image}, ["group", "instance"],
+        stem, tolerance=1e-4,
+        source=BuildSource.capture(Path(__file__), synthetic=True),
+        coreai_swaps=COREAI_3D, coreml_swaps=COREML_3D,
+    )
+
+
 @settings(max_examples=3, deadline=None)
 @given(
     x=arrays(np.float32, (2, 3), elements=st.floats(-10, 10, width=32, allow_subnormal=False)),

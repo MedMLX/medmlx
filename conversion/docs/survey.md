@@ -93,7 +93,12 @@ Qwen3-Embedding).
 - 2D 1×256×256 to 61 labels. About 101M params per member, 5-member ensemble.
 - Host: pad to square, resize, percentile scaling, sigmoid, ensemble mean.
 
-### nnunet-mlx: Core ML verified, Core AI verified
+### nnunet-mlx: verified; PANTHER uses tiled normalization
+- PANTHER's intermittent M5 normalization failures are avoided by tiled
+  InstanceNorm reductions in both formats. Full-size maximum logit differences
+  are 2.10762e-4 (Core AI) and 2.10524e-4 (Core ML), with argmax agreement 1.0.
+  All 40 corrected overlapping calls passed while the original Core AI export
+  failed alongside them. See [the investigation](validation/coreai-overlap-20261027.md).
 - nnU-Net v2.8.1 PlainConvUNet and ResidualEncoderUNet (BasicBlockD). Checkpoints
   are user-supplied model folders (TotalSegmentator v2, MRSegmentator, and
   others), with per-model licenses.
@@ -103,8 +108,8 @@ Qwen3-Embedding).
 - Its default source cache is converter-owned because other ports can rewrite
   TotalSegmentator's shared plans. Explicit `TOTALSEG_WEIGHTS_PATH` and
   `TOTALSEG_HOME_DIR` overrides retain the same upstream-input admission checks.
-- Core AI needs the transposed-conv rewrite and Core ML needs the InstanceNorm
-  rewrite. Other nnU-Net models follow the same recipe, with one export per
+- Core AI needs the transposed-conv rewrite; both formats use tiled InstanceNorm
+  reductions. Other nnU-Net models follow the same recipe, with one export per
   plans, configuration and fold.
 - Added `recipes/nnunet_liver` (Zenodo 18807203), `recipes/nnunet_brats`
   (11582627, all five folds), and `recipes/nnunet_pancreas` (17212158,
@@ -123,15 +128,20 @@ Qwen3-Embedding).
 - Host: crop to nonzero, normalization, resampling, Gaussian sliding window,
   mirroring (up to 8 passes in 3D), fold averaging, resample back.
 
-### segresnet-mlx: Core ML verified, Core AI verified
+### segresnet-mlx: renal verified; BraTS verified with tiled normalization
+- Tiled GroupNorm reductions avoid the intermittent M5 failure in both Apple
+  formats. Full-size maximum logit difference is 7.15256e-6 in each format,
+  with argmax agreement 1.0. All 40 corrected overlapping calls passed while
+  the original Core AI export failed alongside them. See
+  [the investigation](validation/coreai-overlap-20261027.md).
 - Recipe: `recipes/segresnet`, both bundles. Max difference 8e-4 (renal) and 8e-6
   (BraTS, through the trilinear rewrite). Core AI uses the transposed-conv rewrite
-  and Core ML the GroupNorm rewrite.
+  and both formats use tiled GroupNorm reductions.
 - MONAI bundles `renalStructures_CECT_segmentation` (transposed-conv decoder,
   19M params) and `brats_mri_segmentation` (trilinear decoder, 4.7M params).
 - BraTS needs its 3D trilinear upsample rewritten before export. The renal
   decoder's 2×2×2 transposed conv needs the Core AI rewrite.
-- Core ML lowers 3D GroupNorm past its rank limit, hence the GroupNorm rewrite.
+- The tiled GroupNorm rewrite also keeps intermediate rank within Core ML's limit.
 - Host: MONAI orientation, spacing and inverse transforms. Sliding window of 96³
   (renal) or 240×240×160 (BraTS).
 

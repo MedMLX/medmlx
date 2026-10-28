@@ -18,6 +18,8 @@ from medmlx_convert.rewrites import (
     SeparableTrilinearUpsample,
     SeparateBias2d,
     StridedTransposedConv3d,
+    TiledGroupNorm,
+    TiledInstanceNorm3d,
     ZeroInsertTransposedConv3d,
 )
 
@@ -77,6 +79,35 @@ def test_spatial_normalization(size: int, affine: bool) -> None:
     group = torch.nn.GroupNorm(2, 4, affine=affine, eps=1e-3)
     compare(instance, FlatInstanceNorm3d(instance), image)
     compare(group, FlatGroupNorm(group), image)
+
+
+@settings(max_examples=12, deadline=None)
+@example(shape=(1, 1, 1048583), affine=True, scale=1.0)
+@given(shape=st.sampled_from([(2, 3, 5), (9, 11, 13), (1, 1, 1031)]),
+       affine=st.booleans(), scale=st.sampled_from([0.0, 1e-4, 1.0]))
+def test_tiled_normalization(shape: tuple[int, int, int], affine: bool, scale: float) -> None:
+    """Keep batch/group counts, epsilon and partial tiles correct, even near zero variance."""
+    image = 2.75 + scale * torch.randn(
+        (2, 4, *shape), generator=torch.Generator().manual_seed(0),
+    )
+    instance = torch.nn.InstanceNorm3d(4, affine=affine, eps=1e-3)
+    group = torch.nn.GroupNorm(2, 4, affine=affine, eps=1e-3)
+    for source in (instance, group):
+        if affine:
+            with torch.no_grad():
+                source.weight.copy_(torch.tensor([0.123456, 0.7, 1.1, 1.987654]))
+                source.bias.copy_(torch.tensor([-0.3, 0.5, 0.7, -0.9]))
+    for source, candidate in ((instance, TiledInstanceNorm3d(instance)),
+                              (group, TiledGroupNorm(group))):
+        # Near-constant unscaled outputs magnify the source's FP32 affine
+        # cancellation in relative metrics. Keep the same 1e-4 absolute contract
+        # and check the mathematical result against a float64 source as well.
+        with torch.no_grad():
+            actual = as_tensor(candidate.eval()(image))
+            expected = as_tensor(source.eval()(image))
+            precise = as_tensor(source.double()(image.double())).float()
+        torch.testing.assert_close(actual, expected, rtol=0, atol=1e-4)
+        torch.testing.assert_close(actual, precise, rtol=0, atol=1e-4)
 
 
 @settings(max_examples=16, deadline=None)

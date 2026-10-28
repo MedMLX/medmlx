@@ -8,7 +8,7 @@ from typing import Protocol
 
 import torch
 
-from medmlx_convert.boundary import Module, as_int, interpolate_bilinear
+from medmlx_convert.boundary import Module, as_int, function, interpolate_bilinear
 
 
 class Swap(Protocol):
@@ -173,6 +173,81 @@ class FlatGroupNorm(Module):
         return self.norm(x.flatten(2)).view_as(x)
 
 
+def _tiled_mean(x: torch.Tensor) -> torch.Tensor:
+    """Reduce the last axis in at most 1024-element stages, without padding bias.
+
+    Large Apple GPU reductions intermittently return incorrect statistics under
+    competing execution on M5/macOS 27.2. Reshaping alone still fails. Keep each
+    reduction short, including the reduction of partial means. Zero padding is
+    compensated at each stage so nondivisible lengths retain their true count.
+    """
+    size = x.shape[-1]
+    if size <= 1024:
+        return x.mean(-1, keepdim=True)
+    padded = ((size + 1023) // 1024) * 1024
+    if padded != size:
+        x = torch.nn.functional.pad(x, (0, padded - size))
+    partial = x.reshape(*x.shape[:-1], padded // 1024, 1024).mean(-1)
+    return _tiled_mean(partial) * (padded / size)
+
+
+def _tiled_normalize(
+    x: torch.Tensor, groups: int, eps: float,
+    weight: torch.Tensor | None, bias: torch.Tensor | None,
+) -> torch.Tensor:
+    """Use population variance E[(x-E[x])²], then the original channel affine."""
+    grouped = x.reshape(x.shape[0], groups, -1)
+    centered = grouped - _tiled_mean(grouped)
+    variance = _tiled_mean(centered * centered)
+    result = (centered * torch.rsqrt(variance + eps)).reshape_as(x)
+    shape = (1, x.shape[1], *((1,) * (x.ndim - 2)))
+    if weight is not None:
+        result = result * weight.reshape(shape)
+    return result if bias is None else result + bias.reshape(shape)
+
+
+class TiledGroupNorm(torch.nn.GroupNorm):
+    """Preserve GroupNorm parameters while bounding every statistics reduction."""
+
+    def __init__(self, source: torch.nn.GroupNorm) -> None:
+        function(torch.nn.GroupNorm, "__init__")(
+            self, source.num_groups, source.num_channels, source.eps, source.affine,
+        )
+        self.weight = copy.deepcopy(source.weight)
+        self.bias = copy.deepcopy(source.bias)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if input.ndim < 2 or input.shape[1] != self.num_channels:
+            raise ValueError("GroupNorm requires batched input with its declared channels")
+        return _tiled_normalize(input, self.num_groups, self.eps, self.weight, self.bias)
+
+
+class TiledInstanceNorm3d(torch.nn.InstanceNorm3d):
+    """Input-statistics InstanceNorm3d with bounded, centered reductions.
+
+    Running-statistics variants remain outside this rewrite's contract. FP16
+    authoring recognizes this module and preserves its FP32 parameters and math.
+    """
+
+    def __init__(self, source: torch.nn.InstanceNorm3d) -> None:
+        if source.track_running_stats:
+            raise ValueError(f"running statistics are not supported: {source}")
+        function(torch.nn.InstanceNorm3d, "__init__")(
+            self, source.num_features, eps=source.eps, affine=source.affine,
+        )
+        self.weight = copy.deepcopy(source.weight)
+        self.bias = copy.deepcopy(source.bias)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if input.ndim not in (4, 5):
+            raise ValueError("InstanceNorm3d requires CDHW or NCDHW input")
+        batched = input.unsqueeze(0) if input.ndim == 4 else input
+        if batched.shape[1] != self.num_features or math.prod(batched.shape[2:]) <= 1:
+            raise ValueError("InstanceNorm3d requires its declared channels and >1 spatial element")
+        result = _tiled_normalize(batched, self.num_features, self.eps, self.weight, self.bias)
+        return result.squeeze(0) if input.ndim == 4 else result
+
+
 def _pool_triple(value: int | tuple[int, ...]) -> tuple[int, int, int]:
     if isinstance(value, int):
         return value, value, value
@@ -289,12 +364,14 @@ def _trilinear(upsample: torch.nn.Upsample) -> torch.nn.Module:
 COREAI_3D: list[Swap] = [
     ModuleSwap(torch.nn.ConvTranspose3d, _transposed),
     ModuleSwap(torch.nn.MaxPool3d, SeparableMaxPool3d),
+    ModuleSwap(torch.nn.InstanceNorm3d, TiledInstanceNorm3d),
+    ModuleSwap(torch.nn.GroupNorm, TiledGroupNorm),
     ModuleSwap(torch.nn.Upsample, _trilinear),
 ]
 COREML_3D: list[Swap] = [
     ModuleSwap(torch.nn.ConvTranspose3d, _output_padded),
-    ModuleSwap(torch.nn.InstanceNorm3d, FlatInstanceNorm3d),
-    ModuleSwap(torch.nn.GroupNorm, FlatGroupNorm),
+    ModuleSwap(torch.nn.InstanceNorm3d, TiledInstanceNorm3d),
+    ModuleSwap(torch.nn.GroupNorm, TiledGroupNorm),
     ModuleSwap(torch.nn.Upsample, _trilinear),
 ]
 # MPS also lacks half ConvTranspose3d and 3D pooling. Apply these explicit

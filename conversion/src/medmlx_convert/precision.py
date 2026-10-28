@@ -23,6 +23,7 @@ from medmlx_convert.boundary import (
     library,
     module_class,
 )
+from medmlx_convert.rewrites import TiledGroupNorm, TiledInstanceNorm3d
 
 
 class SourceDevice(StrEnum):
@@ -114,7 +115,8 @@ def prepare_fp16(
         raise RuntimeError("Unset PYTORCH_ENABLE_MPS_FALLBACK; implicit CPU fallback is prohibited")
     norms = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d,
              torch.nn.InstanceNorm1d, torch.nn.InstanceNorm2d, torch.nn.InstanceNorm3d,
-             torch.nn.GroupNorm, torch.nn.LayerNorm, *fp32_norm_types)
+             torch.nn.GroupNorm, torch.nn.LayerNorm, TiledGroupNorm, TiledInstanceNorm3d,
+             *fp32_norm_types)
     replacements: dict[str, torch.nn.Module] = {}
     modules = cast(Iterator[tuple[str, torch.nn.Module]],
                    function(model, "named_modules")(remove_duplicate=False))

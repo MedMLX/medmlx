@@ -11,11 +11,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from medmlx_convert import export_and_check
-from medmlx_convert.boundary import Module, function
+from medmlx_convert.boundary import Module, as_tensor, as_tensors, function
 from medmlx_convert.evidence import LabelMode, LabelRequirement, Verdict, compare_output
 from medmlx_convert.guidance import BuildProfile, graph_stages, native_comparison_verdict
-from medmlx_convert.precision import SourceDevice
+from medmlx_convert.precision import SourceDevice, prepare_fp16
 from medmlx_convert.provenance import BuildSource
+from medmlx_convert.rewrites import TiledGroupNorm, TiledInstanceNorm3d
 from medmlx_convert.runtime_benchmark import Profile, Workload
 
 
@@ -62,6 +63,27 @@ class TinyLungNetwork(Module):
 
     def forward(self, image: torch.Tensor) -> torch.Tensor:
         return self.head(self.up(self.norm(self.conv(image))))
+
+
+def test_tiled_norm_fp16_retains_original_affine_parameters() -> None:
+    """Do not round the new normalization weights when authoring the surrounding network."""
+    image = torch.randn((2, 4, 9, 11, 13), generator=torch.Generator().manual_seed(7))
+    group = torch.nn.GroupNorm(2, 4)
+    instance = torch.nn.InstanceNorm3d(4, affine=True)
+    for source in (group, instance):
+        with torch.no_grad():
+            source.weight.fill_(0.123456789)
+            source.bias.fill_(-0.987654321)
+    for source, norm in ((group, TiledGroupNorm(group)),
+                         (instance, TiledInstanceNorm3d(instance))):
+        prepared = prepare_fp16(torch.nn.Sequential(norm).eval(), SourceDevice.CPU)
+        for original, converted in zip(source.parameters(), prepared.parameters(), strict=True):
+            assert converted.dtype == torch.float32
+            assert torch.equal(original, converted)
+        with torch.no_grad():
+            actual = as_tensors(prepared(image))[0]
+            reference = as_tensor(source(image.half().float())).half().float()
+        torch.testing.assert_close(actual, reference, rtol=1e-3, atol=1e-3)
 
 
 def test_fp16_mps_3d_compatibility_runs_both_saved_native_formats() -> None:
