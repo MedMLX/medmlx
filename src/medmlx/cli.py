@@ -50,6 +50,13 @@ def _parser() -> argparse.ArgumentParser:
     ready.add_argument("model_ids", nargs="*")
     ready.add_argument("--arguments", type=Path, help="Check one model's argument JSON and paths.")
     ready.add_argument("--root", type=Path, default=Path.cwd())
+    setup = commands.add_parser("setup", help="Install model software and download native files.")
+    setup.add_argument("model_id", nargs="?")
+    setup.add_argument(
+        "--plan", action="store_true", help="Describe setup without changing anything.",
+    )
+    setup.add_argument("--existing-path", type=Path, action="append", default=[])
+    setup.add_argument("--progress", action="store_true", help="Stream JSON progress on stderr.")
     run = commands.add_parser("run", help="Run a model and wait for its result.")
     run.add_argument("model_id")
     run.add_argument("--arguments", type=Path, required=True, help="JSON keyword-argument file.")
@@ -129,6 +136,20 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
     but with exit code 1 so scripts notice the ``discovery_errors``.
     """
     match options.command:
+        case "setup":
+            if options.model_id is None:
+                return api.list_setup_plans(), 0
+            if options.plan:
+                return api.setup_plan(options.model_id), 0
+            def progress(message: str) -> None:
+                if options.progress:
+                    print(json.dumps({"message": message}), file=sys.stderr, flush=True)
+            try:
+                return api.setup_model(options.model_id, existing_paths=options.existing_path,
+                                       progress=progress), 0
+            except Exception as error:
+                # The setup CLI is a reporting boundary for optional provider/Hub errors.
+                return {"error": str(error)}, 1
         case "models":
             payload = api.list_models(options.task, options.family)
             return payload, int(bool(payload["discovery_errors"]))

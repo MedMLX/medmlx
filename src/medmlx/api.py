@@ -29,6 +29,9 @@ from medmlx.payloads import (
     ReadinessPayload,
 )
 from medmlx.probe import runtime_info
+from medmlx.setup import list_setup_plans as list_setup_plans
+from medmlx.setup import setup_model as setup_model
+from medmlx.setup import setup_plan as setup_plan
 
 _MLX_HINT = "Use macOS arm64 (Apple Silicon) with MLX installed and Metal available."
 

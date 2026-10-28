@@ -14,8 +14,83 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 import medmlx
+import medmlx.setup as model_setup
 from medmlx.cli import read_arguments
 from medmlx.payloads import JsonValue
+
+
+def test_model_setup_reuses_explicit_files_without_network_or_inference(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def installed(_package: str) -> str:
+        return "installed"
+
+    monkeypatch.setattr(model_setup, "version", installed)
+    monkeypatch.setenv("MEDMLX_ASSET_CACHE", str(tmp_path / "unused-cache"))
+    (tmp_path / "automatic.safetensors").write_bytes(b"automatic")
+    (tmp_path / "correction.safetensors").write_bytes(b"correction")
+    messages: list[str] = []
+    result = medmlx.setup_model(
+        "nv-segment-ct", existing_paths=[tmp_path], progress=messages.append,
+    )
+    assert result["arguments"] == {"weights_path": str(tmp_path)}
+    assert result["files_checked"]
+    assert messages == ["Checking existing model files…", "Model files are available."]
+    assert medmlx.setup_plan("romav2")["supported"] is False
+    with pytest.raises(ValueError, match="Automatic setup is not available"):
+        medmlx.setup_model("romav2")
+
+
+def test_model_setup_downloads_pinned_native_files_and_notices(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import huggingface_hub
+    from huggingface_hub.errors import LocalEntryNotFoundError
+
+    def installed(_package: str) -> str:
+        return "installed"
+
+    monkeypatch.setattr(model_setup, "version", installed)
+    monkeypatch.setenv("MEDMLX_ASSET_CACHE", str(tmp_path / "unused-cache"))
+    downloads: list[str] = []
+
+    def cached(_repo: str, *, revision: str, local_files_only: bool) -> str:
+        assert revision == "b7551a0fbaccd9fa5eccfde44b52fb40d2a9b65f" and local_files_only
+        raise LocalEntryNotFoundError("Not cached")
+
+    def download(repo: str, filename: str, *, revision: str) -> str:
+        assert repo == "MedMLX/vista3d-ct-mlx"
+        assert revision == "b7551a0fbaccd9fa5eccfde44b52fb40d2a9b65f"
+        downloads.append(filename)
+        target = tmp_path / filename
+        target.write_bytes(b"provider-file")
+        return str(target)
+
+    class HubApi:
+        def list_repo_files(self, _repo: str, *, revision: str) -> list[str]:
+            assert revision == "b7551a0fbaccd9fa5eccfde44b52fb40d2a9b65f"
+            return [
+                "automatic.safetensors", "correction.safetensors", "NOTICE", "LICENSE",
+                "native-run.json",
+            ]
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", cached)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", download)
+    monkeypatch.setattr(huggingface_hub, "HfApi", HubApi)
+    result = medmlx.setup_model("nv-segment-ct")
+    assert result["arguments"] == {"weights_path": str(tmp_path)}
+    assert downloads == ["automatic.safetensors", "correction.safetensors", "NOTICE", "LICENSE"]
+
+
+def test_setup_plan_cli_is_read_only() -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "medmlx", "setup", "nv-segment-ct", "--plan"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    plan = json.loads(result.stdout)
+    assert plan["supported"] is True
+    assert plan["source_url"] == "https://huggingface.co/MedMLX/vista3d-ct-mlx"
 
 _VALUES = cast(
     st.SearchStrategy[JsonValue],

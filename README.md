@@ -1,5 +1,24 @@
 # MedMLX
 
+## Model setup for applications
+
+Install the `setup` extra to use `medmlx setup MODEL --progress`. It reuses
+explicitly supplied model directories, the MedMLX asset cache, or the Hub cache,
+then downloads missing native files and retains publisher notices. It returns
+the runner arguments for the application to remember. Downloads can be resumed
+by running setup again; `--plan` only describes the operation.
+
+`medmlx.list_setup_plans()`, `setup_plan(model_id)`, and
+`setup_model(model_id, existing_paths=..., progress=...)` expose the same actions
+to Python clients. The default asset cache search is `~/.cache/medmlx` (override
+with `MEDMLX_ASSET_CACHE`); downloads use the normal Hugging Face cache. Setup
+supports published VISTA3D CT, Reason-CT, FleXray flagship, and named BraTS bundles,
+plus the radiomics runtime. Other checkpoints require their provider's setup.
+Runtime installation uses this release's family pins. Frozen applications must
+already bundle the runtime; setup can still download their model files.
+Setup checks required files and available provider admission contracts. Model
+execution retains responsibility for tensor compatibility and input validation.
+
 One Python API, command line and MCP server for native medical imaging on Apple Silicon.
 Run TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more through their independent MLX runtimes.
 

@@ -605,6 +605,10 @@ segment = [
     { name = "totalsegmentator-mlx" },
     { name = "unest-mlx" },
 ]
+setup = [
+    { name = "huggingface-hub" },
+    { name = "uv" },
+]
 vision = [
     { name = "lung-nodule-mlx" },
     { name = "mlxradiomics", extra = ["io"] },
@@ -631,6 +635,7 @@ requires-dist = [
     { name = "flexible-unet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexible-unet-mlx.git?rev=ee5e6cedaba026c3c63e76bda57ca16983134f45" },
     { name = "flexray-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=5a0ef5f36f40ef606819a48b5869d381386909a2" },
     { name = "flexray-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/flexray-mlx.git?rev=5a0ef5f36f40ef606819a48b5869d381386909a2" },
+    { name = "huggingface-hub", marker = "extra == 'setup'", specifier = ">=0.34,<2" },
     { name = "lesiondiffusion-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=41f7400dd6f34b1b5844732ad2360a1301cdb9fa" },
     { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/lesiondiffusion-mlx.git?rev=41f7400dd6f34b1b5844732ad2360a1301cdb9fa" },
     { name = "lung-nodule-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/lung-nodule-mlx.git?rev=c537a373ac8cfe1e75e7c1a96d760e0bb2de645d" },
@@ -666,8 +671,9 @@ requires-dist = [
     { name = "totalsegmentator-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=f8314d8236ae0638a0c725f8498174e82afbbe84" },
     { name = "unest-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
     { name = "unest-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/unest-mlx.git?rev=0320081a01e087ae52e3630d544c91c9fc18dfef" },
+    { name = "uv", marker = "extra == 'setup'", specifier = ">=0.8,<1" },
 ]
-provides-extras = ["segment", "generate", "vision", "all", "mcp"]
+provides-extras = ["setup", "segment", "generate", "vision", "all", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1437,6 +1443,15 @@ dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
     { name = "numpy" },
+]
+
+[[package]]
+name = "uv"
+version = "0.13.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/d5/88d43310d425f6e3a43997ad771658ded3237d0ed78c16a89b2353eddf56/uv-0.13.6.tar.gz", hash = "sha256:d762215478854f6cf20c3faed8f1eb30c8101d568e7bc32a3abafc063929d5c5", size = 7545242, upload-time = "2026-10-27T00:45:57.605Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/14/77230cc4f6a73a31578cb8070a5f67f58a76946ead643ae8a4155620d6da/uv-0.13.6-py3-none-macosx_11_0_arm64.whl", hash = "sha256:51361029b7cf91185d0092c4b356d110b4ad629e9cb11593f1e006ac72a72ca9", size = 14344205, upload-time = "2026-10-27T00:45:09.125Z" },
 ]
 
 [[package]]

@@ -5,8 +5,11 @@ from medmlx.api import (
     list_checkpoints,
     list_models,
     list_packages,
+    list_setup_plans,
     model_readiness,
     run,
+    setup_model,
+    setup_plan,
 )
 from medmlx.probe import runtime_info
 
@@ -16,7 +19,10 @@ __all__ = [
     "list_checkpoints",
     "list_models",
     "list_packages",
+    "list_setup_plans",
     "model_readiness",
     "run",
     "runtime_info",
+    "setup_model",
+    "setup_plan",
 ]

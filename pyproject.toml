@@ -26,6 +26,7 @@ nnunet-brats2021 = "medmlx.adapters.nnunet:BRATS"
 mrsegmentator = "medmlx.adapters.nnunet:MRSEGMENTATOR"
 
 [project.optional-dependencies]
+setup = ["huggingface-hub>=0.34,<2", "uv>=0.8,<1"]
 segment = [
   "sam3-mlx[video]==0.1.3",
   "biomedparse-mlx==0.1.1",
