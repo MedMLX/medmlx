@@ -654,17 +654,17 @@ requires-dist = [
     { name = "nibabel", marker = "extra == 'generate'", specifier = ">=5.4.2,<6" },
     { name = "nnunet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
     { name = "nnunet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/nnunet-mlx.git?rev=ac07d0047a2f6f2e620b52e9d3a512a64d874b6a" },
-    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf" },
-    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf" },
+    { name = "nv-generate-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=74509889a97d0e716cbbbf586f9b2ed3c993b1ba" },
+    { name = "nv-generate-mlx", marker = "extra == 'generate'", git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=74509889a97d0e716cbbbf586f9b2ed3c993b1ba" },
     { name = "packaging", specifier = ">=24" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", git = "https://github.com/MedMLX/radimagenet-mlx.git?rev=399d0cb062c2d6c39a0eef66ed618145f7a8a3da" },
     { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", git = "https://github.com/MedMLX/sam3-mlx.git?rev=3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" },
     { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", git = "https://github.com/MedMLX/sam3-mlx.git?rev=3ce6d3f62daec7a36786abadb7f8d4fbecb4dd80" },
-    { name = "segresnet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
-    { name = "segresnet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724" },
-    { name = "swin-unetr-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" },
-    { name = "swin-unetr-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" },
+    { name = "segresnet-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=255ac8e90d041433b2fbc7710ee14df5b570063d" },
+    { name = "segresnet-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/segresnet-mlx.git?rev=255ac8e90d041433b2fbc7710ee14df5b570063d" },
+    { name = "swin-unetr-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=a54762db3a5ac7ebce519f5e233cba387ffff6a2" },
+    { name = "swin-unetr-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=a54762db3a5ac7ebce519f5e233cba387ffff6a2" },
     { name = "synthseg-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/synthseg-mlx.git?rev=06c2d27d7f17c4400d3c58f2431dc0897f91ebbe" },
     { name = "synthseg-mlx", marker = "extra == 'segment'", git = "https://github.com/MedMLX/synthseg-mlx.git?rev=06c2d27d7f17c4400d3c58f2431dc0897f91ebbe" },
     { name = "totalsegmentator-mlx", marker = "extra == 'all'", git = "https://github.com/MedMLX/totalsegmentator-mlx.git?rev=f8314d8236ae0638a0c725f8498174e82afbbe84" },
@@ -911,7 +911,7 @@ wheels = [
 [[package]]
 name = "nv-generate-mlx"
 version = "0.3.1"
-source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=2e513605116ef416713135185c9cc05fc02dd2cf#2e513605116ef416713135185c9cc05fc02dd2cf" }
+source = { git = "https://github.com/MedMLX/nv-generate-mlx.git?rev=74509889a97d0e716cbbbf586f9b2ed3c993b1ba#74509889a97d0e716cbbbf586f9b2ed3c993b1ba" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "mlx" },
@@ -1217,7 +1217,7 @@ wheels = [
 [[package]]
 name = "segresnet-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/segresnet-mlx.git?rev=b5cc265cd0426fe8f64b40a8ed9be4c42a599724#b5cc265cd0426fe8f64b40a8ed9be4c42a599724" }
+source = { git = "https://github.com/MedMLX/segresnet-mlx.git?rev=255ac8e90d041433b2fbc7710ee14df5b570063d#255ac8e90d041433b2fbc7710ee14df5b570063d" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
@@ -1287,7 +1287,7 @@ wheels = [
 [[package]]
 name = "swin-unetr-mlx"
 version = "0.2.1"
-source = { git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=80b16a57e4e88fd757f9fb7be7437b5a85b88d9e#80b16a57e4e88fd757f9fb7be7437b5a85b88d9e" }
+source = { git = "https://github.com/MedMLX/swin-unetr-mlx.git?rev=a54762db3a5ac7ebce519f5e233cba387ffff6a2#a54762db3a5ac7ebce519f5e233cba387ffff6a2" }
 dependencies = [
     { name = "medmlx-core" },
     { name = "nibabel" },
