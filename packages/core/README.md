@@ -66,6 +66,19 @@ use and is reused offline afterwards. Partial downloads resume. The returned fol
 contains plain files; the runner selects its own files and records the revision in
 run details. Explicit user folders bypass downloads and retain their supplied paths.
 
+**Unreleased:** Registered bundles use the weight revisions documented by their
+runtime releases and linked model cards. Hub `main` updates do not change those
+downloads or their label maps. SAM3 retains its existing pin. Unlisted model IDs
+still resolve `MedMLX/<model_id>` at `main` once on first use.
+
+**Unreleased:** A folder without a matching revision marker can be reused after
+`weights_dir` checks every selected file against the installed Hub commit's LFS
+SHA-256 or Git blob hash. Missing or mismatched files use the resumable download
+path. Verified files from the older top-level cache layout are copied into the
+current layout, preserving the originals; copies keep later refreshes independent.
+`refresh=True` forces a download. This verification needs network access once;
+the completed folder is reused offline afterwards.
+
 Check the cache without downloading:
 
 ```python

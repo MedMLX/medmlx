@@ -109,7 +109,7 @@ def isolated_python(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_site:
     site = next(root.glob("lib/python*/site-packages"))
     shutil.copytree(Path(packaging.__file__).parent, site / "packaging",
                     ignore=shutil.ignore_patterns("__pycache__"))
-    _distribution(site, "med-vlm-mlx", "0.2.3", ["mlx==0.32.3", "transformers==5.19.0"])
+    _distribution(site, "med-vlm-mlx", "0.3.1", ["mlx==0.32.3", "transformers==5.19.0"])
     _distribution(site, "mlx", "0.32.3", [])
     _distribution(site, "transformers", "5.19.0", ["huggingface-hub>=1.31", "tokenizers>=0.23.1"])
     _distribution(site, "huggingface-hub", "1.33.0", [])
@@ -163,6 +163,7 @@ def test_isolated_worker_uses_local_runtime_and_publishes_report(
     report = json.loads(destination.read_text())
     assert report["text"] == "gemma3:rendered:describe"
     assert report["python"] == str(isolated_python)
+    assert report["versions"]["med-vlm-mlx"] == "0.3.1"
     assert report["versions"]["mlx"] == "0.32.3"
     original = destination.read_bytes()
     with pytest.raises(RuntimeError):
@@ -193,6 +194,18 @@ def test_readiness_checks_existing_runtime_without_installing(
     _distribution(site, "mlx-vlm", "0.0.1", [])
     assert medvlm.readiness()["ready"] is False
     assert not _mlx_imported(isolated_python)
+
+
+def test_older_selected_runtime_is_rejected_before_importing_mlx_or_writing(
+    isolated_python: Path, inputs: Inputs,
+) -> None:
+    metadata = next(_site(isolated_python).glob("med_vlm_mlx-*.dist-info/METADATA"))
+    metadata.write_text(metadata.read_text().replace("Version: 0.3.1", "Version: 0.2.3"))
+    assert medvlm.readiness()["ready"] is False
+    with pytest.raises(MissingDependencyError, match=r"targets med-vlm-mlx==0\.3\.1"):
+        medvlm.medgemma(**inputs)
+    assert not _mlx_imported(isolated_python)
+    assert not Path(inputs["output_dir"]).exists()
 
 
 @pytest.mark.parametrize("case", ["missing", "architecture", "shard", "tokens"])
@@ -279,7 +292,7 @@ def test_managed_runtime_installs_privately_reuses_and_repairs_interrupted_setup
     """A half-created venv must not prevent the next run from finishing installation."""
     monkeypatch.delenv("MEDMLX_MEDVLM_PYTHON", raising=False)
     cache = tmp_path / "cache"
-    prefix = cache / ".runtimes" / "med-vlm-mlx-0.2.3"
+    prefix = cache / ".runtimes" / "med-vlm-mlx-0.3.1"
     monkeypatch.setenv("MEDMLX_ASSET_CACHE", str(cache))
 
     def find_uv(_name: str) -> str:
@@ -296,7 +309,7 @@ def test_managed_runtime_installs_privately_reuses_and_repairs_interrupted_setup
         if "venv" in arguments:
             shutil.copytree(isolated_python.parent.parent, Path(arguments[-1]), symlinks=True)
             return subprocess.CompletedProcess(arguments, 0, "", "")
-        assert arguments[-2:] == ["med-vlm-mlx==0.2.3", "packaging>=24"]
+        assert arguments[-2:] == ["med-vlm-mlx==0.3.1", "packaging>=24"]
         return subprocess.CompletedProcess(arguments, 1 if fail else 0, "", "network unavailable")
 
     monkeypatch.setattr(medvlm.subprocess, "run", command)
@@ -309,6 +322,7 @@ def test_managed_runtime_installs_privately_reuses_and_repairs_interrupted_setup
     fail = False
     medvlm.medgemma(**inputs)
     assert len(commands) == 3
+    assert (prefix / ".ready").read_text() == "0.3.1\n"
     assert medvlm.readiness()["ready"] is True
     medvlm.medgemma(**inputs, overwrite=True)
     assert len(commands) == 3

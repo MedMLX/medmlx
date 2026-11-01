@@ -21,18 +21,21 @@ def spec(
                               "fake", "1.0", "fake = fake:MODEL", requires_weights, setup_supported)
 
 
-@pytest.mark.parametrize("cached", [False, True], ids=["absent", "cached"])
+@pytest.mark.parametrize(
+    ("marker", "cached"),
+    [(None, False), ("d2d635fbac34254f14192ac348a05d275a949317", True), ("a" * 40, False)],
+    ids=["absent", "cached", "stale-revision"],
+)
 def test_setup_plans_report_the_local_cache_in_the_api_and_cli(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str], cached: bool,
+    capsys: pytest.CaptureFixture[str], marker: str | None, cached: bool,
 ) -> None:
     root = tmp_path / "assets"
     monkeypatch.setenv("MEDMLX_ASSET_CACHE", str(root))
     folder = root / "lung-nodule" / "MedMLX--retinanet-lung-nodule-mlx"
-    revision = "a" * 40
-    if cached:
+    if marker is not None:
         folder.mkdir(parents=True)
-        (folder / ".medmlx-revision").write_text(revision)
+        (folder / ".medmlx-revision").write_text(marker)
     model = spec("lung-nodule")
 
     def get_model(_model_id: str) -> registry.ModelSpec:
@@ -53,7 +56,7 @@ def test_setup_plans_report_the_local_cache_in_the_api_and_cli(
         "source_url": "https://huggingface.co/MedMLX/retinanet-lung-nodule-mlx",
         "cached": cached,
         "weights_path": str(folder) if cached else None,
-        "revision": revision if cached else None,
+        "revision": marker if cached else None,
         "weights_from": [],
         "message": "Pre-download model files for offline use; normal runs download on first use.",
     }
@@ -63,7 +66,7 @@ def test_setup_plans_report_the_local_cache_in_the_api_and_cli(
     assert cli.main(["setup"]) == 0
     assert json.loads(capsys.readouterr().out) == [expected]
     assert not (root / ".locks").exists()
-    if not cached:
+    if marker is None:
         assert not root.exists()
 
 

@@ -5,65 +5,120 @@ models, inspect their inputs, and run them on Apple Silicon. It uses standard
 input/output (stdio): the client starts `medmlx serve` as a subprocess and
 communicates with it over that process's stdin and stdout.
 
-This is the inference server in the `medmlx` repository.
+This is the inference server in the `medmlx` Python package. This guide on `main`
+also covers unreleased changes; see the [release notes](release-notes.md#unreleased).
 
 ## Install and connect
 
 You need macOS on Apple Silicon, Python 3.13, Metal, and
-[uv](https://docs.astral.sh/uv/getting-started/installation/). From a source
-checkout, install MCP and the model family you need. This example installs the
-segmentation family:
+[uv](https://docs.astral.sh/uv/getting-started/installation/). If uv is missing,
+install it with `brew install uv`. Install the released Python package with MCP
+and all model families:
 
 ```sh
-git clone https://github.com/MedMLX/medmlx.git
-cd medmlx
-uv sync --locked --no-dev --extra segment --extra mcp
+uv tool install --python 3.13 "medmlx[all,mcp]"
 ```
 
-Use `generate`, `vision`, or `all` in place of `segment` to install other
-families. Runners with automatic assets download their configured Hub files when
-`weights_path` is omitted. Optionally run `medmlx setup --all` before working
-offline, or pass your own local folder as `weights_path`. The setup command
-reports models and workflows that need manual assets. Readiness never downloads
-weights. MedGemma requires local weights and uses a
-[managed separate-environment bridge](medvlm-bridge.md).
-
-Check the installed environment before connecting a client:
+Use `segment`, `generate`, or `vision` in place of `all` for a smaller install.
+Find the absolute path to uv's installed `medmlx` executable and check that
+environment before connecting a client:
 
 ```sh
-.venv/bin/medmlx models
-.venv/bin/medmlx runtime
+MEDMLX="$(uv tool dir --bin)/medmlx"
+printf '%s\n' "$MEDMLX"
+"$MEDMLX" models
+"$MEDMLX" runtime
 ```
 
 `models` lists discovered declarations and reports `discovery_errors` and
 `discovery_warnings`; `runtime` reports MLX and Metal availability. Discovery alone does not mean
 weights are staged or a particular input is valid.
 
-### Codex
+Runners with automatic assets download their configured Hub files when
+`weights_path` is omitted. Optionally run `medmlx setup --all` before working
+offline, or pass your own local folder as `weights_path`. The setup command
+reports models and workflows that need manual assets. Readiness never downloads
+weights. MedGemma requires local weights and uses a
+[managed separate-environment bridge](medvlm-bridge.md).
 
-Run the following from the checkout. Choose an existing working directory for
-the server; the example creates one in your home directory. The absolute path
-to the executable ensures that Codex starts the same environment you installed.
+Choose a working directory for inputs and results. The examples below create
+`~/medmlx-work`; replace it with your own folder. `--root` sets the workers'
+working directory, so relative input and output paths resolve there. It must
+already exist. If omitted, the server uses its startup working directory, which
+may differ from the directory where you interact with the client. Add
+`--restrict-root` to reject path arguments that resolve outside that directory.
+
+### Claude Code
+
+Register the server in your user configuration, using the absolute executable
+path from `uv tool dir --bin`:
 
 ```sh
-MEDMLX_WORK_ROOT="$HOME/medmlx-work"
-mkdir -p "$MEDMLX_WORK_ROOT"
-codex mcp add medmlx -- "$PWD/.venv/bin/medmlx" serve --root "$MEDMLX_WORK_ROOT"
+mkdir -p "$HOME/medmlx-work"
+claude mcp add --scope user medmlx -- "$(uv tool dir --bin)/medmlx" serve --root "$HOME/medmlx-work"
+claude mcp list
+```
+
+### Codex
+
+The absolute executable path ensures that Codex starts the installed tool
+environment:
+
+```sh
+mkdir -p "$HOME/medmlx-work"
+codex mcp add medmlx -- "$(uv tool dir --bin)/medmlx" serve --root "$HOME/medmlx-work"
 codex mcp list
 ```
 
-Start a new Codex session and check its MCP server list, or use `/mcp` in the
-terminal UI. Then ask it to list MedMLX models and report `runtime_info`. See
+Use `/mcp` in the Codex terminal UI to check its MCP server list. See
 the [Codex MCP documentation](https://developers.openai.com/codex/mcp/) for
-client configuration and troubleshooting. Registration is a client setting;
-installing MedMLX does not register it automatically.
+client configuration and troubleshooting.
 
-For another stdio client, configure the absolute path to `.venv/bin/medmlx` as
-the command and `serve`, `--root`, and the absolute working-directory path as
-separate arguments. Add `--restrict-root` to reject path arguments that resolve
-outside that directory. Consult that client's configuration instructions. The root
-must already exist. If `--root` is omitted, the server uses its startup working
-directory, which may differ from the directory where you interact with the client.
+### JSON-configured clients
+
+For clients that use `mcpServers`, add this entry to the client's configuration.
+Replace both placeholders with absolute paths: the installed executable shown
+above and an existing working folder. JSON configuration does not expand shell
+variables or `~`.
+
+```json
+{
+  "mcpServers": {
+    "medmlx": {
+      "command": "/absolute/path/to/medmlx",
+      "args": ["serve", "--root", "/absolute/path/to/medmlx-work"]
+    }
+  }
+}
+```
+
+Restart your client or start a new session after registration, then ask it to
+list the installed MedMLX models and report `runtime_info`. Registration is a
+client setting; installing MedMLX does not register it automatically.
+
+## Source checkout (development)
+
+For development and unreleased changes, install from a source checkout. This
+example installs MCP and the segmentation family; use `generate`, `vision`, or
+`all` in place of `segment` for other families:
+
+```sh
+git clone https://github.com/MedMLX/medmlx.git
+cd medmlx
+uv sync --locked --no-dev --extra segment --extra mcp
+.venv/bin/medmlx models
+.venv/bin/medmlx runtime
+```
+
+Use the checkout's absolute `.venv/bin/medmlx` path in the client configurations
+above. For example, run this from the checkout to register it with Codex:
+
+```sh
+mkdir -p "$HOME/medmlx-work"
+codex mcp add medmlx -- "$PWD/.venv/bin/medmlx" serve --root "$HOME/medmlx-work"
+```
+
+Keep the checkout and its environment at that path so the client can start it.
 
 ## Run a model
 

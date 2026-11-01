@@ -35,11 +35,12 @@ MEDGEMMA = {
                "and numerical accuracy are not yet qualified by MedMLX.",
 }
 _CONFIGURATION = "MEDMLX_MEDVLM_PYTHON"
+_RUNTIME_VERSION = "0.3.1"
 
 
 def _managed_prefix() -> Path:
     cache = Path(os.environ.get("MEDMLX_ASSET_CACHE", Path.home() / ".cache/medmlx")).expanduser()
-    return cache / ".runtimes" / "med-vlm-mlx-0.2.3"
+    return cache / ".runtimes" / f"med-vlm-mlx-{_RUNTIME_VERSION}"
 
 
 def _python(*, provision: bool = False) -> Path:
@@ -96,7 +97,7 @@ def _install_runtime(prefix: Path) -> Path:
             ])
         operations.append([
             *command, "pip", "install", "--python", str(executable),
-            "med-vlm-mlx==0.2.3", "packaging>=24",
+            f"med-vlm-mlx=={_RUNTIME_VERSION}", "packaging>=24",
         ])
         for operation in operations:
             completed = subprocess.run(
@@ -110,7 +111,7 @@ def _install_runtime(prefix: Path) -> Path:
                 )
         with tempfile.NamedTemporaryFile(mode="w", dir=prefix, delete=False) as handle:
             temporary = Path(handle.name)
-            handle.write("0.2.3\n")
+            handle.write(f"{_RUNTIME_VERSION}\n")
         try:
             temporary.replace(ready)
         finally:

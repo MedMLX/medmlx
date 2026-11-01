@@ -1,5 +1,33 @@
 # Release notes
 
+## Unreleased
+
+- Pin registered automatic weight bundles to the revisions documented by the
+  latest runtime release tags, including their linked Hugging Face model cards.
+  SAM3 retains its existing pin. Unlisted model IDs still resolve
+  `MedMLX/<model_id>` at `main` on first use. Existing weight files whose hashes
+  match the pin can be reused across commits; changed cards and other selected
+  files still use the resumable download path.
+
+  The nnU-Net pins preserve these `dataset.json` foreground labels (background is 0):
+
+  | Model ID | Weight revision and label source | Labels |
+  | --- | --- | --- |
+  | `nnunet-autopet` | [cf7d717e9790a16215346d5147e4369afc31ee22](https://huggingface.co/MedMLX/nnunet-autopet-mlx/blob/cf7d717e9790a16215346d5147e4369afc31ee22/dataset.json) | 1 tumor |
+  | `nnunet-brats2021` | [11f15e51e44319d9cdd941e2b902130e7a8af710](https://huggingface.co/MedMLX/nnunet-brats-mlx/blob/11f15e51e44319d9cdd941e2b902130e7a8af710/dataset.json) | 1 edema, 2 nonenhancing, 3 empty, 4 enhancing |
+  | `nnunet-liver` | [574a9c601b9b1a9e906ce985fbd46b106c5b7caa](https://huggingface.co/MedMLX/nnunet-liver-mlx/blob/574a9c601b9b1a9e906ce985fbd46b106c5b7caa/dataset.json) | 1 liver, 2 cancer |
+  | `nnunet-pancreas` | [b2d5f14bb31f9793e3d9ab2c24096427eea983ae](https://huggingface.co/MedMLX/nnunet-pancreas-mlx/blob/b2d5f14bb31f9793e3d9ab2c24096427eea983ae/dataset.json) | 1 pancreas, 2 cancer |
+
+- Update the managed MedGemma bridge to `med-vlm-mlx==0.3.1` in a new versioned
+  private environment. Its MLX 0.32.3 dependency stays isolated from the other
+  runtimes; real-checkpoint execution and numerical accuracy remain unqualified.
+- Automatic weight setup verifies unmarked or outdated caches against the selected
+  Hub commit's LFS SHA-256 or Git blob hashes before reusing them. Verified files
+  are kept, including files from the older top-level layout, which are copied into
+  the current layout without deleting or linking the originals; only missing or
+  mismatched files are downloaded. `cached_weights` remains offline and read-only;
+  `refresh=True` still forces a download.
+
 ## 0.4.2
 
 - Requires `medmlx-core` 0.2.6. Provider extras pin the current MedMLX runtime
