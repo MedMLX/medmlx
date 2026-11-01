@@ -1,0 +1,150 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "medmlx"
+version = "0.4.2"
+description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
+readme = "README.md"
+classifiers = ["Operating System :: MacOS :: MacOS X"]
+requires-python = ">=3.13,<3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
+dependencies = ["medmlx-core==0.2.6", "packaging>=24", "uv>=0.8,<1"]
+
+[project.scripts]
+medmlx = "medmlx.cli:main"
+
+[project.entry-points."medmlx.models"]
+medgemma = "medmlx.adapters.medvlm:MEDGEMMA"
+reason-ct-tools = "medmlx.workflows.reason_ct:MODEL"
+
+[project.optional-dependencies]
+# Kept as an empty compatibility extra; automatic downloads are included by default.
+setup = []
+reason-tools = [
+  "mlx-reason-ct[tools]==0.3.6",
+  "lung-nodule-mlx==0.2.6",
+  "medsam2-mlx==0.2.8",
+  "pydantic>=2.14,<3",
+  "nibabel>=5.4.2,<6",
+  "numpy>=2.3,<3",
+  "scipy>=1.18,<2",
+  "pillow>=13,<14",
+]
+segment = [
+  "sam3-mlx[video]==0.2.4",
+  "biomedparse-mlx==0.1.5",
+  "flexible-unet-mlx==0.2.6",
+  "swin-unetr-mlx==0.2.6",
+  "segresnet-mlx==0.3.3",
+  "medsam2-mlx==0.2.8",
+  "mlx-segment-ct==0.3.5",
+  "unest-mlx==0.2.7",
+  "synthseg-mlx==0.3.4",
+  "flexray-mlx==0.2.6",
+  "nnunet-mlx==0.6.4",
+  "totalsegmentator-mlx==0.1.6",
+]
+generate = [
+  "nibabel>=5.4.2,<6",
+  "mlx-reason-ct==0.3.6",
+  "fdg-pet-ct-mlx==0.2.6",
+  "mlx-generate-ctmr==0.5.2",
+  "lesiondiffusion-mlx==0.2.6",
+]
+vision = [
+  "mlxradiomics[io]==0.1.0.dev9",
+  "radimagenet-mlx==0.3.3",
+  "lung-nodule-mlx==0.2.6",
+]
+all = [
+  "SimpleITK>=2.5,<3",
+  "pydantic>=2.14,<3",
+  "numpy>=2.3,<3",
+  "scipy>=1.18,<2",
+  "pillow>=13,<14",
+  "nibabel>=5.4.2,<6",
+  "sam3-mlx[video]==0.2.4",
+  "mlx-reason-ct[tools]==0.3.6",
+  "biomedparse-mlx==0.1.5",
+  "fdg-pet-ct-mlx==0.2.6",
+  "flexible-unet-mlx==0.2.6",
+  "flexray-mlx==0.2.6",
+  "lesiondiffusion-mlx==0.2.6",
+  "lung-nodule-mlx==0.2.6",
+  "medsam2-mlx==0.2.8",
+  "mlx-generate-ctmr==0.5.2",
+  "mlx-segment-ct==0.3.5",
+  "mlxradiomics[io]==0.1.0.dev9",
+  "nnunet-mlx==0.6.4",
+  "radimagenet-mlx==0.3.3",
+  "segresnet-mlx==0.3.3",
+  "swin-unetr-mlx==0.2.6",
+  "synthseg-mlx==0.3.4",
+  "totalsegmentator-mlx==0.1.6",
+  "unest-mlx==0.2.7",
+]
+mcp = [
+  "mcp>=2.2,<3",
+]
+dicom = [
+  "SimpleITK>=2.5,<3",
+]
+
+[dependency-groups]
+dev = ["pyright==1.1.414", "pytest>=8.4,<10", "ruff>=0.13,<1", "hypothesis>=6.140,<7", "monai==1.6.1", "torch==2.14.1"]
+
+[tool.uv]
+environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'"]
+constraint-dependencies = ["certifi>=2026.10.19", "pillow>=13,<14", "urllib3>=2.8.0"]
+[tool.uv.workspace]
+members = ["packages/core"]
+exclude = ["conversion"]
+
+[tool.uv.sources]
+medmlx-core = { workspace = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/medmlx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers --import-mode=importlib"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TID251", "TID252", "ANN401"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
+"typing_extensions.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
+
+[tool.pyright]
+include = ["src", "tests", "typings", "tools/extraction/tests"]
+extraPaths = ["src", "packages/core/src"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+enableTypeIgnoreComments = false
+reportUnnecessaryTypeIgnoreComment = "error"
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "src/medmlx",
+  ".gitignore",
+  "pyproject.toml",
+  "README.md",
+  "LICENSE",
+  "THIRD_PARTY_NOTICES.md",
+]

@@ -1,0 +1,137 @@
+"""Export SAM 3 text-prompted detection to Core AI and Core ML, then check.
+
+Follows apple/coreai-models' SAM 3 `--full` export: the Hugging Face Sam3Model at 1008x1008,
+returning masks, boxes, logits, presence and semantic segmentation. The exported
+inputs have a fixed 32-token length and attention mask; the recipe checks one
+synthetic image with the prompt ``liver``, not every possible prompt.
+"""
+
+import sys
+from pathlib import Path
+from types import MethodType
+
+import torch
+
+from medmlx_convert import export_and_check, recipe_args
+from medmlx_convert.boundary import (
+    as_sequence,
+    as_tensor,
+    attribute,
+    class_,
+    function,
+    hf_snapshot,
+    item,
+    library,
+    module,
+)
+from medmlx_convert.check import check_source_outputs
+from medmlx_convert.provenance import BuildSource
+from medmlx_convert.sam3 import OUTPUTS as OUTPUT_NAMES
+from medmlx_convert.sam3 import Sam3TextWithGeometry, load_detector
+
+# Gated: accept the SAM License on Hugging Face and log in (`hf auth login`) first.
+REPO = "facebook/sam3"
+REVISION = "3c879f39826c281e95690f02c7821c4de09afae7"
+IMAGE_SIZE = 1008
+TEXT_TOKENS = 32  # apple/coreai-models' default static text length
+PROMPT = "liver"
+OUTPUTS: list[str] = list(OUTPUT_NAMES)
+
+
+def tokenize(tokenizer: object, padding: bool | str) -> tuple[torch.Tensor, torch.Tensor]:
+    """Encode the fixed prompt into int32 token IDs and an attention mask."""
+    encoded = function(tokenizer, "__call__")(
+        [PROMPT], return_tensors="pt", padding=padding, max_length=TEXT_TOKENS, truncation=True
+    )
+    input_ids = as_tensor(item(encoded, "input_ids"), "input_ids").to(torch.int32)
+    return input_ids, as_tensor(item(encoded, "attention_mask"), "attention_mask").to(torch.int32)
+
+
+
+options = recipe_args("sam3")
+out_dir = options.out
+transformers = library("transformers")
+snapshot = hf_snapshot(REPO, REVISION, ["model.safetensors", "*.json", "*.txt"])
+model = load_detector(snapshot)
+processor = function(class_(transformers, "Sam3Processor"), "from_pretrained")(
+    str(snapshot), local_files_only=True
+)
+tokenizer = attribute(processor, "tokenizer")
+wrapped = Sam3TextWithGeometry(model).eval()
+
+# The DETR decoder reads the feature grid size out of a tensor, which torch.export treats as
+# data-dependent. For a fixed image size the grid is constant: record it on an eager pass,
+# then hand the decoder's position-bias function plain integers.
+decoder = module(model, "detr_decoder")
+rpb_matrix = function(decoder, "_get_rpb_matrix")
+grids: set[tuple[int, int]] = set()
+
+
+def recording_rpb(boxes: torch.Tensor, spatial_shape: object) -> torch.Tensor:
+    """Record the feature grid seen by the decoder and return its position bias."""
+    height, width = as_sequence(spatial_shape, "spatial shape")
+    grid = (int(as_tensor(height, "height")), int(as_tensor(width, "width")))
+    grids.add(grid)
+    return as_tensor(rpb_matrix(boxes, grid), "position bias")
+
+
+# A synthetic random tensor at SAM 3's normalized input boundary, and one text prompt.
+# No image preprocessing is exercised by this fixture.
+pixel_values = torch.randn(
+    (1, 3, IMAGE_SIZE, IMAGE_SIZE), generator=torch.Generator().manual_seed(0)
+)
+input_ids, attention_mask = tokenize(tokenizer, "max_length")
+
+# The fixed-length, masked prompt must give the same result as the prompt alone.
+short_ids, short_mask = tokenize(tokenizer, False)
+with torch.no_grad():
+    original = wrapped(pixel_values, input_ids, attention_mask)
+    masked_box = model(
+        pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask,
+        input_boxes=torch.zeros((1, 1, 4)), input_boxes_labels=torch.full((1, 1), -10),
+    )
+    vars(decoder)["_get_rpb_matrix"] = recording_rpb
+    padded = wrapped(pixel_values, input_ids, attention_mask)
+    unpadded = wrapped(pixel_values, short_ids, short_mask)
+inputs = {"pixel_values": pixel_values, "input_ids": input_ids, "attention_mask": attention_mask}
+# These are source-transform checks, distinct from either native converter's error.
+check_source_outputs(out_dir / "sam3_empty_geometry_source", inputs, original,
+                     tuple(as_tensor(attribute(masked_box, name), name) for name in OUTPUTS),
+                     OUTPUTS, dict.fromkeys(OUTPUTS, 1e-2), "source_empty_geometry")
+check_source_outputs(out_dir / "sam3_prompt_padding_source", inputs, padded, unpadded,
+                     OUTPUTS, dict.fromkeys(OUTPUTS, 1e-2), "source_prompt_padding")
+(feature_grid,) = grids
+
+
+def static_rpb(owner: torch.nn.Module, boxes: torch.Tensor,
+               spatial_shape: object) -> torch.Tensor:
+    """Use the fixed grid with the copied decoder's own weights and device."""
+    original_method = function(type(owner), "_get_rpb_matrix")
+    return as_tensor(original_method(owner, boxes, feature_grid), "position bias")
+
+
+# A bound method follows deepcopy; closing over the original CPU decoder does not.
+vars(decoder)["_get_rpb_matrix"] = MethodType(static_rpb, decoder)
+with torch.no_grad():
+    static = wrapped(pixel_values, input_ids, attention_mask)
+check_source_outputs(out_dir / "sam3_fixed_grid_source", inputs, static, original,
+                     OUTPUTS, dict.fromkeys(OUTPUTS, 1e-3), "source_fixed_grid")
+
+passed = export_and_check(
+    wrapped,
+    inputs,
+    OUTPUTS,
+    out_dir / "sam3_full_1008",
+    # The mask-logit limit is 0.1; each run records its own measured error rather
+    # than assuming that earlier exports' differences apply to this build.
+    source=BuildSource.capture(
+        Path(__file__), snapshot / "model.safetensors", origin=f"{REPO}@{REVISION}",
+        configuration={"model": "config.json", "processor": "processor_config.json",
+                       "prompt": PROMPT, "text_tokens": str(TEXT_TOKENS),
+                       "image_size": str(IMAGE_SIZE), "text_geometry": "empty geometry CLS"},
+    ),
+    tolerance={**dict.fromkeys(OUTPUTS, 1e-2), "pred_masks": 0.1},
+    profile=options.profile, source_device=options.source_device,
+    coreml_profile=options.coreml_profile,
+)
+sys.exit(0 if passed else 1)

@@ -1,0 +1,267 @@
+{
+  "schema_version": 3,
+  "recorded_at": "2026-10-27T23:13:27.981584+00:00",
+  "model": "sam3_full_1008",
+  "inputs": [
+    {
+      "name": "pixel_values",
+      "shape": [
+        1,
+        3,
+        1008,
+        1008
+      ],
+      "dtype": "float32"
+    },
+    {
+      "name": "input_ids",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    },
+    {
+      "name": "attention_mask",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    }
+  ],
+  "comparisons": [
+    {
+      "framework": "coreai",
+      "output": "pred_masks",
+      "shape": [
+        1,
+        200,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.04085350036621094,
+      "reference_max": 104.34078216552734,
+      "tolerance": 0.1,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 97.12077952740997,
+      "normalized_psnr_db": 95.33070530846376,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "pred_boxes",
+      "shape": [
+        1,
+        200,
+        4
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.00018638372421264648,
+      "reference_max": 1.0075297355651855,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 96.72534137920314,
+      "normalized_psnr_db": 96.69532458974598,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "pred_logits",
+      "shape": [
+        1,
+        200
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0006041526794433594,
+      "reference_max": 2.4898457527160645,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 93.73618004887838,
+      "normalized_psnr_db": 92.95792233898072,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "presence_logits",
+      "shape": [
+        1,
+        1
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 5.364418029785156e-06,
+      "reference_max": 0.4652632176876068,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 92.28964879756259,
+      "normalized_psnr_db": 96.34633210736956,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreai",
+      "output": "semantic_seg",
+      "shape": [
+        1,
+        1,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.00018715858459472656,
+      "reference_max": 7.750696182250977,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 114.17283690084525,
+      "normalized_psnr_db": 99.94919277339584,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "pred_masks",
+      "shape": [
+        1,
+        200,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.016429901123046875,
+      "reference_max": 104.34078216552734,
+      "tolerance": 0.1,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 103.64093622402993,
+      "normalized_psnr_db": 98.47004073715127,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "pred_boxes",
+      "shape": [
+        1,
+        200,
+        4
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.00010603666305541992,
+      "reference_max": 1.0075297355651855,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 98.67527978525656,
+      "normalized_psnr_db": 98.62834290728813,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "pred_logits",
+      "shape": [
+        1,
+        200
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0004980564117431641,
+      "reference_max": 2.4898457527160645,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 96.13651942418385,
+      "normalized_psnr_db": 94.86192547756276,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "presence_logits",
+      "shape": [
+        1,
+        1
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 1.3709068298339844e-06,
+      "reference_max": 0.4652632176876068,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 93.31615073614398,
+      "normalized_psnr_db": 99.67861337853842,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "coreml",
+      "output": "semantic_seg",
+      "shape": [
+        1,
+        1,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0002231597900390625,
+      "reference_max": 7.750696182250977,
+      "tolerance": 0.01,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 114.81611407334623,
+      "normalized_psnr_db": 99.97185984390482,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    }
+  ],
+  "packages": {
+    "torch": "2.13.0",
+    "coreai-core": "1.0.0b3",
+    "coreai-torch": "0.4.3",
+    "coremltools": "9.0",
+    "numpy": "2.4.6"
+  },
+  "reference": "PyTorch CPU FP32",
+  "compute_policy": "Core ML CPU_AND_GPU; Core AI default specialization",
+  "scope": "Fixed-shape network tensors; no host pipeline or clinical test",
+  "source": {
+    "kind": "released",
+    "checkpoint": "facebook/sam3@3c879f39826c281e95690f02c7821c4de09afae7/model.safetensors",
+    "origin": "facebook/sam3@3c879f39826c281e95690f02c7821c4de09afae7",
+    "configuration": {
+      "model": "config.json",
+      "processor": "processor_config.json",
+      "prompt": "liver",
+      "text_tokens": "32",
+      "image_size": "1008"
+    },
+    "recipe": "conversion/recipes/sam3/export.py",
+    "revision": {
+      "repository": "platform",
+      "revision": "a48633d201ce028b6b61f8db96e2785dae28640e",
+      "dirty": false
+    },
+    "packages": {
+      "torch": "2.13.0",
+      "coreai-core": "1.0.0b3",
+      "coreai-torch": "0.4.3",
+      "coremltools": "9.0",
+      "numpy": "2.4.6",
+      "monai": "1.6.1",
+      "nnunetv2": "2.8.1",
+      "transformers": "5.10.1",
+      "keras": "3.15.0",
+      "h5py": "3.15.1",
+      "safetensors": "0.8.0"
+    }
+  },
+  "build_profile": "macos-fp32-reference"
+}

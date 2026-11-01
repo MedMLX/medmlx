@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>CT nodule review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111417;color:#e7ebee;font:16px/1.55 system-ui,sans-serif}
+main{max-width:1180px;margin:auto;padding:32px 24px 64px}h1{font-size:30px;margin:0}h2{font-size:20px}
+p{margin:8px 0 16px}header{border-bottom:1px solid #35404a;padding-bottom:20px}.muted{color:#aeb9c2}
+.interpretation{padding:20px 0;border-bottom:1px solid #35404a}.interpretation pre{white-space:pre-wrap;font:inherit}
+.candidate{padding:24px 0;border-bottom:1px solid #35404a}.measurements{color:#c3d0db}
+.views{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}figure{margin:0}
+figcaption{margin-bottom:8px;color:#aeb9c2}.plane{position:relative;height:360px;background:#030505;padding:20px;display:flex;align-items:center;justify-content:center}
+.plane img{max-width:100%;max-height:100%;object-fit:contain}.plane span{position:absolute;font:12px system-ui;color:#bcc8d2}
+.top{top:2px;left:49%}.bottom{bottom:2px;left:49%}.left{left:5px;top:48%}.right{right:5px;top:48%}
+.controls{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:20px}.controls label{display:flex;align-items:center;gap:8px}
+input{accent-color:#5be0ba}input[type=range]{width:180px}a{color:#9dcdf7}a:focus-visible,input:focus-visible{outline:2px solid #9dcdf7;outline-offset:4px}
+footer{padding-top:24px;font-size:14px;color:#aeb9c2}.empty{padding:24px 0}
+@media(max-width:800px){.views{grid-template-columns:1fr}.plane{height:330px}main{padding:24px 16px}.controls{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main>
+<header><h1>CT nodule review</h1><p class="muted">__SOURCE__</p>
+<p>Candidate masks and measurements for review. Detector scores are not cancer probabilities.</p>
+<p class="muted">__CONTEXT__</p></header>
+<section class="interpretation"><h2>Reason-CT response (unverified)</h2><pre>__REPORT__</pre></section>
+__CARDS__
+<footer>Green shows the MedSAM2 mask; yellow marks the detector's axial box.
+Detail views include 30 mm of context. Views use radiological orientation and physical pixel aspect.
+Mask downloads preserve the original CT grid. Volume-equivalent diameter is derived from mask volume;
+it is not a RECIST diameter. Model interpretation and masks require human review.</footer>
+</main>
+<script type="application/json" id="frames">__FRAMES__</script>
+<script>
+"use strict";
+const frames=JSON.parse(document.getElementById("frames").textContent);
+for(const section of document.querySelectorAll(".candidate")){
+  const id=section.dataset.id, slider=section.querySelector(".slice"), toggle=section.querySelector(".mask-toggle");
+  function update(){
+    const index=Number(slider.value), overlay=toggle.checked?1:0;
+    document.getElementById(id+"-axial").src=frames[id][index][overlay];
+    document.getElementById(id+"-overview").src=frames[id+"-overview"][index][overlay];
+    for(const plane of ["coronal","sagittal"]){document.getElementById(id+"-"+plane).src=frames[id+"-"+plane][0][overlay];}
+    document.getElementById(id+"-slice").textContent=String(Number(section.dataset.start)+index);
+  }
+  slider.addEventListener("input",update);toggle.addEventListener("change",update);
+}
+</script></body></html>

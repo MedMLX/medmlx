@@ -1,0 +1,259 @@
+# Technical reference
+
+## Runtime and checkpoint conversion
+
+Only macOS arm64 with MLX on Metal is supported. `import_mlx()` admits the host
+and selects the Metal GPU. Unsupported hosts are rejected before importing MLX;
+unavailable Metal is an error. There are no backend extras or backend fallback.
+The existing `require_mlx_device("mlx")` API checks explicit MLX readiness.
+Python is `>=3.13,<3.15`; MLX is `>=0.32.4,<0.33`. Runtime admission rejects
+older or unsupported MLX versions before inference.
+
+With `MLX_ENABLE_TF32` unset, MLX on M5 lets float32 matmul and some
+convolutions use reduced-precision products. MLX reads the variable at the
+first such operation and keeps it for the process. Importing `medmlx_core` sets
+it to `0` when it is unset to avoid that reduced-product path by default; an
+explicit value, including `1`, is kept. This setting alone does not establish
+numerical parity with a reference implementation. `import_mlx()`
+checks one exact float32 product and raises `MissingDependencyError` when it was
+reduced without an explicit opt-in, which happens when the process ran MLX
+before importing `medmlx_core`.
+
+The `conversion` extra supplies Torch for `load_torch_checkpoint()`. Safe
+`weights_only=True` loading is the default. Explicit `weights_only=False` remains
+available for trusted legacy payloads. Missing Torch reports `extra="conversion"`
+and the corresponding install hint.
+
+## Public API and references
+
+Main helpers are re-exported from `medmlx_core`. Errors derive from the real
+`MedmlxError` base and retain their built-in catch types: `InvalidInputError`
+(`ValueError`), `MissingDependencyError` (`ImportError`), `ModelExecutionError`
+(`RuntimeError`), and `AssetNotReadyError` (`FileNotFoundError`).
+
+The canonical reference pins are in `tests/reference_spec.json`. MONAI is
+1.6.1, revision [`7af492176792f9069b8f1253d099abd05c5e769d`](https://github.com/Project-MONAI/MONAI/tree/7af492176792f9069b8f1253d099abd05c5e769d).
+PyTorch is 2.14.1, revision [`5c4886908584029761b579af026dcfb627c84070`](https://github.com/pytorch/pytorch/tree/5c4886908584029761b579af026dcfb627c84070).
+Development dependencies pin these package versions; generators reject a different
+version or source revision. Reference frameworks are absent from runtime imports.
+
+| Module | API / independent reference |
+| --- | --- |
+| `runtime.py` | Host readiness and Metal admission; direct platform/API contract tests |
+| `errors.py` | Exception identity, messages and metadata; direct public contract tests |
+| `checkpoints.py`, `conversion.py` | Duplicate-safe host mappings and optional Torch deserialization; original seeded arrays and Torch save/load round trips |
+| `layout.py` | NCDHW/NDHWC, convolution-weight and token permutations; plain NumPy float64 reference |
+| `ops.py` | SiLU, linear, conv3d, conv_transpose3d, GroupNorm, pooling, interpolation, padding and concatenation; PyTorch functional operations |
+| `ops.py` split convolutions | Actual MONAI `MaisiConvolution`, including its overlap, integer size-ratio checks and crop semantics |
+| `upsample.py` | Kernel=stride=2 transpose convolution and fused trilinear interpolation + skip addition; PyTorch functional operations |
+| `precision.py` | Metal FP32 convolution and GroupNorm versus PyTorch; custom epsilon decomposition and Welford moments versus NumPy float64 |
+| `sliding_window.py` | MONAI `inferers/utils.py` and `data/utils.py` |
+| `channel_last.py` | PyTorch layers, MONAI Swish and `UnetResBlock`; individual layers and complete seeded 2D/3D graphs |
+
+Inference helpers run on Metal. Model topology, checkpoint keys, label meanings and
+pre/postprocessing belong to each model package. Channel-last references use the
+core's MONAI 1.6.1 pin; they do not qualify consumer models pinned to another release.
+
+See the [decoder note](transpose-convolution.md) for stride-2 transpose-convolution
+dispatch and the upstream reproducer.
+
+## Sliding-window inference
+
+```python
+from medmlx_core import sliding_window_inference
+
+logits = sliding_window_inference(
+    image,  # NumPy or MLX (N, C, *spatial), float32/float16
+    roi_size=(128, 128, 128),
+    sw_batch_size=1,
+    predictor=network,  # MLX array -> MLX array, same spatial resolution
+    overlap=0.25,
+    mode="constant",
+    padding_mode="replicate",
+)
+```
+
+The result is a host NumPy array with the input dtype and original spatial size;
+output channels follow the predictor. Public helpers include `dense_patch_slices`
+and `compute_importance_map`. Scalar/per-axis overlap and sigma, fallback ROI
+components, all four Torch padding modes, supplied ROI maps, window batching
+across images, predictor arguments, and `with_coord` are supported. Batch size
+is used as supplied. The existing `sw_device` parameter accepts None, `"gpu"`
+or an MLX GPU device; CPU prediction is rejected. `device` is None or `"cpu"`
+because NumPy accumulation stays on the host. `import_mlx()` admits Metal before
+the predictor is invoked.
+
+Window stride is `max(int(roi * (1-overlap)), 1)`, with the final window shifted
+onto the edge. Small inputs receive symmetric padding, with an extra voxel on
+the right for odd deficits. Gaussian maps use FP32 separable factors, center
+`(size-1)/2`, sigma `size*sigma_scale`, no peak normalization, and minimum 0.001.
+Predictions are weighted in predictor dtype before ordered input-dtype accumulation.
+
+Multiple/scaled outputs, positive `buffer_steps`, `process_fn`, progress bars,
+and MetaTensor metadata are unsupported and fail explicitly where applicable.
+No background threshold or class-ID mapping is applied by the shared stitcher.
+Recorded postprocessing references use MONAI `AsDiscrete(argmax=True)` only.
+
+## Reference fixtures and regeneration
+
+Seven small upstream-reference archives are included under
+`tests/fixtures/darwin-arm64/` (each below 80 KB). Inputs retain the original
+seeds: 7081 for helpers and 20261007 for channel-last/window graphs. Coverage
+includes input/layout preparation, every helper, padding/cropping, window logits,
+coordinates, importance maps, argmax labels, and complete synthetic layer graphs.
+Each archive has `schema_version=2`, upstream versions/revisions, seed, reference
+device, NumPy version, Torch build and recording platform. Generators use Torch
+CPU and NumPy, import neither MedMLX nor MLX, and are never imported by the
+numerical tests.
+The reference frameworks execute on the CPU of the recording Mac; the library
+itself runs on MLX Metal. Tests load the one recording directory directly, without
+backend selection. After explicitly provisioning the unified repository's development
+environment, run regeneration from the component directory. Starting at the
+unified repository root on an Apple Silicon Mac:
+
+```sh
+cd packages/core
+PYTHON=../../.venv/bin/python
+
+"$PYTHON" scripts/make_reference_fixtures.py
+"$PYTHON" scripts/make_channel_last_fixtures.py
+"$PYTHON" scripts/make_sliding_window_fixtures.py
+
+"$PYTHON" -m pytest -q tests/test_numerical.py
+```
+
+That test checks the numerical gate's rounding allowance and its rejections without
+qualifying Metal arithmetic. For changed numerical operations, also select the
+affected cases from `tests/test_equivalence.py`, `tests/test_channel_last.py` or
+`tests/test_sliding_window.py`; the first two require Metal at collection.
+
+Generators require macOS arm64. `--output-dir` permits regeneration in a temporary
+directory for review. Missing references fail with a regeneration hint.
+
+Numerical policy is versioned in `tests/numerical_contract.json`. Every comparison
+checks shape, FP32 dtype and finite values. Copies, permutations, nearest-neighbor
+replication and discrete outputs compare exactly. Arithmetic compares with
+operation-specific absolute and relative bounds, accounting for reduction order,
+FMA and exponential rounding. Each channel-last layer is checked on its upstream
+stage input; complete graphs have a separate cumulative budget. The triage and
+bound rationale are in `tests/NUMERICAL_PARITY.md`. The repeated 48-cubed decoder
+test uses seeded weights and requires no external checkpoint.
+
+Independent sliding-window tests retain exact comparison for representable
+constant-blending inputs, maximum absolute error 1e-6 for Gaussian logits and
+1e-7 for Gaussian maps because NumPy/Torch FP32 exponential kernels round differently.
+
+Host checks and reference generation do not qualify MLX execution. Reference arrays
+retain independently recorded upstream outputs and source metadata. Run `make qa-core`
+from the unified repository root for the current static gate; passing runtime tests
+alone does not establish static-check status.
+
+Fixtures are synthetic helper references. Clinical accuracy, released model
+weights and full-volume memory/performance are not qualified by these fixtures.
+
+## Graph and geometry runtime
+
+Core owns portable inference contracts and their MLX Metal execution.
+Source-model capture, operation translation, checkpoint admission and comparison
+recipes belong to `conversion/` (`medmlx_convert`); topology, labels, prompts and
+pre- and postprocessing belong to each model package. The base runtime needs only
+MLX and NumPy, and execution never falls back to the CPU.
+
+```python
+from pathlib import Path
+
+import mlx.core as mx
+from medmlx_core.graph.runtime import Session
+
+session = Session.load(Path("build/my-native-brats"))
+(logits,) = session(mx.zeros((1, 4, 64, 64, 64), dtype=mx.float32))
+```
+
+**One graph contract.** `schema.py` defines graph schema 2: tensor roles, static
+shapes, float32/int32/bool dtypes, producer details, named calls and explicit tensor
+references. The single codec rejects unknown fields, operations and invalid
+references, and neither the format nor the loader executes source code. Operation
+names are independent of ATen; the converter translates source signatures and drops
+source-only options. Schema-1 bundles must be regenerated from their recipe. A
+bundle is `graph.json` plus `weights.safetensors`; the loader enforces exact state
+keys, shapes and dtypes, and arithmetic runs in an explicit Metal stream.
+
+| Operations | Scope |
+| --- | --- |
+| Convolution and normalization | 2D/3D convolution and transpose convolution, supported group and dilation variants, inference BatchNorm and InstanceNorm; the stride-2, kernel-2 3D decoder reuses core's one-matmul path |
+| Sampling and tensors | unpadded floor-mode 2D average pooling, integral-factor bilinear upsampling, activations, concatenation, slicing, LogSoftmax, arithmetic, reshape, split, casts, metadata assertions, tuple selection |
+| Unsupported | raises explicitly: dynamic shapes, training, mutable state, output pytrees and whole image pipelines |
+
+**Registration geometry.** `registration.py` provides
+`dense_warp3d(volume, displacement, fill_value=None)` and
+`integrate_stationary_velocity(velocity, steps=7)` on nonempty float32 DHWC arrays
+with three-channel fields and zero-based ij voxel coordinates. A pull field samples
+the input at `x + displacement[x]`; border extension and constant fill match the
+pinned VoxelMorph/Neurite TensorFlow functions, which the tests compare against.
+This qualifies those operations, not a learned SynthMorph model.
+
+**Ownership.** Execution lives in core once: keeping it in the converter would make
+inference depend on the conversion stack, and copying operators into model packages
+would let numerical fixes diverge. Converters depend on core; core never depends on
+a converter.
+
+## Precision profiles
+
+`medmlx_core.compensated` provides explicit accuracy profiles using FP32 Metal
+storage. `CompensatedFloat32Operators` keeps product and summation residuals
+inside convolution, GroupNorm, frozen BatchNorm, ELU, softmax and Gaussian
+filtering, with FP32 outputs. `CompensatedFloat48Operators` carries both words
+between convolution, GroupNorm, transpose-convolution, addition and ReLU layers.
+The latter packs high and low words along the batch axis (all high words, then
+all low words). The package tests compare both profiles with float64 reference
+operators on small synthetic inputs.
+
+For paired network outputs, `sliding_window_inference(...,
+predictor_input="numpy")` accepts a host NumPy callback and float64 windows and
+stitching. This explicit mode lets the callback run a paired Metal network and
+export both words for host blending. The default callback still uses MLX arrays
+and FP16/FP32 inputs.
+
+## Development
+
+Source lives in `packages/core` of the unified MedMLX repository. Static checks
+run with `make qa-core` at the repository root. Select affected tests with
+`make test-core CORE_TESTS=packages/core/tests/path.py`; `make test-core` runs the
+full core suite.
+
+## Streaming volume workspace (opt-in)
+
+`sliding_window_inference(..., workspace=workspace)` accepts an open
+`medmlx_core.volume_workspace.VolumeWorkspace`. It keeps an ROI-depth ring of
+scores and counts along the first spatial axis, finalizes planes once no later
+window can affect them, and writes cropped logits to temporary mapped files.
+Predictor batches, patch order, weighting and input-dtype accumulation stay the
+same as the dense path, including float64 host predictors. The returned logits
+are valid only inside the workspace context.
+
+```python
+from medmlx_core.volume_workspace import VolumeWorkspace
+
+with VolumeWorkspace("/path/to/scratch") as workspace:
+    logits = sliding_window_inference(
+        image, roi_size, sw_batch_size, predictor, workspace=workspace
+    )
+    # Consume/export logits before leaving this context.
+```
+
+The explicit blend buffer scales as `(classes + 1) * roi[0] * padded_plane_size`,
+independent of scan depth. The mapped logits still occupy disk space for the
+whole volume; OS page caching is not a process-memory cap. Files are cleaned up
+on normal exit and exceptions. Channel-block activation and per-class restoration
+helpers let providers avoid rebuilding full multi-class arrays during export.
+Softmax must precede interpolated probability restoration; argmax preserves the
+first class on ties. The caller supplies its existing spatial transforms.
+
+`tests/test_volume_workspace.py` checks exact host blending, ring wrapping,
+mixed input/predictor dtypes, crop handling, restoration order and cleanup.
+`tests/test_sliding_window.py` compares integrated streaming/dense inference with
+MONAI on Metal. The latter requires a working GPU; host tests alone do not qualify
+network execution or establish a throughput improvement.
+
+Streaming trades some stitching time for lower peak host memory; the saving grows
+with the number of classes. Labels match the dense path exactly.

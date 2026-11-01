@@ -1,0 +1,142 @@
+{
+  "schema_version": 3,
+  "recorded_at": "2026-10-27T23:11:03.314298+00:00",
+  "model": "sam3_fixed_grid_source",
+  "inputs": [
+    {
+      "name": "pixel_values",
+      "shape": [
+        1,
+        3,
+        1008,
+        1008
+      ],
+      "dtype": "float32"
+    },
+    {
+      "name": "input_ids",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    },
+    {
+      "name": "attention_mask",
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int32"
+    }
+  ],
+  "comparisons": [
+    {
+      "framework": "source_fixed_grid",
+      "output": "pred_masks",
+      "shape": [
+        1,
+        200,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0,
+      "reference_max": 104.34078216552734,
+      "tolerance": 0.001,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 140.41272981766315,
+      "normalized_psnr_db": 100.04369148325554,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_fixed_grid",
+      "output": "pred_boxes",
+      "shape": [
+        1,
+        200,
+        4
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0,
+      "reference_max": 1.0075297355651855,
+      "tolerance": 0.001,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 100.10884828618968,
+      "normalized_psnr_db": 100.04369148325554,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_fixed_grid",
+      "output": "pred_logits",
+      "shape": [
+        1,
+        200
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0,
+      "reference_max": 2.4898457527160645,
+      "tolerance": 0.001,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 107.96710392256904,
+      "normalized_psnr_db": 100.04369148325554,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_fixed_grid",
+      "output": "presence_logits",
+      "shape": [
+        1,
+        1
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0,
+      "reference_max": 0.4652632176876068,
+      "tolerance": 0.001,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 93.39782307269618,
+      "normalized_psnr_db": 100.04369148325554,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    },
+    {
+      "framework": "source_fixed_grid",
+      "output": "semantic_seg",
+      "shape": [
+        1,
+        1,
+        288,
+        288
+      ],
+      "dtype": "float32",
+      "max_abs_diff": 0.0,
+      "reference_max": 7.750696182250977,
+      "tolerance": 0.001,
+      "label_agreement": null,
+      "verdict": "pass",
+      "psnr_db": 117.83046304523582,
+      "normalized_psnr_db": 100.04369148325554,
+      "absolute_verdict": "pass",
+      "label_requirement": null
+    }
+  ],
+  "packages": {
+    "torch": "2.13.0",
+    "coreai-core": "1.0.0b3",
+    "coreai-torch": "0.4.3",
+    "coremltools": "9.0",
+    "numpy": "2.4.6"
+  },
+  "reference": "PyTorch CPU FP32",
+  "compute_policy": "PyTorch source_fixed_grid on cpu",
+  "scope": "Fixed-shape network tensors; no host pipeline or clinical test",
+  "source": null,
+  "build_profile": "macos-fp32-reference"
+}

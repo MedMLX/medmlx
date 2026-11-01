@@ -1,0 +1,430 @@
+"""Module swaps for operations a converter or runtime rejects.
+
+Supported rewrites preserve the intended operation but can change floating-point
+evaluation order. Each converted stage still requires comparison with its source.
+"""
+
+import copy
+import math
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Protocol
+
+import torch
+
+from medmlx_convert.boundary import Module, as_int, function, interpolate_bilinear
+
+
+class Swap(Protocol):
+    """One module replacement rule applied while rewriting a copied model."""
+
+    def apply(self, module: torch.nn.Module) -> torch.nn.Module | None:
+        """The replacement for ``module``, or None when this swap doesn't match it."""
+        ...
+
+
+@dataclass(frozen=True)
+class ModuleSwap[M: torch.nn.Module]:
+    """Replace modules of exactly ``module_type`` (not subclasses) with ``replacement(module)``."""
+
+    module_type: type[M]
+    replacement: Callable[[M], torch.nn.Module]
+
+    def apply(self, module: torch.nn.Module) -> torch.nn.Module | None:
+        """Return the replacement for an exact-type match, else None."""
+        if type(module) is self.module_type and isinstance(module, self.module_type):
+            return self.replacement(module)
+        return None
+
+
+class SeparateBias2d(Module):
+    """Author a 2D convolution and bias add before choosing network precision.
+
+    Core ML Tools 9 can promote input/weight without bias. Splitting bias only
+    after FP16 capture adds a rounding boundary absent from its eager oracle.
+    This wrapper makes that boundary explicit in both FP32 rewrite checks and
+    FP16 source-precision checks before graph capture. Default output size and
+    all convolution parameters remain owned by the copied Torch module.
+    """
+
+    def __init__(self, source: torch.nn.Conv2d | torch.nn.ConvTranspose2d) -> None:
+        """Copy the convolution, detach its bias and leave the add to ``forward``."""
+        super().__init__()
+        self.convolution = copy.deepcopy(source)
+        self.bias = (None if source.bias is None
+                     else torch.nn.Parameter(source.bias.detach().clone()))
+        self.convolution.bias = None
+
+    def forward(self, value: torch.Tensor) -> torch.Tensor:
+        """Convolve, then add the stored bias over the channel axis."""
+        output = self.convolution(value)
+        return output if self.bias is None else output + self.bias.reshape(1, -1, 1, 1)
+
+
+class StridedTransposedConv3d(Module):
+    """ConvTranspose3d with kernel == stride and no padding, as a matmul and reshape.
+
+    coreai-torch 0.4.3 rejects 5D transposed convolutions. In this non-overlapping case
+    each input voxel expands to one output block. Dilation and groups must be 1,
+    and output padding must be zero; floating-point accumulation can differ.
+    """
+
+    def __init__(self, conv: torch.nn.ConvTranspose3d) -> None:
+        """Require kernel == stride with no padding and fold the weight for the matmul."""
+        super().__init__()
+        if (
+            conv.kernel_size != conv.stride
+            or conv.padding != (0, 0, 0)
+            or conv.output_padding != (0, 0, 0)
+            or conv.dilation != (1, 1, 1)
+            or conv.groups != 1
+        ):
+            raise ValueError(f"only kernel == stride transposed convs can be rewritten: {conv}")
+        self.kernel = conv.kernel_size
+        self.out_channels = conv.out_channels
+        self.weight = torch.nn.Parameter(conv.weight.detach().reshape(conv.in_channels, -1))
+        self.bias = None if conv.bias is None else torch.nn.Parameter(conv.bias.detach())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Expand each input voxel into its non-overlapping output block."""
+        n, _, d, h, w = x.shape
+        kd, kh, kw = self.kernel
+        y = (x.permute(0, 2, 3, 4, 1) @ self.weight).reshape(
+            n, d, h, w, self.out_channels, kd, kh, kw
+        )
+        y = y.permute(0, 4, 1, 5, 2, 6, 3, 7).reshape(n, self.out_channels, d * kd, h * kh, w * kw)
+        return y if self.bias is None else y + self.bias.view(1, -1, 1, 1, 1)
+
+
+class ZeroInsertTransposedConv3d(Module):
+    """Rewrite supported ConvTranspose3d as zero insertion and a stride-1 Conv3d.
+
+    This is the textbook equivalence: insert stride - 1 zeros between input voxels, pad by
+    kernel - 1 - padding, and convolve with the spatially flipped, in/out-swapped kernel.
+    Grouped or dilated convolutions and padding larger than kernel - 1 are rejected.
+    """
+
+    def __init__(self, conv: torch.nn.ConvTranspose3d) -> None:
+        """Store the zero-insertion padding and the flipped, in/out-swapped kernel."""
+        super().__init__()
+        if conv.dilation != (1, 1, 1) or conv.groups != 1:
+            raise ValueError(f"dilated or grouped transposed convs are not rewritten: {conv}")
+        if isinstance(conv.padding, str):
+            raise ValueError(f"string padding is not rewritten: {conv}")
+        if any(k - 1 - p < 0 for k, p in zip(conv.kernel_size, conv.padding, strict=True)):
+            raise ValueError(f"padding larger than kernel - 1 is not rewritten: {conv}")
+        self.stride = conv.stride
+        pads = [
+            (k - 1 - p, k - 1 - p + op)
+            for k, p, op in zip(conv.kernel_size, conv.padding, conv.output_padding, strict=True)
+        ]
+        # F.pad orders the last dimension first.
+        self.pad = [amount for pair in reversed(pads) for amount in pair]
+        weight = conv.weight.detach().flip(2, 3, 4).transpose(0, 1).contiguous()
+        self.weight = torch.nn.Parameter(weight)
+        self.bias = None if conv.bias is None else torch.nn.Parameter(conv.bias.detach())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Interleave zeros along each stride, pad, and apply a stride-1 convolution."""
+        for axis, stride in zip((2, 3, 4), self.stride, strict=True):
+            if stride == 1:
+                continue
+            # Interleave zeros through a rank-3 view (dims up to the axis, stride, the rest),
+            # which stays inside Core ML's rank-5 limit.
+            shape = list(x.shape)
+            leading = x.reshape(math.prod(shape[: axis + 1]), 1, math.prod(shape[axis + 1 :]))
+            zeros = leading.new_zeros(leading.shape[0], stride - 1, leading.shape[2])
+            x = torch.cat([leading, zeros], dim=1)
+            x = x.reshape(shape[:axis] + [shape[axis] * stride] + shape[axis + 1 :])
+            x = x.narrow(axis, 0, (shape[axis] - 1) * stride + 1)
+        x = torch.nn.functional.pad(x, self.pad)
+        return torch.nn.functional.conv3d(x, self.weight, self.bias)
+
+
+def _output_padded(conv: torch.nn.ConvTranspose3d) -> torch.nn.Module:
+    """coremltools rejects output_padding on 3D transposed convs; other cases convert."""
+    if conv.output_padding == (0, 0, 0):
+        return conv
+    return ZeroInsertTransposedConv3d(conv)
+
+
+def _transposed(conv: torch.nn.ConvTranspose3d) -> torch.nn.Module:
+    """The cheaper matmul form when blocks don't overlap, zero insertion otherwise."""
+    if conv.kernel_size == conv.stride and conv.padding == (0, 0, 0):
+        if conv.output_padding == (0, 0, 0) and conv.dilation == (1, 1, 1) and conv.groups == 1:
+            return StridedTransposedConv3d(conv)
+    return ZeroInsertTransposedConv3d(conv)
+
+
+class FlatInstanceNorm3d(Module):
+    """InstanceNorm3d over the flattened spatial dims, which is the same normalization.
+
+    coremltools converts InstanceNorm3d, but the Core ML runtime's instance_norm accepts
+    only rank 3 or 4 inputs.
+    """
+
+    def __init__(self, norm: torch.nn.InstanceNorm3d) -> None:
+        """Copy eps and affine terms into an InstanceNorm1d over flattened spatial dims."""
+        super().__init__()
+        if norm.track_running_stats:
+            raise ValueError(f"running statistics are not supported: {norm}")
+        self.norm = torch.nn.InstanceNorm1d(norm.num_features, eps=norm.eps, affine=norm.affine)
+        self.norm.load_state_dict(norm.state_dict())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize the flattened spatial axes and restore the original shape."""
+        return self.norm(x.flatten(2)).view_as(x)
+
+
+class FlatGroupNorm(Module):
+    """GroupNorm over the flattened spatial dims, which is the same normalization.
+
+    coremltools lowers 5D GroupNorm through a rank-6 reshape, past Core ML's rank-5 limit.
+    """
+
+    def __init__(self, norm: torch.nn.GroupNorm) -> None:
+        """Keep the source GroupNorm to run over flattened spatial dims."""
+        super().__init__()
+        self.norm = norm
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize the flattened spatial axes and restore the original shape."""
+        return self.norm(x.flatten(2)).view_as(x)
+
+
+def _tiled_mean(x: torch.Tensor) -> torch.Tensor:
+    """Reduce the last axis in at most 1024-element stages, without padding bias.
+
+    Large Apple GPU reductions intermittently return incorrect statistics under
+    competing execution on M5/macOS 27.2. Reshaping alone still fails. Keep each
+    reduction short, including the reduction of partial means. Zero padding is
+    compensated at each stage so nondivisible lengths retain their true count.
+    """
+    size = x.shape[-1]
+    if size <= 1024:
+        return x.mean(-1, keepdim=True)
+    padded = ((size + 1023) // 1024) * 1024
+    if padded != size:
+        x = torch.nn.functional.pad(x, (0, padded - size))
+    partial = x.reshape(*x.shape[:-1], padded // 1024, 1024).mean(-1)
+    return _tiled_mean(partial) * (padded / size)
+
+
+def _tiled_normalize(
+    x: torch.Tensor, groups: int, eps: float,
+    weight: torch.Tensor | None, bias: torch.Tensor | None,
+) -> torch.Tensor:
+    """Use population variance E[(x-E[x])²], then the original channel affine."""
+    grouped = x.reshape(x.shape[0], groups, -1)
+    centered = grouped - _tiled_mean(grouped)
+    variance = _tiled_mean(centered * centered)
+    result = (centered * torch.rsqrt(variance + eps)).reshape_as(x)
+    shape = (1, x.shape[1], *((1,) * (x.ndim - 2)))
+    if weight is not None:
+        result = result * weight.reshape(shape)
+    return result if bias is None else result + bias.reshape(shape)
+
+
+class TiledGroupNorm(torch.nn.GroupNorm):
+    """Preserve GroupNorm parameters while bounding every statistics reduction."""
+
+    def __init__(self, source: torch.nn.GroupNorm) -> None:
+        """Copy the source group count, channels, eps, affine flag and parameters."""
+        function(torch.nn.GroupNorm, "__init__")(
+            self, source.num_groups, source.num_channels, source.eps, source.affine,
+        )
+        self.weight = copy.deepcopy(source.weight)
+        self.bias = copy.deepcopy(source.bias)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """Reject a mismatched channel count, then normalize with tiled statistics."""
+        if input.ndim < 2 or input.shape[1] != self.num_channels:
+            raise ValueError("GroupNorm requires batched input with its declared channels")
+        return _tiled_normalize(input, self.num_groups, self.eps, self.weight, self.bias)
+
+
+class TiledInstanceNorm3d(torch.nn.InstanceNorm3d):
+    """Input-statistics InstanceNorm3d with bounded, centered reductions.
+
+    Running-statistics variants remain outside this rewrite's contract. FP16
+    authoring recognizes this module and preserves its FP32 parameters and math.
+    """
+
+    def __init__(self, source: torch.nn.InstanceNorm3d) -> None:
+        """Reject running statistics and copy eps, affine flag and parameters."""
+        if source.track_running_stats:
+            raise ValueError(f"running statistics are not supported: {source}")
+        function(torch.nn.InstanceNorm3d, "__init__")(
+            self, source.num_features, eps=source.eps, affine=source.affine,
+        )
+        self.weight = copy.deepcopy(source.weight)
+        self.bias = copy.deepcopy(source.bias)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """Promote CDHW to NCDHW, normalize, then restore the input rank."""
+        if input.ndim not in (4, 5):
+            raise ValueError("InstanceNorm3d requires CDHW or NCDHW input")
+        batched = input.unsqueeze(0) if input.ndim == 4 else input
+        if batched.shape[1] != self.num_features or math.prod(batched.shape[2:]) <= 1:
+            raise ValueError("InstanceNorm3d requires its declared channels and >1 spatial element")
+        result = _tiled_normalize(batched, self.num_features, self.eps, self.weight, self.bias)
+        return result.squeeze(0) if input.ndim == 4 else result
+
+
+def _pool_triple(value: int | tuple[int, ...]) -> tuple[int, int, int]:
+    if isinstance(value, int):
+        return value, value, value
+    if len(value) != 3:
+        raise ValueError(f"expected three values, got {value}")
+    return value[0], value[1], value[2]
+
+
+class SeparableMaxPool3d(Module):
+    """MaxPool3d as a 2D max pool over (H, W) and then one over D.
+
+    A max over a box is the max of maxes along each axis, and both passes pad with -inf,
+    so this is the same result. coreai-torch 0.4.3 has no 3D max pooling.
+    Request the indexed 2D operation and discard its indices: Torch 2.13 MPS
+    export retains the nonindexed operation even after decomposition.
+    """
+
+    def __init__(self, pool: torch.nn.MaxPool3d) -> None:
+        """Require plain max pooling and store its kernel, stride and padding triples."""
+        super().__init__()
+        if pool.dilation not in (1, (1, 1, 1)) or pool.ceil_mode or pool.return_indices:
+            raise ValueError(f"only plain max pooling is rewritten: {pool}")
+
+        # MaxPool3d stores stride = kernel_size when constructed without one.
+        self.kernel = _pool_triple(pool.kernel_size)
+        self.stride = _pool_triple(pool.stride)
+        self.padding = _pool_triple(pool.padding)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Pool (H, W) then depth, discarding the requested indices."""
+        n, c, d, h, w = x.shape
+        y = torch.nn.functional.max_pool2d_with_indices(
+            x.reshape(n, c * d, h, w), self.kernel[1:], self.stride[1:], self.padding[1:],
+            return_indices=True,
+        )[0]
+        oh, ow = y.shape[-2:]
+        y = torch.nn.functional.max_pool2d_with_indices(
+            y.reshape(n, c, d, oh * ow),
+            (self.kernel[0], 1),
+            (self.stride[0], 1),
+            (self.padding[0], 0),
+            return_indices=True,
+        )[0]
+        return y.reshape(n, c, -1, oh, ow)
+
+
+class SeparableAvgPool3d(Module):
+    """Average NCDHW boxes through two supported 2D pooling passes.
+
+    Torch MPS 2.8 lacks AvgPool3d. Rectangular valid/padded counts factor by
+    axis, including ceil-mode partial windows. A fixed divisor is applied once
+    over H/W and the depth pass then sums, preserving divisor_override.
+    """
+
+    def __init__(self, pool: torch.nn.AvgPool3d) -> None:
+        """Store the kernel, stride, padding and divisor policy for both passes."""
+        super().__init__()
+        self.kernel = _pool_triple(pool.kernel_size)
+        self.stride = _pool_triple(pool.stride)
+        self.padding = _pool_triple(pool.padding)
+        self.ceil_mode = pool.ceil_mode
+        self.count_include_pad = pool.count_include_pad
+        self.divisor = (None if pool.divisor_override is None
+                        else as_int(pool.divisor_override))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Average over (H, W), then reduce depth through a second 2D pass."""
+        if x.ndim != 5:
+            raise ValueError("SeparableAvgPool3d requires NCDHW input")
+        n, c, d, h, w = x.shape
+        y = torch.nn.functional.avg_pool2d(
+            x.reshape(n, c * d, h, w), self.kernel[1:], self.stride[1:], self.padding[1:],
+            self.ceil_mode, self.count_include_pad, self.divisor,
+        )
+        oh, ow = y.shape[-2:]
+        y = torch.nn.functional.avg_pool2d(
+            y.reshape(n, c, d, oh * ow), (self.kernel[0], 1),
+            (self.stride[0], 1), (self.padding[0], 0), self.ceil_mode,
+            self.count_include_pad, None if self.divisor is None else 1,
+        )
+        return y.reshape(n, c, -1, oh, ow)
+
+
+class SeparableTrilinearUpsample(Module):
+    """Trilinear nn.Upsample as a bilinear pass over (H, W) and then one over D.
+
+    Preserve scale factors, corner alignment and scale recomputation in both passes.
+    Passing rounded output sizes instead would change fractional-scale coordinates.
+    """
+
+    def __init__(self, upsample: torch.nn.Upsample) -> None:
+        """Require scale-factor trilinear mode and store scale, alignment and recomputation."""
+        super().__init__()
+        if upsample.mode != "trilinear" or upsample.size is not None:
+            raise ValueError(f"only scale-factor trilinear upsampling is rewritten: {upsample}")
+        scale = upsample.scale_factor
+        assert scale is not None
+        self.scale: tuple[float, ...] = (
+            tuple(scale) if isinstance(scale, tuple) else (scale, scale, scale)
+        )
+        self.align_corners = upsample.align_corners
+        self.recompute_scale_factor = upsample.recompute_scale_factor
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Interpolate (H, W), then depth, preserving fractional scale coordinates."""
+        n, c, d, h, w = x.shape
+        sd, sh, sw = self.scale
+        y = interpolate_bilinear(x.reshape(n, c * d, h, w), (sh, sw),
+                                 self.align_corners, self.recompute_scale_factor)
+        oh, ow = y.shape[-2:]
+        y = interpolate_bilinear(y.reshape(n, c, d, oh * ow), (sd, 1.0),
+                                 self.align_corners, self.recompute_scale_factor)
+        return y.reshape(n, c, y.shape[2], oh, ow)
+
+
+def _trilinear(upsample: torch.nn.Upsample) -> torch.nn.Module:
+    return SeparableTrilinearUpsample(upsample) if upsample.mode == "trilinear" else upsample
+
+
+COREAI_3D: list[Swap] = [
+    ModuleSwap(torch.nn.ConvTranspose3d, _transposed),
+    ModuleSwap(torch.nn.MaxPool3d, SeparableMaxPool3d),
+    ModuleSwap(torch.nn.InstanceNorm3d, TiledInstanceNorm3d),
+    ModuleSwap(torch.nn.GroupNorm, TiledGroupNorm),
+    ModuleSwap(torch.nn.Upsample, _trilinear),
+]
+COREML_3D: list[Swap] = [
+    ModuleSwap(torch.nn.ConvTranspose3d, _output_padded),
+    ModuleSwap(torch.nn.InstanceNorm3d, TiledInstanceNorm3d),
+    ModuleSwap(torch.nn.GroupNorm, TiledGroupNorm),
+    ModuleSwap(torch.nn.Upsample, _trilinear),
+]
+# MPS also lacks half ConvTranspose3d and 3D pooling. Apply these explicit
+# compatibility rewrites before precision authoring, with full FP32 parity.
+MPS_FP16: list[Swap] = [*COREAI_3D, ModuleSwap(torch.nn.AvgPool3d, SeparableAvgPool3d)]
+COREML_FP16_2D: list[Swap] = [
+    ModuleSwap(torch.nn.Conv2d, SeparateBias2d),
+    ModuleSwap(torch.nn.ConvTranspose2d, SeparateBias2d),
+]
+
+
+def replace_modules(model: torch.nn.Module, swaps: list[Swap]) -> torch.nn.Module:
+    """Copy ``model`` and apply the first matching swap to each named child module.
+
+    The root module itself is not swapped, and newly inserted modules are not
+    traversed again. ``ModuleSwap`` matches exact types; another ``Swap``
+    implementation controls its own matching behavior.
+    """
+    rewritten = copy.deepcopy(model)
+    for parent in list(rewritten.modules()):
+        for name, child in parent.named_children():
+            for swap in swaps:
+                replacement = swap.apply(child)
+                if replacement is not None:
+                    setattr(parent, name, replacement)
+                    break
+    return rewritten
