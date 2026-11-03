@@ -22,7 +22,7 @@ dependencies = [
   "keras==3.15.0",
   "monai==1.6.1",
   "mlx==0.32.4",
-  "medmlx-core==0.2.5",
+  "medmlx-core==0.2.6",
   "nnunetv2==2.8.1",
   "numpy>=2,<2.5",
   "pillow>=13,<14",
