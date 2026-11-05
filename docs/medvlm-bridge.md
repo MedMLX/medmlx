@@ -1,8 +1,7 @@
 # Provisional MedVLM bridge
 
-This guide includes an **unreleased** bridge update to `med-vlm-mlx==0.3.3`.
-The published MedMLX 0.4.3 bridge prepares `med-vlm-mlx==0.2.3`, which is not
-available on PyPI.
+The MedMLX 0.4.4 bridge prepares `med-vlm-mlx==0.3.3`. The 0.4.2 and 0.4.3 bridge
+pinned `med-vlm-mlx==0.2.3`, which is not available on PyPI.
 
 `medgemma` is a discoverable `medmlx` adapter outside the unified model families.
 Its isolated checkpoint execution and numerical accuracy are **not qualified by

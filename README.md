@@ -9,7 +9,7 @@ Run TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more through their independ
 
 **Apple Silicon · Metal · Python 3.13** · [uv](https://docs.astral.sh/uv/)
 
-This README describes the **0.4.3 release**. The
+This README describes the **0.4.4 release**. The
 [PyPI documentation](https://pypi.org/project/medmlx/) describes the same release;
 source-only features are tracked in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md).
 
