@@ -18,9 +18,11 @@
   | `nnunet-liver` | [574a9c601b9b1a9e906ce985fbd46b106c5b7caa](https://huggingface.co/MedMLX/nnunet-liver-mlx/blob/574a9c601b9b1a9e906ce985fbd46b106c5b7caa/dataset.json) | 1 liver, 2 cancer |
   | `nnunet-pancreas` | [b2d5f14bb31f9793e3d9ab2c24096427eea983ae](https://huggingface.co/MedMLX/nnunet-pancreas-mlx/blob/b2d5f14bb31f9793e3d9ab2c24096427eea983ae/dataset.json) | 1 pancreas, 2 cancer |
 
-- Update the managed MedGemma bridge to `med-vlm-mlx==0.3.1` in a new versioned
-  private environment. Its MLX 0.32.3 dependency stays isolated from the other
-  runtimes; real-checkpoint execution and numerical accuracy remain unqualified.
+- Update the managed MedGemma bridge to `med-vlm-mlx==0.3.3` in a new versioned
+  private environment. The previous `med-vlm-mlx==0.2.3` pin is not available on
+  PyPI, so the published bridge cannot prepare its runtime. Its MLX dependency
+  stays isolated from the other runtimes; real-checkpoint execution and numerical
+  accuracy remain unqualified.
 - Automatic weight setup verifies unmarked or outdated caches against the selected
   Hub commit's LFS SHA-256 or Git blob hashes before reusing them. Verified files
   are kept, including files from the older top-level layout, which are copied into

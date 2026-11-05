@@ -35,7 +35,7 @@ MEDGEMMA = {
                "and numerical accuracy are not yet qualified by MedMLX.",
 }
 _CONFIGURATION = "MEDMLX_MEDVLM_PYTHON"
-_RUNTIME_VERSION = "0.3.1"
+_RUNTIME_VERSION = "0.3.3"
 
 
 def _managed_prefix() -> Path:

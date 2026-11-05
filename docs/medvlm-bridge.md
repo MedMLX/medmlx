@@ -1,7 +1,8 @@
 # Provisional MedVLM bridge
 
-This guide includes an **unreleased** bridge update to `med-vlm-mlx==0.3.1`.
-The MedMLX 0.4.1 bridge prepares `med-vlm-mlx==0.2.3`.
+This guide includes an **unreleased** bridge update to `med-vlm-mlx==0.3.3`.
+The published MedMLX 0.4.3 bridge prepares `med-vlm-mlx==0.2.3`, which is not
+available on PyPI.
 
 `medgemma` is a discoverable `medmlx` adapter outside the unified model families.
 Its isolated checkpoint execution and numerical accuracy are **not qualified by
@@ -12,13 +13,13 @@ Run MedGemma through the same Python package, CLI or MCP interface as other
 models. Supply `weights_path` as a local MedGemma folder; automatic model assets
 are not currently configured for this adapter. Its first run prepares a private
 Python 3.13 environment containing
-`med-vlm-mlx==0.3.1` under `~/.cache/medmlx/.runtimes/med-vlm-mlx-0.3.1/`.
+`med-vlm-mlx==0.3.3` under `~/.cache/medmlx/.runtimes/med-vlm-mlx-0.3.3/`.
 Setting `MEDMLX_ASSET_CACHE` replaces the `~/.cache/medmlx` base directory.
 Interrupted environment installs resume on retry; subsequent runs reuse that
 environment.
 
-MedVLM's [v0.3.1 requirements](https://github.com/MedMLX/med-vlm-mlx/blob/v0.3.1/pyproject.toml)
-pin `mlx==0.32.3`, so its dependency graph remains isolated from
+MedVLM's [v0.3.3 requirements](https://github.com/MedMLX/med-vlm-mlx/blob/v0.3.3/pyproject.toml)
+require `mlx>=0.32.4,<0.33` and `transformers==5.19.0`; its dependency graph stays isolated from
 the unified model runtimes. The bridge checks that environment's runtime
 requirements before inference and rejects a conflicting upstream `mlx-vlm`
 distribution. No dependency overrides are applied to the application environment.
