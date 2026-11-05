@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from mlx.core import array as Array
 
+import numpy as np
+
 from medmlx_core.typing import MetalKernel, MlxRuntime
 
 _KERNEL_NAMESPACES = count()
@@ -148,9 +150,10 @@ for (int i = 0; i < TM; ++i) {
 
 _SOURCES = {
     "tile": (
-        ["X"],
+        ["X", "P"],
         ["M", "V"],
         """
+        uint GROUPS=P[0], TILES=P[1], N=P[2];
         uint i=thread_position_in_grid.x;
         if (i>=GROUPS*TILES*4) return;
         uint g=i/(TILES*4), t=i/4%TILES, lane=i%4;
@@ -165,9 +168,10 @@ _SOURCES = {
         """,
     ),
     "merge": (
-        ["M", "V"],
+        ["M", "V", "P"],
         ["MO", "VO"],
         """
+        uint GROUPS=P[0], TILES=P[1], PAIRS=P[2], COUNT=P[3], NV=P[4];
         uint i=thread_position_in_grid.x;
         if (i>=GROUPS*PAIRS*4) return;
         uint g=i/(PAIRS*4), t=i/4%PAIRS, lane=i%4;
@@ -180,21 +184,24 @@ _SOURCES = {
         """,
     ),
     "join": (
-        ["M", "V", "MA", "VA"],
+        ["M", "V", "MA", "VA", "RATIO", "P"],
         ["MO", "VO"],
         """
+        uint GROUPS=P[0], COUNT=P[1];
         uint i=thread_position_in_grid.x;
         if (i>=GROUPS*4) return;
-        float c=float(ADD)/float(COUNT+ADD), delta=MA[i]-M[i];
+        // RATIO is ADD / (COUNT + ADD), rounded once to float32 on the host.
+        float c=RATIO[0], delta=MA[i]-M[i];
         float cd=c*delta;
         MO[i]=M[i]+cd;
         VO[i]=fma(delta*float(COUNT), cd, V[i]+VA[i]);
         """,
     ),
     "finish": (
-        ["X", "M", "V"],
+        ["X", "M", "V", "P"],
         ["MEAN", "VAR"],
         """
+        uint GROUPS=P[0], N=P[1], NV=P[2];
         uint g=thread_position_in_grid.x;
         if (g>=GROUPS) return;
         float m=0, v=0;
@@ -214,9 +221,10 @@ _SOURCES = {
         """,
     ),
     "coeff": (
-        ["M", "V", "W", "B", "EPS"],
+        ["M", "V", "W", "B", "EPS", "P"],
         ["S", "BIAS"],
         """
+        uint BATCH=P[0], CHANNELS=P[1], GROUPS=P[2];
         uint i=thread_position_in_grid.x;
         if (i>=BATCH*CHANNELS) return;
         uint c=i%CHANNELS, g=i/(CHANNELS/GROUPS);
@@ -231,9 +239,10 @@ _SOURCES = {
         """,
     ),
     "affine": (
-        ["X", "S", "B"],
+        ["X", "S", "B", "P"],
         ["Y"],
         """
+        uint SIZE=P[0], SPATIAL=P[1];
         uint i=thread_position_in_grid.x;
         if (i>=SIZE) return;
         uint c=i/SPATIAL;
@@ -297,11 +306,14 @@ class Float32Operators:
         )
 
     def _run(
-        self, name: str, inputs: list[Array], shape: tuple[int, ...], **constants: int
+        self, name: str, inputs: list[Array], shape: tuple[int, ...], *sizes: int
     ) -> list[Array]:
+        # Sizes are runtime uint32 values rather than template constants, so each
+        # normalization kernel compiles once instead of once per shape and merge level.
+        parameters = self.mx.array(np.array(sizes, dtype=np.uint32))
         return self.kernels[name](
-            inputs=inputs,
-            template=list(constants.items()),
+            inputs=[*inputs, parameters],
+            template=[],
             grid=(math.prod(shape), 1, 1),
             threadgroup=(256, 1, 1),
             output_shapes=[shape] * len(_SOURCES[name][1]),
@@ -394,9 +406,7 @@ class Float32Operators:
         size = int(values.size) // groups
         vectors = size // 4
         tiles = max(1, (vectors + 15) // 16)
-        mean, variance = self._run(
-            "tile", [values], (groups, tiles, 4), GROUPS=groups, TILES=tiles, N=size
-        )
+        mean, variance = self._run("tile", [values], (groups, tiles, 4), groups, tiles, size)
         count = 16
         remainders: list[tuple[Array, Array, int]] = []
         # Keep the rightmost partial blocks in ascending order, as in MONAI's CPU reference.
@@ -410,28 +420,28 @@ class Float32Operators:
                 "merge",
                 [mean, variance],
                 (groups, pairs, 4),
-                GROUPS=groups,
-                TILES=tiles,
-                PAIRS=pairs,
-                COUNT=count,
-                NV=vectors,
+                groups,
+                tiles,
+                pairs,
+                count,
+                vectors,
             )
             count *= 2
             tiles = pairs
         remainders.append((mean[:, 0, :], variance[:, 0, :], min(count, vectors)))
         mean, variance, count = remainders[0]
         for added_mean, added_variance, added_count in remainders[1:]:
+            ratio = np.array([added_count], np.float32) / np.float32(count + added_count)
             mean, variance = self._run(
                 "join",
-                [mean, variance, added_mean, added_variance],
+                [mean, variance, added_mean, added_variance, self.mx.array(ratio)],
                 (groups, 4),
-                GROUPS=groups,
-                COUNT=count,
-                ADD=added_count,
+                groups,
+                count,
             )
             count += added_count
         mean, variance = self._run(
-            "finish", [values, mean, variance], (groups,), GROUPS=groups, N=size, NV=vectors
+            "finish", [values, mean, variance], (groups,), groups, size, vectors
         )
         return mean, variance
 
@@ -447,14 +457,14 @@ class Float32Operators:
             "coeff",
             [mean, variance, weight, bias, self.eps],
             (batch * channels,),
-            BATCH=batch,
-            CHANNELS=channels,
-            GROUPS=self.groups,
+            batch,
+            channels,
+            self.groups,
         )
         return self._run(
             "affine",
             [values, scale, offset],
             tuple(values.shape),
-            SIZE=int(values.size),
-            SPATIAL=math.prod(values.shape[2:]),
+            int(values.size),
+            math.prod(values.shape[2:]),
         )[0]
