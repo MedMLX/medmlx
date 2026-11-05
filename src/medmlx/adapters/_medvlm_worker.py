@@ -87,8 +87,8 @@ def _runtime() -> dict[str, str]:
         raise RuntimeError("MedVLM requires macOS arm64")
     if sys.version_info[:2] != (3, 13):
         raise RuntimeError("The isolated bridge currently requires Python 3.13")
-    if version("med-vlm-mlx") != "0.2.3":
-        raise RuntimeError("This provisional bridge targets med-vlm-mlx==0.2.3")
+    if version("med-vlm-mlx") != "0.3.3":
+        raise RuntimeError("This provisional bridge targets med-vlm-mlx==0.3.3")
     try:
         version("mlx-vlm")
     except PackageNotFoundError:

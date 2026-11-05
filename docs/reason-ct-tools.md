@@ -25,7 +25,7 @@ its own runner. To download all three ahead of time:
 To use your own weights, pass `reason_weights_path` (a Reason-CT folder),
 `detector_weights_path` and `medsam_weights_path` (a model folder or its
 `.safetensors` checkpoint). Explicit paths never trigger downloads. The published
-`medmlx` 0.4.3 package requires all three paths.
+`medmlx` 0.4.4 package requires all three paths.
 
 Create `arguments.json`, using paths relative to the execution root:
 

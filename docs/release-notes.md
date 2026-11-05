@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.4.4
+
+- The MedGemma bridge prepares `med-vlm-mlx==0.3.3`. The 0.4.2 and 0.4.3 bridge
+  pinned `med-vlm-mlx==0.2.3`, which is not available on PyPI, so it could not
+  prepare its runtime. 0.3.3 includes HTTP image and host security fixes. Its
+  dependency graph stays isolated from the other runtimes; real-checkpoint
+  execution and numerical accuracy remain unqualified.
+- Otherwise identical to 0.4.3, and still requires `medmlx-core` 0.2.6.
+
 ## 0.4.3
 
 - Pins `lesiondiffusion-mlx` 0.2.7. On its reference 160×160×128 crop, peak MLX

@@ -9,11 +9,11 @@ Run MedGemma through the same Python package, CLI or MCP interface as other
 models. Supply `weights_path` as a local MedGemma folder; automatic model assets
 are not currently configured for this adapter. Its first run prepares a private
 Python 3.13 environment containing
-`med-vlm-mlx==0.2.3` under `~/.cache/medmlx/.runtimes/` (or the
+`med-vlm-mlx==0.3.3` under `~/.cache/medmlx/.runtimes/` (or the
 `MEDMLX_ASSET_CACHE` directory). Interrupted environment installs resume on retry;
 subsequent runs reuse that environment.
 
-MedVLM's dependency graph remains isolated because its MLX version differs from
+MedVLM's dependency graph, including `transformers==5.19.0`, remains isolated from
 the unified model runtimes. The bridge checks that environment's runtime
 requirements before inference and rejects a conflicting upstream `mlx-vlm`
 distribution. No dependency overrides are applied to the application environment.
