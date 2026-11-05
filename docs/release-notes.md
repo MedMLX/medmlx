@@ -28,6 +28,15 @@
   mismatched files are downloaded. `cached_weights` remains offline and read-only;
   `refresh=True` still forces a download.
 
+## 0.4.3
+
+- Pins `lesiondiffusion-mlx` 0.2.7. On its reference 160×160×128 crop, peak MLX
+  memory falls from 14.49 GB to 3.46 GB in source mode and from 5.14 GB to 3.29 GB
+  in conditioned mode, with bitwise-identical outputs. Its declared
+  `peak_memory_gb` falls from 18.74 to 3.46, so the memory guard admits it on Macs
+  with less free memory.
+- Otherwise identical to 0.4.2, and still requires `medmlx-core` 0.2.6.
+
 ## 0.4.2
 
 - Requires `medmlx-core` 0.2.6. Provider extras pin the current MedMLX runtime
