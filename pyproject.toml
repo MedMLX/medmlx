@@ -53,7 +53,7 @@ generate = [
   "mlx-reason-ct==0.3.6",
   "fdg-pet-ct-mlx==0.2.6",
   "mlx-generate-ctmr==0.5.2",
-  "lesiondiffusion-mlx==0.2.6",
+  "lesiondiffusion-mlx==0.2.7",
 ]
 vision = [
   "mlxradiomics[io]==0.1.0.dev9",
@@ -73,7 +73,7 @@ all = [
   "fdg-pet-ct-mlx==0.2.6",
   "flexible-unet-mlx==0.2.6",
   "flexray-mlx==0.2.6",
-  "lesiondiffusion-mlx==0.2.6",
+  "lesiondiffusion-mlx==0.2.7",
   "lung-nodule-mlx==0.2.6",
   "medsam2-mlx==0.2.8",
   "mlx-generate-ctmr==0.5.2",

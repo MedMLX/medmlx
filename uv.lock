@@ -466,7 +466,7 @@ wheels = [
 
 [[package]]
 name = "lesiondiffusion-mlx"
-version = "0.2.6"
+version = "0.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -477,9 +477,9 @@ dependencies = [
     { name = "scipy" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/0e/76f6367db2099cd21f27b9b1fe9ac09c320aa2404fbe6afa4415cbb76191/lesiondiffusion_mlx-0.2.6.tar.gz", hash = "sha256:75858b10a3f43319be6e9936f870e825b9f8e2c5b2e8b8879c452b8dc25afaf0", size = 73132, upload-time = "2026-11-01T03:52:17.481Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/67/43/15c0694c7947c9de3d618c3e5c042abe50ff57141cd1e96c856b46ffc10a/lesiondiffusion_mlx-0.2.7.tar.gz", hash = "sha256:a5fb490af2fc4efb26c6cb34a2ad61f00ef22d97b80a29e27145a00d4711739b", size = 74017, upload-time = "2026-11-05T18:34:15.729Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/b8/e43c2b45db8992b4744313a9a041961d32b5944603391c47dd3d231a8497/lesiondiffusion_mlx-0.2.6-py3-none-any.whl", hash = "sha256:7ded3d12c0b4a6077cde0fcf02a35a5dd06ec4c81b841998fd2619e2c3d1d54d", size = 81320, upload-time = "2026-11-01T03:52:16.486Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/b3/312720789af8e7167dcf6002f245c0b83e2545dadd3fbbdb698c15ad6b93/lesiondiffusion_mlx-0.2.7-py3-none-any.whl", hash = "sha256:03a3f0b77720cf534ba55a6ce0f6d74fbdebcf6671a5559422764d7245004176", size = 82136, upload-time = "2026-11-05T18:34:14.749Z" },
 ]
 
 [[package]]
@@ -676,8 +676,8 @@ requires-dist = [
     { name = "flexible-unet-mlx", marker = "extra == 'segment'", specifier = "==0.2.6" },
     { name = "flexray-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
     { name = "flexray-mlx", marker = "extra == 'segment'", specifier = "==0.2.6" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", specifier = "==0.2.6" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", specifier = "==0.2.7" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", specifier = "==0.2.7" },
     { name = "lung-nodule-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
     { name = "lung-nodule-mlx", marker = "extra == 'reason-tools'", specifier = "==0.2.6" },
     { name = "lung-nodule-mlx", marker = "extra == 'vision'", specifier = "==0.2.6" },
