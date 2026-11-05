@@ -7,13 +7,11 @@ if TYPE_CHECKING:
     from medmlx_convert.check import export_and_check, recipe_args
     from medmlx_convert.monai_bundle import load_bundle_network
     from medmlx_convert.rewrites import (
-        FlatInstanceNorm3d,
         StridedTransposedConv3d,
         replace_modules,
     )
 
 __all__ = [
-    "FlatInstanceNorm3d",
     "StridedTransposedConv3d",
     "export_and_check",
     "load_bundle_network",
@@ -26,7 +24,7 @@ def __getattr__(name: str) -> object:
     """Load export tools on demand so native MLX inference does not import Torch."""
     owners = {
         "export_and_check": "check", "recipe_args": "check",
-        "load_bundle_network": "monai_bundle", "FlatInstanceNorm3d": "rewrites",
+        "load_bundle_network": "monai_bundle",
         "StridedTransposedConv3d": "rewrites", "replace_modules": "rewrites",
     }
     if name not in owners:

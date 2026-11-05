@@ -11,8 +11,6 @@ from medmlx_convert.boundary import as_array, as_tensor, function
 from medmlx_convert.evidence import compare_output
 from medmlx_convert.guidance import require_transform_parity
 from medmlx_convert.rewrites import (
-    FlatGroupNorm,
-    FlatInstanceNorm3d,
     SeparableAvgPool3d,
     SeparableMaxPool3d,
     SeparableTrilinearUpsample,
@@ -69,16 +67,6 @@ def test_overlapping_transposed_convolution(size: int, stride: int, padding: int
         source = torch.nn.ConvTranspose3d(2, 3, 3, stride=stride, padding=padding,
                                           output_padding=stride - 1)
         compare(source, ZeroInsertTransposedConv3d(source), torch.randn(1, 2, size, size, size))
-
-
-@settings(max_examples=16, deadline=None)
-@given(size=st.integers(2, 6), affine=st.booleans())
-def test_spatial_normalization(size: int, affine: bool) -> None:
-    image = torch.randn((1, 4, size, size + 1, size), generator=torch.Generator().manual_seed(0))
-    instance = torch.nn.InstanceNorm3d(4, affine=affine, eps=1e-3)
-    group = torch.nn.GroupNorm(2, 4, affine=affine, eps=1e-3)
-    compare(instance, FlatInstanceNorm3d(instance), image)
-    compare(group, FlatGroupNorm(group), image)
 
 
 @settings(max_examples=12, deadline=None)

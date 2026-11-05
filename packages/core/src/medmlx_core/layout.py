@@ -9,19 +9,6 @@ if TYPE_CHECKING:
 
 from medmlx_core.typing import MlxRuntime
 
-LAYOUT_NCDHW = "maisi.layout.ncdhw"
-LAYOUT_TO_NDHWC = "maisi.layout.to_ndhwc"
-LAYOUT_TO_NCDHW = "maisi.layout.to_ncdhw"
-LAYOUT_CONV3D_W = "maisi.layout.conv3d_w"
-LAYOUT_CONV_TRANSPOSE3D_W = "maisi.layout.conv_transpose3d_w"
-LAYOUT_LINEAR_W = "maisi.layout.linear_w"
-LAYOUT_EMBED_W = "maisi.layout.embed_w"
-LAYOUT_GN_AFFINE = "maisi.layout.gn_affine"
-LAYOUT_VECTOR = "maisi.layout.vector"
-IDENTITY_WEIGHT_LAYOUTS = frozenset(
-    {LAYOUT_LINEAR_W, LAYOUT_EMBED_W, LAYOUT_GN_AFFINE, LAYOUT_VECTOR}
-)
-
 
 class RankedArray(Protocol):
     """Anything with an ``ndim`` attribute, so layout checks avoid importing MLX."""

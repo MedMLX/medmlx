@@ -81,137 +81,137 @@ class _HubSource:
 
 
 _SOURCES = {
-    # Model card linked by biomedparse-mlx/README.md@v0.1.4.post1.
+    # Model card linked by biomedparse-mlx/README.md@v0.1.5.
     "biomedparse-v2": _HubSource(
         "MedMLX/biomedparse-v2-mlx",
         revision="1c251c6561aa143cd79ff0ccdfa53a1a6e60c7f0",
     ),
-    # flexible-unet-mlx/docs/technical.md@v0.2.5.
+    # Model card linked by flexible-unet-mlx/README.md@v0.2.6.
     "flexible-unet": _HubSource(
         "MedMLX/flexible-unet-effnetb2-mlx",
         revision="ccbbc596f2a9da8477e25cba0d7548cbb2191feb",
     ),
-    # flexray-mlx/docs/technical.md@v0.2.5.
+    # flexray-mlx/README.md@v0.2.6.
     "flexray": _HubSource(
         "MedMLX/flexray-mlx",
         revision="722d8341570e8b9e1196cf50e57892da84974fcc",
     ),
-    # Model card linked by lesiondiffusion-mlx/README.md@v0.2.5.
+    # Model card linked by lesiondiffusion-mlx/README.md@v0.2.6.post2.
     "lesiondiffusion": _HubSource(
         "MedMLX/lesiondiffusion-mlx",
         revision="d00bbb8ad1c7170062f60b4386a38c3a4178f7ce",
     ),
-    # lung-nodule-mlx/src/lung_nodule_mlx/medmlx.py@v0.2.5.
+    # lung-nodule-mlx/src/lung_nodule_mlx/medmlx.py@v0.2.6.
     "lung-nodule": _HubSource(
         "MedMLX/retinanet-lung-nodule-mlx",
         revision="d2d635fbac34254f14192ac348a05d275a949317",
     ),
-    # Model card linked by medsam2-mlx/README.md@v0.2.7.
+    # Model card linked by medsam2-mlx/README.md@v0.2.8.
     "medsam2": _HubSource(
         "MedMLX/medsam2-ct-lesion-mlx",
         revision="22f5e6dc4850a71abf92ef1a8fea0db14c34d460",
     ),
-    # mlx-generate-ctmr/README.md@v0.5.1.
+    # mlx-generate-ctmr/README.md@v0.5.2.post2.
     "mlx-generate-ctmr-ct": _HubSource(
         "MedMLX/mlx-generate-ctmr", "ct", "model.safetensors",
         revision="63018cdac46394b3c12619bc9fd1cbe096c23b20", companion_subfolder="mask",
     ),
-    # mlx-generate-ctmr/README.md@v0.5.1.
+    # mlx-generate-ctmr/README.md@v0.5.2.post2.
     "mlx-generate-ctmr-mr": _HubSource(
         "MedMLX/mlx-generate-ctmr", "mr", "model.safetensors",
         revision="63018cdac46394b3c12619bc9fd1cbe096c23b20",
     ),
-    # mlx-generate-ctmr/README.md@v0.5.1.
+    # mlx-generate-ctmr/README.md@v0.5.2.post2.
     "mlx-generate-ctmr-mr-brain": _HubSource(
         "MedMLX/mlx-generate-ctmr", "mr-brain", "model.safetensors",
         revision="63018cdac46394b3c12619bc9fd1cbe096c23b20",
     ),
-    # mlx-reason-ct/docs/usage.md@v0.3.5.
+    # mlx-reason-ct/README.md@v0.4.0.
     "mlx-reason-ct": _HubSource(
         "MedMLX/MLX-Reason-CT",
         revision="5e5b5202fd04ac9f63ede203ebc9327aa676ae94",
     ),
-    # mlx-segment-ct/docs/technical.md@v0.3.4.
+    # mlx-segment-ct/src/mlx_segment_ct/medmlx.py@v0.3.5.
     "mlx-segment-ct": _HubSource(
         "MedMLX/vista3d-ct-mlx",
         revision="e6f45856b4a59212ca10b44a9ade2e2d672f412b",
     ),
-    # mlx-segment-ct/docs/technical.md@v0.3.4.
+    # Model card linked by mlx-segment-ct/README.md@v0.3.5.
     "mlx-segment-ctmr": _HubSource(
         "MedMLX/vista3d-ctmr-mlx",
         revision="5965596ca734e3c62c30a93cde8d43d2edc8fb56",
     ),
-    # nnunet-mlx/docs/technical.md@v0.6.3.
+    # Model card linked by nnunet-mlx/README.md@v0.6.4.
     "nnunet-autopet": _HubSource(
         "MedMLX/nnunet-autopet-mlx",
         revision="cf7d717e9790a16215346d5147e4369afc31ee22",
     ),
-    # nnunet-mlx/docs/technical.md@v0.6.3.
+    # Model card linked by nnunet-mlx/README.md@v0.6.4.
     "nnunet-brats2021": _HubSource(
         "MedMLX/nnunet-brats-mlx",
         revision="11f15e51e44319d9cdd941e2b902130e7a8af710",
     ),
-    # nnunet-mlx/README.md@v0.6.3.
+    # nnunet-mlx/README.md@v0.6.4.
     "nnunet-liver": _HubSource(
         "MedMLX/nnunet-liver-mlx",
         revision="574a9c601b9b1a9e906ce985fbd46b106c5b7caa",
     ),
-    # nnunet-mlx/docs/technical.md@v0.6.3.
+    # Model card linked by nnunet-mlx/README.md@v0.6.4.
     "nnunet-pancreas": _HubSource(
         "MedMLX/nnunet-pancreas-mlx",
         revision="b2d5f14bb31f9793e3d9ab2c24096427eea983ae",
     ),
-    # radimagenet-mlx/README.md@v0.3.2.
+    # radimagenet-mlx/README.md@v0.3.3.
     "radimagenet-densenet121": _HubSource(
         "MedMLX/radimagenet-mlx", filename="RadImageNet-DenseNet121_notop.safetensors",
         revision="fd1c2663266360c899211c9a23ffc24f805d282a",
     ),
-    # radimagenet-mlx/README.md@v0.3.2.
+    # radimagenet-mlx/README.md@v0.3.3.
     "radimagenet-inceptionresnetv2": _HubSource(
         "MedMLX/radimagenet-mlx", filename="RadImageNet-IRV2_notop.safetensors",
         revision="fd1c2663266360c899211c9a23ffc24f805d282a",
     ),
-    # radimagenet-mlx/README.md@v0.3.2.
+    # radimagenet-mlx/README.md@v0.3.3.
     "radimagenet-inceptionv3": _HubSource(
         "MedMLX/radimagenet-mlx", filename="RadImageNet-InceptionV3_notop.safetensors",
         revision="fd1c2663266360c899211c9a23ffc24f805d282a",
     ),
-    # radimagenet-mlx/README.md@v0.3.2.
+    # radimagenet-mlx/README.md@v0.3.3.
     "radimagenet-resnet50": _HubSource(
         "MedMLX/radimagenet-mlx", filename="RadImageNet-ResNet50_notop.safetensors",
         revision="fd1c2663266360c899211c9a23ffc24f805d282a",
     ),
-    # sam3-mlx/README.md@v0.2.1.
+    # sam3-mlx/README.md@v0.2.4.
     "sam3": _HubSource(
         "mlx-community/sam3-image",
         revision="b72a14d8127e17e6f2a3d2e075bbbf4307ba146e",
     ),
-    # segresnet-mlx/docs/technical.md@v0.3.2.
+    # Model card linked by segresnet-mlx/README.md@v0.3.3.
     "segresnet-brats": _HubSource(
         "MedMLX/segresnet-brats-mlx",
         revision="14f9cda3649965729663c7365c49fd839c81a01b",
     ),
-    # segresnet-mlx/docs/technical.md@v0.3.2.
+    # Model card linked by segresnet-mlx/README.md@v0.3.3.
     "segresnet-renal-cect": _HubSource(
         "MedMLX/segresnet-renal-cect-mlx",
         revision="fa67ec6dca88f1dbbf6f52d6061b34ddefe45057",
     ),
-    # swin-unetr-mlx/docs/technical.md@v0.2.5.
+    # Model card linked by swin-unetr-mlx/README.md@v0.2.6.
     "swin-unetr": _HubSource(
         "MedMLX/swin-unetr-mlx",
         revision="0052abb4bfb1c56bd7d52d5353267393399b8743",
     ),
-    # synthseg-mlx/README.md@v0.3.3.
+    # synthseg-mlx/README.md@v0.3.4.
     "synthseg": _HubSource(
         "MedMLX/synthseg-mlx",
         revision="b4fa99020571cd5921f2205834dd5028fa804046",
     ),
-    # totalsegmentator-mlx/README.md@v0.1.5.
+    # totalsegmentator-mlx/README.md@v0.1.6.
     "totalsegmentator": _HubSource(
         "MedMLX/totalsegmentator-mlx",
         revision="6c03d6f90ccf53f224c3985cbdecf1eaa96555af",
     ),
-    # unest-mlx/docs/technical.md@v0.2.6.
+    # Model card linked by unest-mlx/README.md@v0.2.7.
     "unest": _HubSource(
         "MedMLX/unest-renal-ct-mlx",
         revision="dea2e468a364f5f1675af372147077c5b6d74c85",

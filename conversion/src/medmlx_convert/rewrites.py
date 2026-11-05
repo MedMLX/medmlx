@@ -156,42 +156,6 @@ def _transposed(conv: torch.nn.ConvTranspose3d) -> torch.nn.Module:
     return ZeroInsertTransposedConv3d(conv)
 
 
-class FlatInstanceNorm3d(Module):
-    """InstanceNorm3d over the flattened spatial dims, which is the same normalization.
-
-    coremltools converts InstanceNorm3d, but the Core ML runtime's instance_norm accepts
-    only rank 3 or 4 inputs.
-    """
-
-    def __init__(self, norm: torch.nn.InstanceNorm3d) -> None:
-        """Copy eps and affine terms into an InstanceNorm1d over flattened spatial dims."""
-        super().__init__()
-        if norm.track_running_stats:
-            raise ValueError(f"running statistics are not supported: {norm}")
-        self.norm = torch.nn.InstanceNorm1d(norm.num_features, eps=norm.eps, affine=norm.affine)
-        self.norm.load_state_dict(norm.state_dict())
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Normalize the flattened spatial axes and restore the original shape."""
-        return self.norm(x.flatten(2)).view_as(x)
-
-
-class FlatGroupNorm(Module):
-    """GroupNorm over the flattened spatial dims, which is the same normalization.
-
-    coremltools lowers 5D GroupNorm through a rank-6 reshape, past Core ML's rank-5 limit.
-    """
-
-    def __init__(self, norm: torch.nn.GroupNorm) -> None:
-        """Keep the source GroupNorm to run over flattened spatial dims."""
-        super().__init__()
-        self.norm = norm
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Normalize the flattened spatial axes and restore the original shape."""
-        return self.norm(x.flatten(2)).view_as(x)
-
-
 def _tiled_mean(x: torch.Tensor) -> torch.Tensor:
     """Reduce the last axis in at most 1024-element stages, without padding bias.
 

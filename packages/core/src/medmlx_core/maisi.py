@@ -192,11 +192,6 @@ MAISI_LABELS: tuple[MaisiLabel, ...] = tuple(
 )
 """Complete canonical MAISI-v2 vocabulary, including internal labels."""
 
-MAISI_ANATOMY_NAMES: tuple[str, ...] = tuple(
-    label.name for label in MAISI_LABELS if label.kind != "internal"
-)
-"""Selectable MAISI anatomy, pathology, and body-envelope names."""
-
 _LABELS_BY_VALUE = {label.value: label for label in MAISI_LABELS}
 _LABELS_BY_NAME = {label.name.casefold(): label for label in MAISI_LABELS}
 
@@ -324,7 +319,6 @@ class NvGenerateAnatomySize:
 
 
 __all__ = [
-    "MAISI_ANATOMY_NAMES",
     "MAISI_LABELS",
     "MAISI_VALID_XY",
     "MAISI_VALID_Z",

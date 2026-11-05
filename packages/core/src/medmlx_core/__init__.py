@@ -1,5 +1,6 @@
 """Shared MLX runtime for MedMLX model packages."""
 
+from importlib.metadata import version as _distribution_version
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -65,7 +66,7 @@ from medmlx_core.weights import DownloadProgress, weights_dir, weights_revision
 # operation elsewhere in the process may already have fixed its setting.
 default_full_float32()
 
-__version__ = "0.2.5"
+__version__ = _distribution_version("medmlx-core")
 
 __all__ = [
     "MLX_EXTRA",

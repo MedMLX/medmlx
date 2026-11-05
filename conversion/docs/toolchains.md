@@ -146,8 +146,8 @@ subclass with its own `forward` is left alone.
 | `StridedTransposedConv3d` | ConvTranspose3d, kernel == stride, no padding | Core AI | matmul over channels, reshape into output blocks |
 | `ZeroInsertTransposedConv3d` | any other ConvTranspose3d; and for Core ML, any with `output_padding` | both | insert stride - 1 zeros (through rank-3 views), pad, Conv3d with the flipped kernel |
 | `SeparableMaxPool3d` | MaxPool3d | Core AI | 2D max pool over (H, W), then over D |
-| `FlatInstanceNorm3d` | InstanceNorm3d | Core ML | InstanceNorm1d over flattened spatial dims |
-| `FlatGroupNorm` | GroupNorm | Core ML | the same GroupNorm on flattened spatial dims |
+| `TiledInstanceNorm3d` | InstanceNorm3d without running statistics | both | per-group mean and population variance over flattened spatial dims, reduced in stages of at most 1024 elements |
+| `TiledGroupNorm` | GroupNorm | both | the same staged reductions, then the source channel affine |
 | `SeparableTrilinearUpsample` | trilinear `nn.Upsample` | both | bilinear over (H, W), then over D |
 
 The trilinear rewrite preserves `scale_factor`, `align_corners` and
