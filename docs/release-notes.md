@@ -1,5 +1,19 @@
 # Release notes
 
+## 0.4.5
+
+- **Breaking:** `nnunet-liver`, `nnunet-autopet`, `nnunet-pancreas`, `nnunet-brats2021`
+  and `mrsegmentator` runs return the label map under the `mask` output role. Liver and
+  AutoPET used `segmentation` before.
+- **Breaking:** `nnunet-brats2021` averages all five released folds instead of fold 0.
+  Pass `fold=0` for the previous result. A BraTS download from before 2026-11-02 holds
+  only fold 0, so run `medmlx setup nnunet-brats2021 --refresh` first.
+  `medmlx setup nnunet-autopet --refresh` likewise adds AutoPET's folds 1-4.
+- Native 3-D nnU-Net inference is faster: on an M5 Max, a mirrored `nnunet-liver` tile
+  takes 842 ms instead of 1,039 ms, with identical labels.
+- Pins [`nnunet-mlx` 0.7.0](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.7.0)
+  and [`totalsegmentator-mlx` 0.1.7](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.1.7).
+
 ## 0.4.4
 
 - The MedGemma bridge prepares `med-vlm-mlx==0.3.3`. The 0.4.2 and 0.4.3 bridge
