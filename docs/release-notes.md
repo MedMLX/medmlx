@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- nnU-Net models run on [`nnunet-mlx` 0.7.0](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.7.0).
+  Native 3-D inference is faster: `nnunet-liver` takes 466 s of tile inference
+  instead of 634 s on an AMOS22 CT (M5 Max), with the same label map.
+  `nnunet-brats2021` and `nnunet-autopet` now average all five released folds, as
+  upstream does, and setup fetches folds 1-4 for caches that hold only fold 0.
+  `nnunet-liver` and `nnunet-autopet` report their label map as the `mask` output
+  instead of `segmentation`, like the other nnU-Net models.
+  `totalsegmentator` moves to
+  [`totalsegmentator-mlx` 0.1.7](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.1.7),
+  which runs on `nnunet-mlx` 0.7.0 and no longer writes its `probabilities`
+  outputs through an existing symlink.
+
 - Pin registered automatic weight bundles to the revisions documented by the
   latest runtime release tags, including their linked Hugging Face model cards.
   SAM3 retains its existing pin. Unlisted model IDs still resolve
@@ -13,8 +25,8 @@
 
   | Model ID | Weight revision and label source | Labels |
   | --- | --- | --- |
-  | `nnunet-autopet` | [cf7d717e9790a16215346d5147e4369afc31ee22](https://huggingface.co/MedMLX/nnunet-autopet-mlx/blob/cf7d717e9790a16215346d5147e4369afc31ee22/dataset.json) | 1 tumor |
-  | `nnunet-brats2021` | [11f15e51e44319d9cdd941e2b902130e7a8af710](https://huggingface.co/MedMLX/nnunet-brats-mlx/blob/11f15e51e44319d9cdd941e2b902130e7a8af710/dataset.json) | 1 edema, 2 nonenhancing, 3 empty, 4 enhancing |
+  | `nnunet-autopet` | [459d23802ae289be0f6539d40ca70c7facb1a9de](https://huggingface.co/MedMLX/nnunet-autopet-mlx/blob/459d23802ae289be0f6539d40ca70c7facb1a9de/dataset.json) | 1 tumor |
+  | `nnunet-brats2021` | [7632a1f3c74d350eb6f2daeb35b43b75ef7601bd](https://huggingface.co/MedMLX/nnunet-brats-mlx/blob/7632a1f3c74d350eb6f2daeb35b43b75ef7601bd/dataset.json) | 1 edema, 2 nonenhancing, 3 empty, 4 enhancing |
   | `nnunet-liver` | [574a9c601b9b1a9e906ce985fbd46b106c5b7caa](https://huggingface.co/MedMLX/nnunet-liver-mlx/blob/574a9c601b9b1a9e906ce985fbd46b106c5b7caa/dataset.json) | 1 liver, 2 cancer |
   | `nnunet-pancreas` | [b2d5f14bb31f9793e3d9ab2c24096427eea983ae](https://huggingface.co/MedMLX/nnunet-pancreas-mlx/blob/b2d5f14bb31f9793e3d9ab2c24096427eea983ae/dataset.json) | 1 pancreas, 2 cancer |
 

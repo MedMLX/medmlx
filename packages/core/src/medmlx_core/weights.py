@@ -141,22 +141,22 @@ _SOURCES = {
         "MedMLX/vista3d-ctmr-mlx",
         revision="5965596ca734e3c62c30a93cde8d43d2edc8fb56",
     ),
-    # Model card linked by nnunet-mlx/README.md@v0.6.4.
+    # Model card linked by nnunet-mlx/README.md@v0.7.0.
     "nnunet-autopet": _HubSource(
         "MedMLX/nnunet-autopet-mlx",
-        revision="cf7d717e9790a16215346d5147e4369afc31ee22",
+        revision="459d23802ae289be0f6539d40ca70c7facb1a9de",
     ),
-    # Model card linked by nnunet-mlx/README.md@v0.6.4.
+    # Model card linked by nnunet-mlx/README.md@v0.7.0.
     "nnunet-brats2021": _HubSource(
         "MedMLX/nnunet-brats-mlx",
-        revision="11f15e51e44319d9cdd941e2b902130e7a8af710",
+        revision="7632a1f3c74d350eb6f2daeb35b43b75ef7601bd",
     ),
-    # nnunet-mlx/README.md@v0.6.4.
+    # nnunet-mlx/README.md@v0.7.0.
     "nnunet-liver": _HubSource(
         "MedMLX/nnunet-liver-mlx",
         revision="574a9c601b9b1a9e906ce985fbd46b106c5b7caa",
     ),
-    # Model card linked by nnunet-mlx/README.md@v0.6.4.
+    # Model card linked by nnunet-mlx/README.md@v0.7.0.
     "nnunet-pancreas": _HubSource(
         "MedMLX/nnunet-pancreas-mlx",
         revision="b2d5f14bb31f9793e3d9ab2c24096427eea983ae",
