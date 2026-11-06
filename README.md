@@ -9,7 +9,7 @@ Run TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more through their independ
 
 **Apple Silicon · Metal · Python 3.13** · [uv](https://docs.astral.sh/uv/)
 
-This README describes the **0.4.5 release**. The
+This README describes the **0.4.6 release**. The
 [PyPI documentation](https://pypi.org/project/medmlx/) describes the same release;
 source-only features are tracked in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md).
 
@@ -21,7 +21,8 @@ Install the latest published CLI and MCP server with all model families:
 uv tool install --python 3.13 "medmlx[all,mcp]"
 ```
 
-For a Python project, use `uv add "medmlx[all,mcp]"` instead.
+For a Python project, use `uv add "medmlx[all,mcp]"` instead. Run
+`uv tool upgrade medmlx` later to get new releases of MedMLX and its models.
 
 Choose `segment`, `generate` or `vision` instead of `all` for a smaller install.
 The segment extra includes SAM 3 image and video support; generate includes
