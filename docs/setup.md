@@ -2,7 +2,7 @@
 
 ## Install and run
 
-This page describes the 0.4.4 release. See the
+This page describes the 0.4.5 release. See the
 [PyPI documentation](https://pypi.org/project/medmlx/) for the published package
 and the [release notes](release-notes.md) for source-only features.
 

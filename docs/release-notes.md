@@ -2,18 +2,6 @@
 
 ## Unreleased
 
-- nnU-Net models run on [`nnunet-mlx` 0.7.0](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.7.0).
-  Native 3-D inference is faster: `nnunet-liver` takes 466 s of tile inference
-  instead of 634 s on an AMOS22 CT (M5 Max), with the same label map.
-  `nnunet-brats2021` and `nnunet-autopet` now average all five released folds, as
-  upstream does, and setup fetches folds 1-4 for caches that hold only fold 0.
-  `nnunet-liver` and `nnunet-autopet` report their label map as the `mask` output
-  instead of `segmentation`, like the other nnU-Net models.
-  `totalsegmentator` moves to
-  [`totalsegmentator-mlx` 0.1.7](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.1.7),
-  which runs on `nnunet-mlx` 0.7.0 and no longer writes its `probabilities`
-  outputs through an existing symlink.
-
 - Pin registered automatic weight bundles to the revisions documented by the
   latest runtime release tags, including their linked Hugging Face model cards.
   SAM3 retains its existing pin. Unlisted model IDs still resolve
@@ -36,6 +24,38 @@
   the current layout without deleting or linking the originals; only missing or
   mismatched files are downloaded. `cached_weights` remains offline and read-only;
   `refresh=True` still forces a download.
+
+## 0.4.5
+
+Updates the nnU-Net and TotalSegmentator models to
+[`nnunet-mlx` 0.7.0](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.7.0) and
+[`totalsegmentator-mlx` 0.1.7](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.1.7).
+
+### Breaking changes
+
+**nnU-Net runs return the label map as `mask`.** `nnunet-liver` and
+`nnunet-autopet` returned it as `segmentation`; the other nnU-Net models already
+used `mask`.
+
+**`nnunet-brats2021` averages all five released folds by default.** Pass
+`fold=0` for the old result. Downloads from before November 2 hold only fold 0,
+so refresh them first:
+
+```sh
+medmlx setup nnunet-brats2021 --refresh
+medmlx setup nnunet-autopet --refresh   # AutoPET's folds 1-4
+```
+
+### Fixes
+
+**TotalSegmentator no longer writes probability outputs through an existing
+symlink.** Outputs are staged privately and renamed into place, and a dangling
+symlink at an output path counts as an existing file.
+
+### Faster
+
+**Native 3-D nnU-Net inference is faster.** A full liver CT (AMOS22, M5 Max)
+takes 466 s instead of 634 s, with identical labels.
 
 ## 0.4.4
 
