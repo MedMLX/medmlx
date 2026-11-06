@@ -577,7 +577,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -668,38 +668,38 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "biomedparse-mlx", marker = "extra == 'all'", specifier = "==0.1.5" },
-    { name = "biomedparse-mlx", marker = "extra == 'segment'", specifier = "==0.1.5" },
-    { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", specifier = "==0.2.6" },
-    { name = "flexible-unet-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "flexible-unet-mlx", marker = "extra == 'segment'", specifier = "==0.2.6" },
-    { name = "flexray-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "flexray-mlx", marker = "extra == 'segment'", specifier = "==0.2.6" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", specifier = "==0.2.7" },
-    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", specifier = "==0.2.7" },
-    { name = "lung-nodule-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "lung-nodule-mlx", marker = "extra == 'reason-tools'", specifier = "==0.2.6" },
-    { name = "lung-nodule-mlx", marker = "extra == 'vision'", specifier = "==0.2.6" },
+    { name = "biomedparse-mlx", marker = "extra == 'all'", specifier = ">=0.1.5,<0.2" },
+    { name = "biomedparse-mlx", marker = "extra == 'segment'", specifier = ">=0.1.5,<0.2" },
+    { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
+    { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", specifier = ">=0.2.6,<0.3" },
+    { name = "flexible-unet-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
+    { name = "flexible-unet-mlx", marker = "extra == 'segment'", specifier = ">=0.2.6,<0.3" },
+    { name = "flexray-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
+    { name = "flexray-mlx", marker = "extra == 'segment'", specifier = ">=0.2.6,<0.3" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'all'", specifier = ">=0.2.7,<0.3" },
+    { name = "lesiondiffusion-mlx", marker = "extra == 'generate'", specifier = ">=0.2.7,<0.3" },
+    { name = "lung-nodule-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
+    { name = "lung-nodule-mlx", marker = "extra == 'reason-tools'", specifier = ">=0.2.6,<0.3" },
+    { name = "lung-nodule-mlx", marker = "extra == 'vision'", specifier = ">=0.2.6,<0.3" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.2,<3" },
     { name = "medmlx-core", editable = "packages/core" },
-    { name = "medsam2-mlx", marker = "extra == 'all'", specifier = "==0.2.8" },
-    { name = "medsam2-mlx", marker = "extra == 'reason-tools'", specifier = "==0.2.8" },
-    { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = "==0.2.8" },
-    { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = "==0.5.2" },
-    { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = "==0.5.2" },
-    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = "==0.3.6" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = "==0.3.6" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = "==0.3.6" },
-    { name = "mlx-segment-ct", marker = "extra == 'all'", specifier = "==0.3.5" },
-    { name = "mlx-segment-ct", marker = "extra == 'segment'", specifier = "==0.3.5" },
+    { name = "medsam2-mlx", marker = "extra == 'all'", specifier = ">=0.2.8,<0.3" },
+    { name = "medsam2-mlx", marker = "extra == 'reason-tools'", specifier = ">=0.2.8,<0.3" },
+    { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = ">=0.2.8,<0.3" },
+    { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = ">=0.5.2,<0.6" },
+    { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = ">=0.5.2,<0.6" },
+    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.4.0,<0.5" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.4.0,<0.5" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.4.0,<0.5" },
+    { name = "mlx-segment-ct", marker = "extra == 'all'", specifier = ">=0.3.5,<0.4" },
+    { name = "mlx-segment-ct", marker = "extra == 'segment'", specifier = ">=0.3.5,<0.4" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", specifier = "==0.1.0.dev9" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", specifier = "==0.1.0.dev9" },
     { name = "nibabel", marker = "extra == 'all'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'generate'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'reason-tools'", specifier = ">=5.4.2,<6" },
-    { name = "nnunet-mlx", marker = "extra == 'all'", specifier = "==0.7.0" },
-    { name = "nnunet-mlx", marker = "extra == 'segment'", specifier = "==0.7.0" },
+    { name = "nnunet-mlx", marker = "extra == 'all'", specifier = ">=0.7.0,<0.8" },
+    { name = "nnunet-mlx", marker = "extra == 'segment'", specifier = ">=0.7.0,<0.8" },
     { name = "numpy", marker = "extra == 'all'", specifier = ">=2.3,<3" },
     { name = "numpy", marker = "extra == 'reason-tools'", specifier = ">=2.3,<3" },
     { name = "packaging", specifier = ">=24" },
@@ -707,24 +707,24 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'reason-tools'", specifier = ">=13,<14" },
     { name = "pydantic", marker = "extra == 'all'", specifier = ">=2.14,<3" },
     { name = "pydantic", marker = "extra == 'reason-tools'", specifier = ">=2.14,<3" },
-    { name = "radimagenet-mlx", marker = "extra == 'all'", specifier = "==0.3.3" },
-    { name = "radimagenet-mlx", marker = "extra == 'vision'", specifier = "==0.3.3" },
-    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", specifier = "==0.2.4" },
-    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", specifier = "==0.2.4" },
+    { name = "radimagenet-mlx", marker = "extra == 'all'", specifier = ">=0.3.3,<0.4" },
+    { name = "radimagenet-mlx", marker = "extra == 'vision'", specifier = ">=0.3.3,<0.4" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", specifier = ">=0.2.4,<0.3" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", specifier = ">=0.2.4,<0.3" },
     { name = "scipy", marker = "extra == 'all'", specifier = ">=1.18,<2" },
     { name = "scipy", marker = "extra == 'reason-tools'", specifier = ">=1.18,<2" },
-    { name = "segresnet-mlx", marker = "extra == 'all'", specifier = "==0.3.3" },
-    { name = "segresnet-mlx", marker = "extra == 'segment'", specifier = "==0.3.3" },
+    { name = "segresnet-mlx", marker = "extra == 'all'", specifier = ">=0.3.3,<0.4" },
+    { name = "segresnet-mlx", marker = "extra == 'segment'", specifier = ">=0.3.3,<0.4" },
     { name = "simpleitk", marker = "extra == 'all'", specifier = ">=2.5,<3" },
     { name = "simpleitk", marker = "extra == 'dicom'", specifier = ">=2.5,<3" },
-    { name = "swin-unetr-mlx", marker = "extra == 'all'", specifier = "==0.2.6" },
-    { name = "swin-unetr-mlx", marker = "extra == 'segment'", specifier = "==0.2.6" },
-    { name = "synthseg-mlx", marker = "extra == 'all'", specifier = "==0.3.4" },
-    { name = "synthseg-mlx", marker = "extra == 'segment'", specifier = "==0.3.4" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'all'", specifier = "==0.1.7" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", specifier = "==0.1.7" },
-    { name = "unest-mlx", marker = "extra == 'all'", specifier = "==0.2.7" },
-    { name = "unest-mlx", marker = "extra == 'segment'", specifier = "==0.2.7" },
+    { name = "swin-unetr-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
+    { name = "swin-unetr-mlx", marker = "extra == 'segment'", specifier = ">=0.2.6,<0.3" },
+    { name = "synthseg-mlx", marker = "extra == 'all'", specifier = ">=0.3.4,<0.4" },
+    { name = "synthseg-mlx", marker = "extra == 'segment'", specifier = ">=0.3.4,<0.4" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'all'", specifier = ">=0.1.7,<0.2" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", specifier = ">=0.1.7,<0.2" },
+    { name = "unest-mlx", marker = "extra == 'all'", specifier = ">=0.2.7,<0.3" },
+    { name = "unest-mlx", marker = "extra == 'segment'", specifier = ">=0.2.7,<0.3" },
     { name = "uv", specifier = ">=0.8,<1" },
 ]
 provides-extras = ["setup", "reason-tools", "segment", "generate", "vision", "all", "mcp", "dicom"]
@@ -843,7 +843,7 @@ wheels = [
 
 [[package]]
 name = "mlx-reason-ct"
-version = "0.3.6"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -855,9 +855,9 @@ dependencies = [
     { name = "scipy" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/74/f60d342b388438a9e120d86a26e0a93bee4d565f95ad6f3a65d218b93598/mlx_reason_ct-0.3.6.tar.gz", hash = "sha256:63c31e8901a0bb1a0222577d91349be72bae0615456a32af1cd95141c29ced76", size = 3768381, upload-time = "2026-11-01T03:52:39.506Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/66/95c72081230e60d3d46d9cd3d5561658ac80b1f0e7a0c87d4e79ff602840/mlx_reason_ct-0.4.0.tar.gz", hash = "sha256:7fa13b67a12a206baa52edc419e782562cadc1368d01311998e96b139a144852", size = 3771479, upload-time = "2026-11-06T08:06:07.451Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/58/a464f96d795b62df0ce7c38f7f727f5862fd6cf8272f5fa2ed2c1d5adefe/mlx_reason_ct-0.3.6-py3-none-any.whl", hash = "sha256:cb3e3064db81bb3186bc65239c7b24dfa52b9ef60290c76f08e63f72bbfdec86", size = 3776172, upload-time = "2026-11-01T03:52:37.078Z" },
+    { url = "https://files.pythonhosted.org/packages/64/3b/4f6c84609f502ad16be8635a93ca5db6a78a3ee53a16d9386297a973a0a5/mlx_reason_ct-0.4.0-py3-none-any.whl", hash = "sha256:b43f5c1005c80285e5b140e3c68d0033d718a310d768608b2c2fc9c8e4d6b161", size = 3780103, upload-time = "2026-11-06T08:06:05.747Z" },
 ]
 
 [package.optional-dependencies]

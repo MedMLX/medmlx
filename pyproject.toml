@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.4.5"
+version = "0.4.6"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -12,7 +12,7 @@ requires-python = ">=3.13,<3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
-dependencies = ["medmlx-core==0.2.6", "packaging>=24", "uv>=0.8,<1"]
+dependencies = ["medmlx-core>=0.2.6,<0.3", "packaging>=24", "uv>=0.8,<1"]
 
 [project.scripts]
 medmlx = "medmlx.cli:main"
@@ -25,9 +25,9 @@ reason-ct-tools = "medmlx.workflows.reason_ct:MODEL"
 # Kept as an empty compatibility extra; automatic downloads are included by default.
 setup = []
 reason-tools = [
-  "mlx-reason-ct[tools]==0.3.6",
-  "lung-nodule-mlx==0.2.6",
-  "medsam2-mlx==0.2.8",
+  "mlx-reason-ct[tools]>=0.4.0,<0.5",
+  "lung-nodule-mlx>=0.2.6,<0.3",
+  "medsam2-mlx>=0.2.8,<0.3",
   "pydantic>=2.14,<3",
   "nibabel>=5.4.2,<6",
   "numpy>=2.3,<3",
@@ -35,30 +35,30 @@ reason-tools = [
   "pillow>=13,<14",
 ]
 segment = [
-  "sam3-mlx[video]==0.2.4",
-  "biomedparse-mlx==0.1.5",
-  "flexible-unet-mlx==0.2.6",
-  "swin-unetr-mlx==0.2.6",
-  "segresnet-mlx==0.3.3",
-  "medsam2-mlx==0.2.8",
-  "mlx-segment-ct==0.3.5",
-  "unest-mlx==0.2.7",
-  "synthseg-mlx==0.3.4",
-  "flexray-mlx==0.2.6",
-  "nnunet-mlx==0.7.0",
-  "totalsegmentator-mlx==0.1.7",
+  "sam3-mlx[video]>=0.2.4,<0.3",
+  "biomedparse-mlx>=0.1.5,<0.2",
+  "flexible-unet-mlx>=0.2.6,<0.3",
+  "swin-unetr-mlx>=0.2.6,<0.3",
+  "segresnet-mlx>=0.3.3,<0.4",
+  "medsam2-mlx>=0.2.8,<0.3",
+  "mlx-segment-ct>=0.3.5,<0.4",
+  "unest-mlx>=0.2.7,<0.3",
+  "synthseg-mlx>=0.3.4,<0.4",
+  "flexray-mlx>=0.2.6,<0.3",
+  "nnunet-mlx>=0.7.0,<0.8",
+  "totalsegmentator-mlx>=0.1.7,<0.2",
 ]
 generate = [
   "nibabel>=5.4.2,<6",
-  "mlx-reason-ct==0.3.6",
-  "fdg-pet-ct-mlx==0.2.6",
-  "mlx-generate-ctmr==0.5.2",
-  "lesiondiffusion-mlx==0.2.7",
+  "mlx-reason-ct>=0.4.0,<0.5",
+  "fdg-pet-ct-mlx>=0.2.6,<0.3",
+  "mlx-generate-ctmr>=0.5.2,<0.6",
+  "lesiondiffusion-mlx>=0.2.7,<0.3",
 ]
 vision = [
   "mlxradiomics[io]==0.1.0.dev9",
-  "radimagenet-mlx==0.3.3",
-  "lung-nodule-mlx==0.2.6",
+  "radimagenet-mlx>=0.3.3,<0.4",
+  "lung-nodule-mlx>=0.2.6,<0.3",
 ]
 all = [
   "SimpleITK>=2.5,<3",
@@ -67,25 +67,25 @@ all = [
   "scipy>=1.18,<2",
   "pillow>=13,<14",
   "nibabel>=5.4.2,<6",
-  "sam3-mlx[video]==0.2.4",
-  "mlx-reason-ct[tools]==0.3.6",
-  "biomedparse-mlx==0.1.5",
-  "fdg-pet-ct-mlx==0.2.6",
-  "flexible-unet-mlx==0.2.6",
-  "flexray-mlx==0.2.6",
-  "lesiondiffusion-mlx==0.2.7",
-  "lung-nodule-mlx==0.2.6",
-  "medsam2-mlx==0.2.8",
-  "mlx-generate-ctmr==0.5.2",
-  "mlx-segment-ct==0.3.5",
+  "sam3-mlx[video]>=0.2.4,<0.3",
+  "mlx-reason-ct[tools]>=0.4.0,<0.5",
+  "biomedparse-mlx>=0.1.5,<0.2",
+  "fdg-pet-ct-mlx>=0.2.6,<0.3",
+  "flexible-unet-mlx>=0.2.6,<0.3",
+  "flexray-mlx>=0.2.6,<0.3",
+  "lesiondiffusion-mlx>=0.2.7,<0.3",
+  "lung-nodule-mlx>=0.2.6,<0.3",
+  "medsam2-mlx>=0.2.8,<0.3",
+  "mlx-generate-ctmr>=0.5.2,<0.6",
+  "mlx-segment-ct>=0.3.5,<0.4",
   "mlxradiomics[io]==0.1.0.dev9",
-  "nnunet-mlx==0.7.0",
-  "radimagenet-mlx==0.3.3",
-  "segresnet-mlx==0.3.3",
-  "swin-unetr-mlx==0.2.6",
-  "synthseg-mlx==0.3.4",
-  "totalsegmentator-mlx==0.1.7",
-  "unest-mlx==0.2.7",
+  "nnunet-mlx>=0.7.0,<0.8",
+  "radimagenet-mlx>=0.3.3,<0.4",
+  "segresnet-mlx>=0.3.3,<0.4",
+  "swin-unetr-mlx>=0.2.6,<0.3",
+  "synthseg-mlx>=0.3.4,<0.4",
+  "totalsegmentator-mlx>=0.1.7,<0.2",
+  "unest-mlx>=0.2.7,<0.3",
 ]
 mcp = [
   "mcp>=2.2,<3",

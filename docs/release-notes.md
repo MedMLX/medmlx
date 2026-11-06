@@ -25,6 +25,25 @@
   mismatched files are downloaded. `cached_weights` remains offline and read-only;
   `refresh=True` still forces a download.
 
+## 0.4.6
+
+### New
+
+**Runtime updates now reach `medmlx` users without a new `medmlx` release.** Each
+extra accepts later releases of a runtime up to its next minor version, such as
+`nnunet-mlx>=0.7.0,<0.8`, instead of one exact version, and `medmlx` accepts
+`medmlx-core>=0.2.6,<0.3`. Run `uv tool upgrade medmlx` to pick up new runtime
+releases; pin exact versions in your own lockfile to hold a set fixed.
+
+### Faster
+
+**Reason-CT is faster and uses less memory with [`mlx-reason-ct`
+0.4.0](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.4.0).** A `float32`
+chest report takes about 0.6x the time on an M5 Max with identical text, and
+one-shot reports no longer balloon process memory. The new
+`precision="bfloat16_fast"` is faster still, but its text can differ from
+`float32`.
+
 ## 0.4.5
 
 Updates the nnU-Net and TotalSegmentator models to
