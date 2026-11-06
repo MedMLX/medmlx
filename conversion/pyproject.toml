@@ -59,7 +59,7 @@ select = ["E", "F", "I", "UP", "B"]
 include = ["recipes","src","tests","scripts"]
 extraPaths = ["src"]
 pythonVersion = "3.13"
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
 enableTypeIgnoreComments = false
 reportUnnecessaryTypeIgnoreComment = "error"
 
