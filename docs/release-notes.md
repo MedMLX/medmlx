@@ -78,12 +78,10 @@ takes 466 s instead of 634 s, with identical labels.
 
 ## 0.4.4
 
-- The MedGemma bridge prepares `med-vlm-mlx==0.3.3`. The 0.4.2 and 0.4.3 bridge
-  pinned `med-vlm-mlx==0.2.3`, which is not available on PyPI, so it could not
-  prepare its runtime. 0.3.3 includes HTTP image and host security fixes. Its
-  dependency graph stays isolated from the other runtimes; real-checkpoint
-  execution and numerical accuracy remain unqualified.
-- Otherwise identical to 0.4.3, and still requires `medmlx-core` 0.2.6.
+Fixes MedGemma's first run, which failed in 0.4.2 and 0.4.3 because they tried
+to install `med-vlm-mlx` 0.2.3, a version that isn't on PyPI. MedGemma now uses
+[`med-vlm-mlx` 0.3.3](https://github.com/MedMLX/med-vlm-mlx/releases/tag/v0.3.3),
+which also adds security fixes to its HTTP server.
 
 ## 0.4.3
 
