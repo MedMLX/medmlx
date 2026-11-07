@@ -22,29 +22,34 @@ on first use and keep their own terms.
 
 ## Quickstart
 
-List the installed models, then show a model's arguments:
+`medmlx models` lists the installed models. To segment a CT scan, put it in a
+working folder:
 
 ```sh
-medmlx models
-medmlx describe mlx-segment-ct
+mkdir -p ~/medmlx-work && cd ~/medmlx-work
+cp /path/to/ct.nii.gz .
 ```
 
-Put a CT volume in a working folder and write the run's arguments next to it.
-Relative paths resolve against `--root`:
+Save the run's arguments there as `arguments.json`. Relative paths resolve
+against `--root`:
 
-```sh
-mkdir -p ~/medmlx-work && cp /path/to/ct.nii.gz ~/medmlx-work/
-cat > ~/medmlx-work/arguments.json <<'EOF'
+```json
 {"image_path": "ct.nii.gz", "output_dir": "segment-ct"}
-EOF
-medmlx run mlx-segment-ct --arguments ~/medmlx-work/arguments.json --root ~/medmlx-work
 ```
 
-The first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
-cache. The mask is written to `segment-ct/mlx_segment_ct_mask.nii.gz`. Use
-`medmlx readiness` with the same arguments to check Metal and inputs without
-downloading weights, and `medmlx setup --all --progress` to pre-download weights
-for offline use. See [automatic weights and readiness](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md).
+Then show the model's arguments, check that it can run, and run it:
+
+```sh
+medmlx describe mlx-segment-ct
+medmlx readiness mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
+medmlx run mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
+```
+
+`readiness` checks Metal and the input paths without downloading anything. The
+first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
+cache. The mask is written to `segment-ct/mlx_segment_ct_mask.nii.gz`. Run
+`medmlx setup --all --progress` to download every model's weights for offline
+use. See [automatic weights and readiness](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md).
 
 ## Models
 
@@ -56,6 +61,7 @@ Model IDs are what `medmlx run` and `medmlx describe` take.
 | `mlx-segment-ct`, `mlx-segment-ctmr` | Automatic and point-prompted segmentation (VISTA-3D) | CT, MRI | segment |
 | `nnunet-liver`, `nnunet-pancreas`, `nnunet-autopet`, `nnunet-brats2021` | Organ and tumor segmentation (nnU-Net v2) | CT, PET/CT, brain MRI | segment |
 | `mrsegmentator` | Multi-organ MRI segmentation | MRI | segment |
+| `siam` | Whole-head segmentation from any MRI contrast or CT | Head MRI, CT | segment |
 | `synthseg` | Brain segmentation and parcellation | Brain MRI, CT | segment |
 | `medsam2` | Box-, point- or mask-prompted masks with propagation | NIfTI slices or volumes, frames | segment |
 | `sam3` | Text-, box- or point-prompted image segmentation | 2D images, video frames | segment |
@@ -67,7 +73,6 @@ Model IDs are what `medmlx run` and `medmlx describe` take.
 | `flexible-unet` | Surgical tools | Endoscopy frames | segment |
 | `lung-nodule` | Lung nodule detection | Chest CT | vision |
 | `radimagenet-*` | Radiology image features | 2D images | vision |
-| `mlxradiomics` | Radiomics features and voxel maps | Image and mask | vision |
 | `mlx-reason-ct` | CT reports and question answering | CT | generate |
 | `reason-ct-tools` | Reason-CT with nodule detection and MedSAM2 masks | Chest CT | reason-tools |
 | `mlx-generate-ctmr-ct`, `-mr`, `-mr-brain` | Synthetic CT and MRI | Label maps or anatomy | generate |
@@ -107,7 +112,7 @@ generators. Declared peaks:
 | `fdg-pet-ct` | 2.8 GB |
 | `medsam2` | 1.3 GB |
 | `flexray` | 1.2 GB |
-| `radimagenet-*`, `flexible-unet`, `mlxradiomics` | 0.5 GB or less |
+| `radimagenet-*`, `flexible-unet` | 0.5 GB or less |
 
 Models without a declared peak record their measured peak after each run, and
 `medmlx describe` reports it.
@@ -117,8 +122,8 @@ radiograph peaks at 4.4 GB with MedGemma 1.5 4B and 17.9 GB with MedGemma 27B.
 
 ## MCP
 
-`medmlx serve` runs a stdio MCP server that lets an assistant list models, check
-inputs and run jobs in a working folder. For Claude Code:
+`medmlx serve --root /path/to/work` runs a stdio MCP server that lets an
+assistant list models, check inputs and run jobs in that folder. For Claude Code:
 
 ```sh
 mkdir -p ~/medmlx-work
