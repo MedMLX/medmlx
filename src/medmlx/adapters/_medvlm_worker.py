@@ -149,13 +149,20 @@ def _local_assets(request: dict[str, object]) -> tuple[Path, Path, str, int]:
         mapping = _object(_object(json.loads(index.read_text())).get("weight_map"))
         if not mapping:
             raise ValueError("Checkpoint weight_map must not be empty")
+        shards: set[str] = set()
         for shard in mapping.values():
             if not isinstance(shard, str) or Path(shard).name != shard or not shard.endswith(
                 ".safetensors"
             ):
                 raise ValueError("Checkpoint shard names must be local safetensors filenames")
-            if not (model / shard).is_file():
-                raise FileNotFoundError(f"Missing checkpoint shard: {shard}")
+            shards.add(shard)
+        # med-vlm-mlx loads the indexed shards that exist and, when none do, every
+        # *.safetensors file instead. Published 4-bit MedGemma folders ship a stale
+        # two-shard index beside one model.safetensors, which that loader accepts, so
+        # refuse only a partly present shard set, where a shard really is missing.
+        missing = sorted(shard for shard in shards if not (model / shard).is_file())
+        if missing and len(missing) < len(shards):
+            raise FileNotFoundError(f"Missing checkpoint shard: {missing[0]}")
     prompt = request.get("prompt")
     if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 16384:
         raise ValueError("prompt must contain 1..16384 characters, including non-whitespace")
