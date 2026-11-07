@@ -167,7 +167,7 @@ result = medmlx.run(
 - [MedGemma bridge](https://github.com/MedMLX/medmlx/blob/main/docs/medvlm-bridge.md):
   a provisional bridge to a separate MedVLM environment. MedMLX has not yet
   qualified its checkpoint inference or numerical accuracy.
-- This README describes the 0.4.6 release on [PyPI](https://pypi.org/project/medmlx/).
+- This README describes the 0.4.7 release on [PyPI](https://pypi.org/project/medmlx/).
   Unreleased changes are in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md);
   to use them, install from the locked source workspace described in the
   [MCP guide](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md).

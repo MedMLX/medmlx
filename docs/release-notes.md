@@ -1,5 +1,34 @@
 # Release notes
 
+## 0.4.7
+
+### Breaking changes
+
+**`medsam2` propagation stops after 8 consecutive empty slices in each direction,
+with [`medsam2-mlx`
+0.3.0](https://github.com/MedMLX/medsam2-mlx/releases/tag/v0.3.0).** Pass
+`"stop_after_empty": null` in the run arguments to track through the whole volume as
+before.
+
+### Fixes
+
+**MedGemma runs from the documented 4-bit MedGemma 1.5 4B and MedGemma 4B
+checkpoints.** Their folders hold one `model.safetensors` beside an index naming two
+shards, so 0.4.6 refused them with "Missing checkpoint shard". The bridge now
+refuses only a folder where some indexed shards are present and others are missing.
+
+**`mlx-reason-ct` is no longer refused on Macs with about 15 to 23 GB of free
+memory, with [`mlx-reason-ct`
+0.4.1](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.4.1).** It declared a
+stale 22.7 GB peak; a chest or abdominal CT report peaks at 14.4 GB.
+
+### New
+
+**Most models now declare their peak memory, so `medmlx` refuses a run that would
+not fit before it starts.** The README lists every model's peak. The runtime
+releases also add memory reductions, faster BioMedParse and MedSAM2 runs, and safer
+output writing; see each runtime's release notes.
+
 ## 0.4.6
 
 ### New
