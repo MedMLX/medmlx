@@ -89,11 +89,31 @@ generators. Declared peaks:
 | `mlx-generate-ctmr-ct` | 30 GB |
 | `mlx-generate-ctmr-mr-brain` | 26 GB |
 | `mlx-reason-ct` | 23 GB |
+| `siam` | 16 GB |
+| `nnunet-pancreas` | 14.5 GB |
 | `sam3` | 12 GB |
+| `synthseg` | 11.6 GB |
+| `mlx-segment-ctmr` | 11.0 GB |
+| `lung-nodule` | 10.8 GB |
+| `nnunet-liver` | 9.0 GB |
+| `swin-unetr`, `nnunet-brats2021` | 7.5 GB |
+| `unest` | 7.3 GB |
+| `mlx-segment-ct` | 6.0 GB |
+| `totalsegmentator`, `segresnet-brats` | 5.0 GB |
+| `nnunet-autopet` | 4.8 GB |
+| `segresnet-renal-cect` | 4.1 GB |
+| `biomedparse-v2` | 3.9 GB |
 | `lesiondiffusion` | 3.5 GB |
+| `fdg-pet-ct` | 2.8 GB |
+| `medsam2` | 1.3 GB |
+| `flexray` | 1.2 GB |
+| `radimagenet-*`, `flexible-unet`, `mlxradiomics` | 0.5 GB or less |
 
 Models without a declared peak record their measured peak after each run, and
 `medmlx describe` reports it.
+
+`medgemma` runs in its own interpreter, outside this check. Describing a chest
+radiograph peaks at 4.4 GB with MedGemma 1.5 4B and 17.9 GB with MedGemma 27B.
 
 ## MCP
 
