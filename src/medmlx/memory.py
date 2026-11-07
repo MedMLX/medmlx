@@ -9,11 +9,12 @@ to its worker. Separate MCP sessions, Python callers and the CLI share it.
 
 By default one model runs at a time per Mac. ``MEDMLX_MAX_RUNS`` raises the
 limit, and ``MEDMLX_RUN_REGISTRY`` moves the registry (default: ``.runs`` in the
-MedMLX cache). A model is also refused when the larger of its declared
-``peak_memory_gb`` and its highest measured peak for the current package version
-exceeds estimated available memory. Measurements cover MLX allocations only, excluding
-NumPy and preprocessing memory. Available memory is read from
-``vm_stat``: free, inactive, speculative and purgeable pages.
+MedMLX cache). Memory never refuses a run: the larger of a model's declared
+``peak_memory_gb`` and its highest measured peak for the current package version is
+reported next to the estimated available memory (``fits``), and the caller decides.
+Measurements cover MLX allocations only, excluding NumPy and preprocessing memory.
+Available memory is read from ``vm_stat``: free, inactive, speculative and
+purgeable pages.
 """
 
 from __future__ import annotations
@@ -204,14 +205,14 @@ def fits(peak_memory_gb: float | None) -> bool | None:
 def admit(
     job_id: str, model_id: str, peak_memory_gb: float | None, *, version: str | None = None,
 ) -> Generator[int]:
-    """Reserve memory for one run and yield the lock descriptor to pass to its worker.
+    """Register one run and yield the lock descriptor to pass to its worker.
 
     The caller passes the descriptor to the worker process and closes its own
-    copy when this context exits; the worker then holds the lock alone.
+    copy when this context exits; the worker then holds the lock alone. The run
+    record keeps the peak figures for ``memory_status``; they are not a limit.
 
     Raises:
-        RuntimeError: The machine already runs ``max_runs()`` models, or the
-            model's effective peak exceeds the available memory.
+        RuntimeError: The machine already runs ``max_runs()`` models.
     """
     folder = registry()
     with (folder / ".admission").open("a+b") as admission:
@@ -224,13 +225,6 @@ def admit(
                 f"Only {max_runs()} model run(s) hold memory at once; wait for it or cancel it."
             )
         peak = peak_info(model_id, version, peak_memory_gb)
-        effective = peak["effective_peak_memory_gb"]
-        if fits(effective) is False:
-            available = available_bytes() or 0
-            raise RuntimeError(
-                f"Insufficient memory: {model_id} needs about {effective} GB at peak and "
-                f"about {available / _GB:.1f} GB is available."
-            )
         lock = folder / f"{job_id}.lock"
         descriptor = os.open(lock, os.O_CREAT | os.O_RDWR, 0o600)
         try:

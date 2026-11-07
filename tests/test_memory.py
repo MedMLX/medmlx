@@ -116,8 +116,10 @@ def test_guard_uses_measurements_only_for_the_current_package_version(
     row = medmlx.model_readiness(["measured"], arguments={"peak_bytes": 0})["models"][0]
     assert row["memory"]["fits"] is False
     assert "Needs about 9.0 GB at peak" in str(row["reason"])
-    with pytest.raises(RuntimeError, match=r"needs about 9\.0 GB at peak"):
-        medmlx.start("measured", arguments={"peak_bytes": 0}, root=tmp_path)
+    # Memory is reported, not enforced: the run is neither marked blocked nor refused.
+    assert row["run_ready"] is True
+    assert medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path)["state"] == (
+        "completed")
 
     measured_model.write_text(
         measured_model.read_text().replace("Version: 1.2.3", "Version: 1.2.4"))
@@ -166,6 +168,7 @@ def test_one_model_holds_memory_per_machine(
         "completed")
 
     row = medmlx.model_readiness(["huge"], arguments={"seconds": 0}, root=tmp_path)["models"][0]
-    assert row["run_ready"] is False and "GB at peak" in str(row["reason"])
-    with pytest.raises(RuntimeError, match="Insufficient memory"):
-        medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path)
+    assert row["memory"]["fits"] is False and "GB at peak" in str(row["reason"])
+    assert row["run_ready"] is not False
+    assert medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path).wait()["state"] == (
+        "completed")

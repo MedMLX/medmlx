@@ -21,11 +21,11 @@ group. The entry point names a mapping, or a callable returning one::
 optionally maps each integer output label to its name (``{"1": "spleen"}``), and
 ``example_arguments`` optionally gives one JSON object of runner arguments that
 agents can adapt. ``peak_memory_gb`` optionally declares a run's peak memory in
-GB. The memory guard uses the larger of this declaration and this Mac's
-highest measured MLX allocation peak for the current package version; measured
-peaks exclude NumPy and preprocessing memory. Runs are refused when less memory
-is available. Weight-free providers set ``requires_weights`` false; providers
-whose assets must be supplied by hand set ``setup_supported`` false. A workflow
+GB. Readiness compares the larger of this declaration and this Mac's
+highest measured MLX allocation peak for the current package version with the
+available memory; measured peaks exclude NumPy and preprocessing memory. The
+comparison is reported, never enforced. Weight-free providers set ``requires_weights``
+false; providers whose assets must be supplied by hand set ``setup_supported`` false. A workflow
 that runs other models sets ``weights_from`` to a mapping from each weight
 argument to the model ID whose automatic weights it uses, such as
 ``{"detector_weights_path": "lung-nodule"}``; setup then prepares those models.

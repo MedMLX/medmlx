@@ -26,7 +26,7 @@ MODEL = {
 - `setup_supported` is an optional boolean (default `True`). Set it to `False`
   when a runner needs assets supplied by hand. Setup plans report it as
   unsupported, and setup reports a manual-setup error.
-- `labels` optionally maps each integer output label to its name (`{"1": "spleen"}`); `summarize_output` uses the names. `example_arguments` optionally gives one JSON object of runner arguments, and `peak_memory_gb` the run's measured peak memory in GB; runs are refused when less memory is available. Take each value from the package's own label map, docs or measurements.
+- `labels` optionally maps each integer output label to its name (`{"1": "spleen"}`); `summarize_output` uses the names. `example_arguments` optionally gives one JSON object of runner arguments, and `peak_memory_gb` the run's measured peak memory in GB; readiness reports when less memory is available but never blocks the run. Take each value from the package's own label map, docs or measurements.
 - `weights_from` is an optional mapping for workflows that run other models. Each
   key is a weight argument of `run`; each value is the model ID whose automatic
   weights it uses, for example `{"detector_weights_path": "lung-nodule"}`.

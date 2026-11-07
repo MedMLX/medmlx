@@ -191,7 +191,7 @@ class Jobs:
         control files, which remains removable when a worker is killed.
         A run that ``holds_memory`` (every model run) must also be admitted
         machine-wide by ``medmlx.memory``, which refuses it while another
-        session's model holds memory or when its effective peak does not fit.
+        session's model holds memory.
         ``version`` identifies the declaring package version for peak measurements.
         """
 

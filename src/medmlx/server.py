@@ -57,10 +57,10 @@ Weights: when weights_path is omitted, runs download the model's pinned weights 
 first use; prepare_model downloads them ahead of time as a job. Some models need a
 local weights_path; describe_model says which.
 Memory: one model runs at a time on this Mac across every MedMLX session, so models
-never pile up in unified memory; memory_status shows what is running. The guard
-takes the larger of a model's declared peak and its highest measured MLX peak
-for the installed version, and refuses a run when less memory is available.
-Measurements exclude NumPy and preprocessing memory.
+never pile up in unified memory; memory_status shows what is running. Readiness
+compares the larger of a model's declared peak and its highest measured MLX peak
+for the installed version with the available memory and reports it as a reason; it
+never blocks a run. Measurements exclude NumPy and preprocessing memory.
 Jobs: get_job waits up to 60 seconds per call; disconnecting cancels running jobs.
 Paths: relative paths resolve against {root}. {paths}
 Error messages carry a code, such as invalid_arguments, and a next step.
@@ -75,7 +75,6 @@ _HINTS = {
     "invalid_arguments": "Call describe_model for the runner's parameter names.",
     "manual_setup": "Pass a local weights_path folder; describe_model lists the assets.",
     "busy": "Wait for the running model to finish (memory_status shows it), or cancel it.",
-    "insufficient_memory": "Close other apps or wait for running models, then retry.",
     "metal_unavailable": "Use an Apple Silicon Mac with MLX installed and Metal available.",
     "missing_dependency": "Install the model's family, for example medmlx[all,mcp].",
     "path_outside_root": "Use paths inside the server root.",
@@ -122,8 +121,6 @@ def _tool_errors(
             code = "filesystem_error"
         elif "already has an active" in message or "already running on this Mac" in message:
             code = "busy"
-        elif message.startswith("Insufficient memory"):
-            code = "insufficient_memory"
         elif "MLX is not usable" in message:
             code = "metal_unavailable"
         else:

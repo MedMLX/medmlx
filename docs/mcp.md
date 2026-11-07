@@ -224,8 +224,9 @@ Models share the Mac's unified memory, so one model runs at a time on the machin
 across every MedMLX session: each run holds a lock that the operating system
 releases when its worker exits, so a crashed run never blocks the next one. A
 second `run_model` from any session is refused with `busy` while another model
-runs; `memory_status` shows what is running. The guard also refuses a run with
-`insufficient_memory` when its effective peak exceeds available memory.
+runs; `memory_status` shows what is running. Memory never refuses a run: when the
+effective peak exceeds available memory, readiness adds a reason and reports
+`fits: false`, and the run still starts.
 Weight downloads do not count.
 `MEDMLX_MAX_RUNS` raises the limit on machines with room for more.
 
@@ -239,7 +240,7 @@ The highest measured peak for each model ID and package version is saved on
 this Mac in `~/.cache/medmlx/peaks.json`; `MEDMLX_PEAKS` overrides that path.
 Updates use a process lock and atomic file replacement. A corrupt store is
 treated as empty. Measurements without package-version metadata are not saved.
-The guard uses the larger of the model's declared `peak_memory_gb` and the
+The fit check uses the larger of the model's declared `peak_memory_gb` and the
 current version's measured peak, so a measurement from a small scan never lowers
 the declared figure. An older version's measurements do not apply after an
 upgrade.
@@ -274,7 +275,7 @@ the provider validates the actual inputs during execution and can still fail.
 Tool errors carry a code and a next step, for example
 `invalid_arguments: ...` followed by `Next: Call describe_model for the runner's
 parameter names.` The codes are `unknown_model`, `unknown_job`,
-`invalid_arguments`, `manual_setup`, `busy`, `insufficient_memory`, `metal_unavailable`,
+`invalid_arguments`, `manual_setup`, `busy`, `metal_unavailable`,
 `missing_dependency`, `path_outside_root`, `filesystem_error` and `runtime_error`.
 
 Jobs have states `running`, `completed`, `failed`, or `cancelled`. `get_job`

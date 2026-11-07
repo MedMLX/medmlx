@@ -379,15 +379,19 @@ def _memory(spec: registry.ModelSpec) -> MemoryCheck:
 
 
 def _judge(row: ModelReadiness, reasons: list[str]) -> None:
-    """Set ``run_ready`` from the path, weight, image and memory checks of one bound run."""
+    """Set ``run_ready`` from the run, path, weight and image checks of one bound run.
+
+    Memory only adds a reason: a peak above the available memory does not block the run.
+    """
     blockers: list[str] = []
     running = row["memory"]["other_runs"]
     if len(running) >= memory.max_runs():
         blockers.append("Another MedMLX model is running on this Mac: "
                         + ", ".join(run["model_id"] for run in running))
     if row["memory"]["fits"] is False:
-        blockers.append(f"Needs about {row['memory']['effective_peak_memory_gb']} GB at peak; "
-                        f"about {row['memory']['available_gb']} GB is available")
+        reasons.append(f"Needs about {row['memory']['effective_peak_memory_gb']} GB at peak "
+                       f"and about {row['memory']['available_gb']} GB is available; "
+                       "the run is not blocked")
     missing = [item["path"] for item in row["path_checks"] if not item["available"]]
     if missing:
         blockers.append("Unavailable input/weight paths: " + ", ".join(missing))

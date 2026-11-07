@@ -85,9 +85,9 @@ Each model has its own repository in the [MedMLX organization](https://github.co
 
 ### Memory
 
-MedMLX runs one model at a time by default and refuses a run whose peak memory
-exceeds the memory available, so a 16 GB or 32 GB Mac cannot run the largest
-generators. Declared peaks:
+MedMLX runs one model at a time by default. It never refuses a run for memory:
+readiness reports a model's peak next to the memory available, and the run starts
+either way, so a Mac with too little memory may swap or fail. Declared peaks:
 
 | Model | Peak MLX memory |
 | :--- | ---: |
@@ -95,17 +95,14 @@ generators. Declared peaks:
 | `mlx-generate-ctmr-mr-brain` | 26 GB |
 | `siam` | 16 GB |
 | `mlx-reason-ct` | 14.5 GB |
-| `nnunet-pancreas` | 14.5 GB |
 | `sam3` | 12 GB |
 | `synthseg` | 11.6 GB |
 | `mlx-segment-ctmr` | 11.0 GB |
 | `lung-nodule` | 10.8 GB |
-| `nnunet-liver` | 9.0 GB |
-| `swin-unetr`, `nnunet-brats2021` | 7.5 GB |
+| `swin-unetr` | 7.5 GB |
 | `unest` | 7.3 GB |
 | `mlx-segment-ct` | 6.0 GB |
 | `totalsegmentator`, `segresnet-brats` | 5.0 GB |
-| `nnunet-autopet` | 4.8 GB |
 | `segresnet-renal-cect` | 4.1 GB |
 | `biomedparse-v2` | 3.9 GB |
 | `lesiondiffusion` | 3.5 GB |
@@ -114,8 +111,9 @@ generators. Declared peaks:
 | `flexray` | 1.2 GB |
 | `radimagenet-*`, `flexible-unet` | 0.5 GB or less |
 
-Models without a declared peak record their measured peak after each run, and
-`medmlx describe` reports it.
+Models without a declared peak, including `nnunet-liver`, `nnunet-pancreas`,
+`nnunet-brats2021` and `nnunet-autopet`, record their measured peak after each
+run, and `medmlx describe` reports it.
 
 `medgemma` runs in its own interpreter, outside this check. Describing a chest
 radiograph peaks at 4.4 GB with MedGemma 1.5 4B and 17.9 GB with MedGemma 27B.

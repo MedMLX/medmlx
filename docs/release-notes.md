@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Memory no longer refuses a run. Readiness reports `fits: false` and adds a reason
+  when a model's peak exceeds the available memory, and the run starts anyway; the
+  `insufficient_memory` error code is gone. One model still runs at a time per Mac.
 - Pin registered automatic weight bundles to the revisions documented by the
   latest runtime release tags, including their linked Hugging Face model cards.
   SAM3 retains its existing pin. Unlisted model IDs still resolve

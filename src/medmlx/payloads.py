@@ -139,7 +139,7 @@ class ParameterPayload(TypedDict):
 class MemoryPeak(TypedDict):
     """Declared peak and the current version's highest measured MLX allocation peak.
 
-    The guard uses ``effective_peak_memory_gb``, the larger of the two;
+    ``effective_peak_memory_gb`` is the larger of the two, the figure compared with free memory;
     ``peak_memory_source`` names which one, or is ``None`` when neither exists.
     """
 
