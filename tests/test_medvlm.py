@@ -208,6 +208,17 @@ def test_older_selected_runtime_is_rejected_before_importing_mlx_or_writing(
     assert not Path(inputs["output_dir"]).exists()
 
 
+def test_stale_index_beside_single_weights_file_runs(
+    isolated_python: Path, inputs: Inputs,
+) -> None:
+    # The pinned mlx-community 4-bit folders index two shards that do not exist beside
+    # one model.safetensors; med-vlm-mlx then loads that file, so the bridge must too.
+    (Path(inputs["weights_path"]) / "model.safetensors.index.json").write_text(
+        '{"weight_map": {"a": "model-00001-of-00002.safetensors",'
+        ' "b": "model-00002-of-00002.safetensors"}}')
+    assert api.run("medgemma", arguments=_arguments(inputs))["state"] == "completed"
+
+
 @pytest.mark.parametrize("case", ["missing", "architecture", "shard", "tokens"])
 def test_invalid_assets_and_options_fail_before_importing_mlx_or_writing(
     isolated_python: Path, inputs: Inputs, case: str,
@@ -220,7 +231,7 @@ def test_invalid_assets_and_options_fail_before_importing_mlx_or_writing(
         (model / "config.json").write_text('{"model_type": "unsupported"}')
     elif case == "shard":
         (model / "model.safetensors.index.json").write_text(
-            '{"weight_map": {"layer": "missing.safetensors"}}')
+            '{"weight_map": {"a": "model.safetensors", "b": "missing.safetensors"}}')
     else:
         arguments["max_new_tokens"] = True
     with pytest.raises(RuntimeError):
