@@ -148,7 +148,7 @@ wheels = [
 
 [[package]]
 name = "fdg-pet-ct-mlx"
-version = "0.2.6"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -156,9 +156,9 @@ dependencies = [
     { name = "nibabel" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/45/6c/08f8f831409155b1786c3dd379b7c760ef51887c133bd5e3307d79540325/fdg_pet_ct_mlx-0.2.6.tar.gz", hash = "sha256:1faa9fa57fb834a9ae8a274a65b3ee464a65c4bf90d050bdfa767390a636582d", size = 21186, upload-time = "2026-11-01T03:51:28.782Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/38/c12f37c8c7b6bfa44a31aa16d8c8124f5acb5125c2bd9026fc632cf57d2c/fdg_pet_ct_mlx-0.3.0.tar.gz", hash = "sha256:3f16b16034427f891001352b0e4285ae0df8fcfc05e61a6cb52ced24e4591c82", size = 18428, upload-time = "2026-11-07T20:46:52.339Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/54/efcef6b60425e024648b7a1b332612234a9c66d45323e7bc0c7be3afff82/fdg_pet_ct_mlx-0.2.6-py3-none-any.whl", hash = "sha256:20a48cbaf4541d14dd02586f72e1f01ed3dc066c651a65cb8ec84a8c1660aec2", size = 25767, upload-time = "2026-11-01T03:51:27.652Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/9f/9a214dc7049dfc0fde433bc26abbfa22dfdf8b3800c50db187032f44b58f/fdg_pet_ct_mlx-0.3.0-py3-none-any.whl", hash = "sha256:392767febecd36d8b16a5dca67722b6e45bda7d10c0d8d95f6c0725652afcdfa", size = 22042, upload-time = "2026-11-07T20:46:51.264Z" },
 ]
 
 [[package]]
@@ -577,7 +577,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.4.6"
+version = "0.4.7"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -670,8 +670,8 @@ dev = [
 requires-dist = [
     { name = "biomedparse-mlx", marker = "extra == 'all'", specifier = ">=0.1.5,<0.2" },
     { name = "biomedparse-mlx", marker = "extra == 'segment'", specifier = ">=0.1.5,<0.2" },
-    { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
-    { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", specifier = ">=0.2.6,<0.3" },
+    { name = "fdg-pet-ct-mlx", marker = "extra == 'all'", specifier = ">=0.3.0,<0.4" },
+    { name = "fdg-pet-ct-mlx", marker = "extra == 'generate'", specifier = ">=0.3.0,<0.4" },
     { name = "flexible-unet-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
     { name = "flexible-unet-mlx", marker = "extra == 'segment'", specifier = ">=0.2.6,<0.3" },
     { name = "flexray-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
@@ -683,14 +683,14 @@ requires-dist = [
     { name = "lung-nodule-mlx", marker = "extra == 'vision'", specifier = ">=0.2.6,<0.3" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2.2,<3" },
     { name = "medmlx-core", editable = "packages/core" },
-    { name = "medsam2-mlx", marker = "extra == 'all'", specifier = ">=0.2.8,<0.3" },
-    { name = "medsam2-mlx", marker = "extra == 'reason-tools'", specifier = ">=0.2.8,<0.3" },
-    { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = ">=0.2.8,<0.3" },
+    { name = "medsam2-mlx", marker = "extra == 'all'", specifier = ">=0.3.0,<0.4" },
+    { name = "medsam2-mlx", marker = "extra == 'reason-tools'", specifier = ">=0.3.0,<0.4" },
+    { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = ">=0.3.0,<0.4" },
     { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = ">=0.5.2,<0.6" },
     { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = ">=0.5.2,<0.6" },
-    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.4.0,<0.5" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.4.0,<0.5" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.4.0,<0.5" },
+    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.4.1,<0.5" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.4.1,<0.5" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.4.1,<0.5" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", specifier = ">=0.3.5,<0.4" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", specifier = ">=0.3.5,<0.4" },
     { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", specifier = "==0.1.0.dev9" },
@@ -783,7 +783,7 @@ provides-extras = ["conversion", "dev"]
 
 [[package]]
 name = "medsam2-mlx"
-version = "0.2.8"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -793,9 +793,9 @@ dependencies = [
     { name = "pillow" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/bd/9046b0ce9e0dae224582852f279218e1173527a7457db6a7f569a3bbe095/medsam2_mlx-0.2.8.tar.gz", hash = "sha256:f7d8a8f8d981e4b288b982b0d44c3f152adb964620f8a1f7da7ba6cd6d74a85e", size = 70249, upload-time = "2026-11-01T03:52:26.71Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/a3/8f70f2446ff7df43d1ff07656f63071b7d8f570b66846b5d842912b6cf7f/medsam2_mlx-0.3.0.tar.gz", hash = "sha256:35cc953626cdaa17c92f89ddf5bea14a907cf9b66287b8af85a50624787f1a87", size = 72885, upload-time = "2026-11-07T20:47:05.418Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/02/ccb59a3beb3a430f6e208407421e573fac102eacb243d98099b00171a96b/medsam2_mlx-0.2.8-py3-none-any.whl", hash = "sha256:61f634edf6ff858da25721399bdfa9841c01f23d0f55ea21fbf5ced4598916fb", size = 85573, upload-time = "2026-11-01T03:52:25.718Z" },
+    { url = "https://files.pythonhosted.org/packages/62/70/e97cff88d704cd8a7d80659cb7c18633a2247fd254efc49620fa8b4c9e90/medsam2_mlx-0.3.0-py3-none-any.whl", hash = "sha256:297184e5e93ff41d8cca9f33dae6e50f6795be62d6c0c8c867f151e1b8e11946", size = 88302, upload-time = "2026-11-07T20:47:04.361Z" },
 ]
 
 [[package]]
@@ -843,7 +843,7 @@ wheels = [
 
 [[package]]
 name = "mlx-reason-ct"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -855,9 +855,9 @@ dependencies = [
     { name = "scipy" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/66/95c72081230e60d3d46d9cd3d5561658ac80b1f0e7a0c87d4e79ff602840/mlx_reason_ct-0.4.0.tar.gz", hash = "sha256:7fa13b67a12a206baa52edc419e782562cadc1368d01311998e96b139a144852", size = 3771479, upload-time = "2026-11-06T08:06:07.451Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/76/be815247290fde90392bc599d48b0b8ee7a45a69e1f6321006c0765ca782/mlx_reason_ct-0.4.1.tar.gz", hash = "sha256:f5d8060ccd0248a70633f61a2028c724cc32620584cadd519017a87c9906bca3", size = 3769952, upload-time = "2026-11-07T20:46:49.524Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/3b/4f6c84609f502ad16be8635a93ca5db6a78a3ee53a16d9386297a973a0a5/mlx_reason_ct-0.4.0-py3-none-any.whl", hash = "sha256:b43f5c1005c80285e5b140e3c68d0033d718a310d768608b2c2fc9c8e4d6b161", size = 3780103, upload-time = "2026-11-06T08:06:05.747Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/7d/08484f43c792411a6cc1fc88aa1ca52b5aead59cbd68ca25f64afaa2c40e/mlx_reason_ct-0.4.1-py3-none-any.whl", hash = "sha256:1d2330151cfd019e10d4385237df389b99b86e3affd6f68bc28c5cc9b1d4a7ee", size = 3778320, upload-time = "2026-11-07T20:46:47.874Z" },
 ]
 
 [package.optional-dependencies]
