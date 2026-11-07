@@ -93,8 +93,8 @@ generators. Declared peaks:
 | :--- | ---: |
 | `mlx-generate-ctmr-ct` | 30 GB |
 | `mlx-generate-ctmr-mr-brain` | 26 GB |
-| `mlx-reason-ct` | 23 GB |
 | `siam` | 16 GB |
+| `mlx-reason-ct` | 14.5 GB |
 | `nnunet-pancreas` | 14.5 GB |
 | `sam3` | 12 GB |
 | `synthseg` | 11.6 GB |
