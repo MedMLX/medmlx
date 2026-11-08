@@ -6,9 +6,8 @@ and Neurite functions running on TensorFlow 2.20.0 CPU: dense trilinear pull-fie
 sampling with border extension and constant fill, plus seven-step stationary
 velocity integration. It contains no model weights or patient data.
 
-Embedded source metadata retains the source revisions/hashes, original recorder hash,
-package versions and seed. Moving the archive does not rewrite its source metadata.
-This separate oracle directory leaves the existing MONAI fixture format intact.
+The fixture records source revisions, package versions and seed. It uses a
+separate format from the MONAI fixtures.
 
 From the MedMLX repository root, regenerate using the converter's oracle recorder
 in an independent TensorFlow environment:

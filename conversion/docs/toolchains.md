@@ -87,18 +87,15 @@ The default reference profile requests FP32 and declares per-output tolerances.
 The explicit mixed FP16 profile has separate admission criteria below. Runtime selection is
 explicit: Core ML defaults to `ALL`, Core AI uses default specialization.
 `--coreml-profile coreml-gpu` selects `CPU_AND_GPU` for both conversion and saved
-package loading; the final numerical receipt records that choice. These settings permit
-the framework to schedule work; a passing receipt does not establish which
-compute unit executed each operation. ANE profiling and deployment qualification
-are separate work. Changing precision requires a new numerical check.
+package loading; the final numerical receipt records that choice. These settings allow the framework to schedule work; profile the device to
+identify where operations run. Recheck outputs after changing precision.
 
 The FP16 Swin UNETR `ALL` attempt crashed inside Apple's ANECompiler. SegResNet
 was sampled in ANE validation after more than 30 minutes; its attempt, AutoPET
 and SynthSeg were deliberately interrupted. Their partial assets and logs are
 retained. Remaining network checks use a new, explicitly selected `CPU_AND_GPU`
-attempt. There is no automatic retry under another compute policy because it
-would hide an unqualified route. A GPU-route pass does not qualify `ALL` or ANE.
-The sanitized crash frames and interruption record are linked in the audit.
+attempt. Select each compute policy explicitly; failed attempts are recorded with their
+crash or interruption details.
 
 ## Op coverage for MedMLX networks
 
@@ -244,12 +241,9 @@ all-zero references require review because normalized PSNR is undefined. Below
 60 dB requires investigation and fails the build; above 70 dB is the expected
 FP32 range. PSNR supplements maximum error and never overrides it.
 
-This checks a bounded interpretation of the cited guidance, not every Apple
-recommendation. FP32 is a documented exception to the recommended FP16 deployment
-default. Device memory, actual execution placement, compressed builds and full
-application/pipeline behavior need separate evidence and remain untested here.
-A passing fixed-shape network comparison does not establish device or full
-application qualification.
+FP32 is the reference profile; Apple recommends FP16 for deployment. Device
+memory, execution placement, compressed builds and complete application
+pipelines remain untested here.
 
 All maintained recipes implement `--profile macos-fp16-network`. The independent
 reference remains CPU FP32. Backend eager rewrites first pass the original
@@ -303,7 +297,7 @@ comparison retains `absolute_verdict` and its original tolerance; those limits
 remain mandatory for the FP32 reference and backend rewrites. FP32
 absolute limits are not reused as the FP16 gate because that would conflate intended
 precision loss with compiler loss. Matching argmax alone is not sufficient because
-labels can survive severe logit distortion. Neither PSNR nor label agreement establishes task accuracy.
+labels can survive severe logit distortion.
 
 Core ML receives an explicitly mixed graph with `compute_precision=FLOAT32`,
 which preserves its authored types and prevents the converter adding a second

@@ -16,23 +16,17 @@ For a Python project, use `uv add "medmlx[all,mcp]"`. Choose `segment`,
 `generate` or `vision` instead of `all` for a smaller installation.
 No runtime repositories need to be cloned.
 
-Most model runners need no setup command and accept an optional `weights_path`.
-When omitted, the runtime calls the shared `medmlx_core.weights.weights_dir(model_id)`
-helper. It downloads the registered Hub repository, or the selected model files,
-as ordinary files under `~/.cache/medmlx/<model_id>`. The runtime finds its own
-weight and auxiliary files inside that folder. Multi-model workflows can require
-separate explicit asset paths; see their runner instructions.
+Most models download their weights on first use to
+`~/.cache/medmlx/<model_id>`. To use a local copy, pass its folder as
+`weights_path`. Multi-model workflows may need a separate path per model.
 
 Automatic assets are not currently configured for MedGemma or MRSegmentator;
 those runners require a compatible local `weights_path` folder.
 
-For an unpinned source, the first download resolves the current Hub revision to a
-commit; a package-pinned source uses its declared commit. Run details record that
-revision as `weights_revision`. Completed downloads work offline.
-Partial downloads resume on the next attempt, including after cancellation.
-Concurrent first-use calls share one download. `MEDMLX_ASSET_CACHE` overrides
-the cache directory. Explicit `weights_path` folders are used as supplied, with
-no download or link resolution; their revision is `null` unless known locally.
+Downloads resume after interruptions and are cached for offline use. Concurrent
+requests share the download. Set `MEDMLX_ASSET_CACHE` to move the cache.
+Run details record the downloaded Hub commit as `weights_revision`; for local
+folders, it is `null` unless known. Explicit paths are used as supplied.
 
 Variants are model IDs, including `nnunet-liver`, `nnunet-autopet`,
 `segresnet-brats`, `segresnet-renal-cect`, `mlx-generate-ctmr-ct`, `mlx-generate-ctmr-mr`
@@ -51,7 +45,7 @@ The first command pre-downloads installed models. The second pre-downloads one.
 Normal runs use the same helper. Models that require manual asset setup are
 reported as unsupported; `--all` records them as failures. It continues after
 individual failures and exits nonzero for partial completion or discovery errors.
-Successful caches remain usable on retry. It does not run or qualify inference.
+Successful caches remain usable on retry. Setup downloads weights without running the model.
 To update or repair a cached model, run `medmlx setup MODEL_ID --refresh`.
 Use `--all --refresh` to refresh every installed model. Explicit local folders
 are never modified by these commands.
@@ -63,10 +57,8 @@ The same calls are available in Python as `setup_all()`, `setup_model(model_id)`
 
 ## Describe, readiness and checkpoints
 
-`describe` includes the provider's full instructions and argument descriptions,
-including documented units and ranges. Descriptions reproduce provider
-documentation; they do not establish validated constraints. Relative paths
-resolve against `--root`.
+`describe` shows the runner's arguments, units, ranges and instructions.
+Relative paths resolve against `--root`.
 
 `readiness` reports `ready` (and the equivalent `runtime_ready`) for imports,
 provider checks and Metal. Neither validates run inputs or weights. The separate

@@ -160,11 +160,9 @@ result = medmlx.run(
 ## More
 
 - [Reason-CT with nodule tools](https://github.com/MedMLX/medmlx/blob/main/docs/reason-ct-tools.md):
-  model-selected detector and MedSAM2 calls, spatially grounded masks and a local
-  CT review page.
+  detect and segment nodules, then browse masks and measurements in a local CT viewer.
 - [MedGemma bridge](https://github.com/MedMLX/medmlx/blob/main/docs/medvlm-bridge.md):
-  a provisional bridge to a separate MedVLM environment. MedMLX has not yet
-  qualified its checkpoint inference or numerical accuracy.
+  run MedGemma in a managed environment with local weights.
 - This README describes the 0.4.7 release on [PyPI](https://pypi.org/project/medmlx/).
   Unreleased changes are in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md);
   to use them, install from the locked source workspace described in the
@@ -177,5 +175,3 @@ result = medmlx.run(
 
 [Apache-2.0](https://github.com/MedMLX/medmlx/blob/main/LICENSE). See [third-party notices](https://github.com/MedMLX/medmlx/blob/main/THIRD_PARTY_NOTICES.md).
 Runtimes and model weights retain their own terms.
-
-For research and education. Outputs require human review.

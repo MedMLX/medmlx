@@ -13,8 +13,7 @@ With `MLX_ENABLE_TF32` unset, MLX on M5 lets float32 matmul and some
 convolutions use reduced-precision products. MLX reads the variable at the
 first such operation and keeps it for the process. Importing `medmlx_core` sets
 it to `0` when it is unset to avoid that reduced-product path by default; an
-explicit value, including `1`, is kept. This setting alone does not establish
-numerical parity with a reference implementation. `import_mlx()`
+explicit value, including `1`, is kept. `import_mlx()`
 checks one exact float32 product and raises `MissingDependencyError` when it was
 reduced without an explicit opt-in, which happens when the process ran MLX
 before importing `medmlx_core`.
@@ -143,13 +142,9 @@ Independent sliding-window tests retain exact comparison for representable
 constant-blending inputs, maximum absolute error 1e-6 for Gaussian logits and
 1e-7 for Gaussian maps because NumPy/Torch FP32 exponential kernels round differently.
 
-Host checks and reference generation do not qualify MLX execution. Reference arrays
-retain independently recorded upstream outputs and source metadata. Run `make qa-core`
-from the unified repository root for the current static gate; passing runtime tests
-alone does not establish static-check status.
-
-Fixtures are synthetic helper references. Clinical accuracy, released model
-weights and full-volume memory/performance are not qualified by these fixtures.
+These synthetic fixtures compare shared helpers with recorded upstream outputs.
+Run affected Metal tests for numerical changes and `make qa-core` for static
+checks. Model checkpoints and full-volume pipelines have their own comparisons.
 
 ## Graph and geometry runtime
 
@@ -192,10 +187,8 @@ the input at `x + displacement[x]`; border extension and constant fill match the
 pinned VoxelMorph/Neurite TensorFlow functions, which the tests compare against.
 This qualifies those operations, not a learned SynthMorph model.
 
-**Ownership.** Execution lives in core once: keeping it in the converter would make
-inference depend on the conversion stack, and copying operators into model packages
-would let numerical fixes diverge. Converters depend on core; core never depends on
-a converter.
+Converters and model packages share core's execution operators. Core has no
+converter dependencies.
 
 ## Precision profiles
 

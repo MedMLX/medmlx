@@ -1,9 +1,7 @@
 # MedMLX MCP server
 
-The MedMLX MCP server lets a local MCP client discover installed medical imaging
-models, inspect their inputs, and run them on Apple Silicon. It uses standard
-input/output (stdio): the client starts `medmlx serve` as a subprocess and
-communicates with it over that process's stdin and stdout.
+Run medical imaging models on Apple Silicon from an MCP client. The client
+starts `medmlx serve` and communicates over standard input/output (stdio).
 
 This is the inference server in the `medmlx` Python package. This guide on `main`
 also covers unreleased changes; see the [release notes](release-notes.md#unreleased).
@@ -220,36 +218,20 @@ scan. Neither tool interprets findings.
 
 ## Memory
 
-Models share the Mac's unified memory, so one model runs at a time on the machine
-across every MedMLX session: each run holds a lock that the operating system
-releases when its worker exits, so a crashed run never blocks the next one. A
-second `run_model` from any session is refused with `busy` while another model
-runs; `memory_status` shows what is running. Memory never refuses a run: when the
-effective peak exceeds available memory, readiness adds a reason and reports
-`fits: false`, and the run still starts.
-Weight downloads do not count.
-`MEDMLX_MAX_RUNS` raises the limit on machines with room for more.
+By default, one model runs at a time across all MedMLX sessions on the Mac.
+A second run returns `busy`; use `memory_status` to see the active run.
+`MEDMLX_MAX_RUNS` raises this limit. Downloads can run alongside inference.
 
-After a successful run, the worker reads `mlx.core.get_peak_memory()` if MLX
-is already loaded and reports it as `measured_peak_memory_gb` on the job. Each
-job has its own process, so this is that run's peak. The figure covers MLX
-allocations only, not NumPy or preprocessing memory, and is reported in decimal
-GB. MedMLX never imports MLX just to measure memory.
+Readiness reports `fits: false` when the expected peak exceeds available
+memory, but still allows the run. The estimate uses the larger of the model's
+declared peak and the highest measured peak for its installed package version.
+Measurements cover MLX allocations in decimal GB; allow additional memory for
+preprocessing, macOS and other applications.
 
-The highest measured peak for each model ID and package version is saved on
-this Mac in `~/.cache/medmlx/peaks.json`; `MEDMLX_PEAKS` overrides that path.
-Updates use a process lock and atomic file replacement. A corrupt store is
-treated as empty. Measurements without package-version metadata are not saved.
-The fit check uses the larger of the model's declared `peak_memory_gb` and the
-current version's measured peak, so a measurement from a small scan never lowers
-the declared figure. An older version's measurements do not apply after an
-upgrade.
-
-`describe_model`, the readiness `memory` row and `memory_status.active_runs`
-report `peak_memory_gb` (declared), `measured_peak_memory_gb` (the highest saved
-peak for that version), `effective_peak_memory_gb` (used for the fit check),
-and `peak_memory_source` (`measured`, `declared`, or `null` when neither exists).
-Active run rows preserve the figures used when that run was admitted.
+Each successful worker reports `measured_peak_memory_gb`. Peaks are saved in
+`~/.cache/medmlx/peaks.json` (`MEDMLX_PEAKS` overrides the path).
+`describe_model`, readiness and `memory_status` expose the declared, measured
+and effective peaks, plus `peak_memory_source`.
 
 ## Readiness and jobs
 
@@ -264,13 +246,9 @@ first. `weights` reports where the weights come from (`argument`, `cache`,
 `download` or `manual`), and `image_checks` lists each NIfTI input's shape. No
 check runs the model or proves that weights and images are compatible.
 
-When arguments are supplied, exactly one model ID is required. The check binds
-argument names and required parameters to the runner signature and checks
-conventionally named input and weight paths for existence. It does not inspect
-image contents, geometry, checkpoint compatibility, or output collisions.
-Provider-authored descriptions are guidance, not independently validated
-constraints. `run_model` checks the signature and Metal before starting a worker;
-the provider validates the actual inputs during execution and can still fail.
+When supplying arguments, select exactly one model ID. `run_model` checks the
+signature and Metal before starting a worker; the provider then validates image
+contents, geometry, checkpoint compatibility and output paths during execution.
 
 Tool errors carry a code and a next step, for example
 `invalid_arguments: ...` followed by `Next: Call describe_model for the runner's
@@ -318,14 +296,7 @@ of installed or validated model weights.
 
 ## Files and permissions
 
-`--root` sets the workers' working directory for relative paths; by itself it is
-not a filesystem sandbox. With `--restrict-root`, readiness checks and runs reject
-path arguments, outputs included, that resolve outside the root; runners can
-still read their own managed weight caches. Absolute paths and paths outside the root remain subject to
-the operating system's and client's permissions. Model runners can read inputs,
-write outputs, and, depending on the provider and arguments, access the network.
-Results and log tails are returned to the MCP client and may contain file paths
-or provider output. Configure client access and data handling accordingly.
-
-MedMLX is research software. Numerical parity does not establish clinical
-equivalence, and model outputs require human review.
+`--root` sets the working directory for relative paths. Add `--restrict-root`
+to reject input and output paths outside it; managed weight caches remain
+accessible. Runners use the operating system's permissions and may download
+assets. Results and logs are returned to the MCP client.

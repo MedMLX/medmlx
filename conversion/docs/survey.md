@@ -336,5 +336,5 @@ medmlx.org (website), mlxradiomics (radiomics features).
 - The MLX ports' custom FP32 Metal kernels (medmlx-core `Float32Operators`,
   nnunet's torch-order mode) exist to follow PyTorch's accumulation order as
   closely as possible. Exported models are compared within a tolerance instead.
-- Core ML `ALL` permits multiple compute units; it does not establish ANE usage.
-  All current receipts cover fixed synthetic inputs, not clinical performance.
+- Core ML `ALL` permits multiple compute units; device profiling identifies
+  which units execute. Current comparisons use fixed synthetic inputs.

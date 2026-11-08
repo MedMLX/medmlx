@@ -1,10 +1,8 @@
 # Synthetic FDG MCP smoke walkthrough
 
-This example starts a real MedMLX stdio server, discovers `fdg-pet-ct`, checks
-readiness, starts a job, waits for it, and checks the written NIfTI. It creates
-a tiny synthetic CT, labels, and a zero-activity profile in a temporary directory.
-It needs no model checkpoint or patient data. The profile is a software fixture,
-not a physiological model or a validation of PET synthesis.
+Try the MCP server with a tiny synthetic CT and a zero-activity FDG profile.
+The example starts a job, waits for completion and checks its NIfTI output.
+It needs no model weights.
 
 On an Apple Silicon Mac with Metal and [uv](https://docs.astral.sh/uv/), run
 from the `medmlx` checkout after installing the generation runtime and MCP:
@@ -102,8 +100,6 @@ with TemporaryDirectory(prefix="medmlx-mcp-smoke-") as directory:
 PY
 ```
 
-`run_ready: null` is expected after a successful preflight: readiness checks
-argument binding and conventional input-path existence, not image or profile
-contents. The worker performs those input checks when the job runs. A successful
-zero-output fixture confirms this wiring and its stated checks; it does not
-establish accuracy on real images.
+If `run_ready` is `null`, no blocker was found, but some inputs still need
+checking. The worker validates them when the job starts. This example checks
+MCP execution and file handling with a zero-output fixture.

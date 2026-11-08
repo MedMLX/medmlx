@@ -12,9 +12,7 @@ checkout so that no MedMLX recipe or model asset is modified.
 References are upstream PyTorch CPU FP32 with the exact checkpoint revisions and
 seeded inputs used by the maintained recipes. ONNX uses opset 13, as ANEForge's
 importer recommends. ANEForge uses FP16 and `approx_resize=False, opt=0`.
-The FP32 parity gates were not relaxed. Neither probe qualifies a production
-replacement or an application speedup. A single unchanged synthetic mask is
-not evidence of segmentation accuracy on medical images. The SegResNet result
-describes the current ONNX importer, not a hardware impossibility claim.
+Both probes failed the existing FP32 criteria. SegResNet was blocked by the
+ONNX importer before inference.
 
 The Core AI/Core ML recipe suite remains separate and passed all 24 tests.

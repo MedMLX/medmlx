@@ -18,7 +18,6 @@ These files contain synthetic inputs and outputs, not weights or patient data.
 
 The recorded logits precede smoothing, flipping, topology cleanup, resampling,
 parcellation and QC. Full-volume inference is outside these fixtures' scope.
-Keras backend agreement does not establish clinical accuracy.
 
 Each NPZ embeds its generation context and checkpoint/source declarations.
 New recordings use the recorder path, Git revision, dirty state and actual oracle

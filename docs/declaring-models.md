@@ -18,23 +18,32 @@ MODEL = {
 }
 ```
 
-- `run` receives the JSON keyword arguments from `run_model` and returns a JSON object (`dict`) containing JSON values. The runner converts paths to strings and arrays to lists before returning. Non-finite numbers and unsupported objects fail the run. Raise an exception to fail the run; its type and message reach the client.
-- `readiness` takes no arguments and returns `{"ready": bool, "reason": str | None, "setup_hint": str | None}`. Keep it cheap, because it runs in the server process. Without one, only runner importability is checked. MedMLX combines this with Metal availability in the historical `ready` boolean and its explicit alias `runtime_ready`. These fields do not validate run inputs or weights. The separate `run_ready` is `null` while input/checkpoint contents remain unverified, or `false` for a known blocker; the current check never returns `true`. Optional argument checks inspect signature binding and conventional input/weight paths without reading their contents. Packages do not repeat the Metal check.
-- Write units, coordinate conventions, accepted values and failure conditions in the runner docstring. `describe_model` copies Google-style `Args` entries, including grouped names wrapped across lines. For other styles it uses introductory paragraphs that explicitly name an argument in backticks. Explicit `Args` entries take priority. Missing prose stays `null`; descriptions do not create validation rules. The full docstring remains in `instructions`.
-- `requires_weights` is an optional boolean (default `True`). Set it to `False`
-  for weight-free runtimes so optional pre-downloads skip them.
-- `setup_supported` is an optional boolean (default `True`). Set it to `False`
-  when a runner needs assets supplied by hand. Setup plans report it as
-  unsupported, and setup reports a manual-setup error.
-- `labels` optionally maps each integer output label to its name (`{"1": "spleen"}`); `summarize_output` uses the names. `example_arguments` optionally gives one JSON object of runner arguments, and `peak_memory_gb` the run's measured peak memory in GB; readiness reports when less memory is available but never blocks the run. Take each value from the package's own label map, docs or measurements.
-- `weights_from` is an optional mapping for workflows that run other models. Each
-  key is a weight argument of `run`; each value is the model ID whose automatic
-  weights it uses, for example `{"detector_weights_path": "lung-nodule"}`.
-  `medmlx setup` prepares those models and returns one folder per argument, and
-  setup plans list the model IDs. Make the arguments optional and resolve an
-  omitted one with `medmlx_core.weights.weights_dir(model_id)`.
-- A declaration with a missing field, a bad reference, or an import error is reported in `discovery_errors`. When two entry points declare the same id, neither is served.
-- Unknown fields are ignored and reported in `discovery_warnings`; the model still loads. MedMLX 0.4.1 and earlier reject them instead and skip the model, so a runtime adds a new field only in a release that the `medmlx` extras pin together with a MedMLX version that reads it.
+`run` receives JSON keyword arguments and returns a JSON-compatible dictionary.
+Convert paths to strings and arrays to lists; non-finite numbers are rejected.
+Exceptions fail the job and send their type and message to the client.
+
+Document units, coordinates, accepted values and errors in the runner docstring.
+`describe_model` uses Google-style `Args` entries for parameter descriptions,
+or introductory paragraphs that name arguments in backticks. The full docstring
+is returned as `instructions`.
+
+| Optional field | Purpose |
+| --- | --- |
+| `readiness` | No-argument function returning `ready`, `reason` and `setup_hint`. Keep it cheap; MedMLX adds the Metal check. Without it, only runner imports are checked. |
+| `requires_weights` | Defaults to `True`; set to `False` for weight-free runtimes. |
+| `setup_supported` | Defaults to `True`; set to `False` when assets must be supplied manually. |
+| `labels` | Integer label names, such as `{"1": "spleen"}`, for output summaries. |
+| `example_arguments` | One runnable argument object. |
+| `peak_memory_gb` | Measured peak memory in GB; readiness reports fit without blocking runs. |
+| `weights_from` | Map workflow weight arguments to model IDs, such as `{"detector_weights_path": "lung-nodule"}`. Setup prepares each model; resolve omitted paths with `medmlx_core.weights.weights_dir(model_id)`. |
+
+Use the runtime's own labels, examples and measurements. Readiness checks runtime
+availability; input and checkpoint validation happen during execution.
+
+Invalid declarations and import failures appear in `discovery_errors`.
+Duplicate IDs disable both declarations. Unknown fields appear in
+`discovery_warnings`; MedMLX 0.4.1 and earlier reject them, so new fields need
+a compatible MedMLX version.
 
 ## Reporting outputs
 
@@ -90,10 +99,10 @@ Each runtime registers its own models. `nnunet-mlx` declares `nnunet-pancreas`,
 
 ## Checkpoint discovery
 
-`list_checkpoints` (CLI: `medmlx checkpoints`) returns source references separately
-from installed model declarations. Its `runner_installed` flag means only that the
-referenced runner was discovered. `qualification=not_assessed_by_catalog` preserves
-that boundary even for named adapters. Liver (Zenodo 18807203) and AutoPET II
-(Zenodo 8362371) correspond to the runtime-owned `nnunet-liver` and
-`nnunet-autopet` models. AutoPET channels are CT, then SUV PET. The source
-catalog does not download or qualify those checkpoints.
+`list_checkpoints` (CLI: `medmlx checkpoints`) lists source references and
+channel order. `runner_installed` reports whether a runner was discovered;
+`qualification=not_assessed_by_catalog` is the catalog's status.
+
+Liver (Zenodo 18807203) and AutoPET II (Zenodo 8362371) correspond to
+`nnunet-liver` and `nnunet-autopet`. AutoPET channels are CT, then SUV PET.
+Use `setup` to download supported assets.

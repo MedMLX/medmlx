@@ -1,18 +1,14 @@
 # Numerical parity policy
 
-The tests in the table below compare floating-point results computed by
-different frameworks (Torch, MONAI and NumPy on CPU against MLX on Metal), so
-they use the budgets declared in `numerical_contract.json` instead of
-`assert_array_equal`. Source inspection confirms the same upstream operation,
-shape, layout, parameters and crop semantics in each case; what differs is FP32
-reduction order, FMA use and transcendental implementations. A passing budget
-does not show that every numerical error is small outside the seeded cases.
+These tests compare Torch, MONAI and NumPy on CPU with MLX on Metal using
+`numerical_contract.json`. Arithmetic tolerances allow differences in FP32
+reduction order, FMA and transcendental functions; layout and discrete
+operations compare exactly. The table lists the criteria for each operation.
 
 Observed Metal differences in these helper tests include absolute errors of
 1.1920929e-7, 4.7683716e-7 and 3.8146973e-6, and a relative maximum of
 0.00015369, so a relative-only tolerance cannot be used near zero. The budgets
-preserve exact shape/dtype checks and reject all non-finite results. They are
-budgets for the seeded helper tests, not a general model accuracy claim.
+preserve exact shape/dtype checks and reject all non-finite results. They apply to the seeded helper cases.
 
 A host check recalculated 66 recorded outputs using the same pinned upstream
 operations in float64 and rounded them to FP32. All satisfied their declared

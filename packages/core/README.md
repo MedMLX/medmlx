@@ -103,5 +103,3 @@ stay silent.
 ## License
 
 Apache-2.0; license and third-party notices are included in the distribution.
-
-For research and education. Outputs require human review.

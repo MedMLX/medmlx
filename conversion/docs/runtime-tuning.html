@@ -42,8 +42,7 @@ shape or dtype, nonfinite inputs and a mismatched output dtype. It checks every
 first, warm-up and timed output against the source fixture using the recipe's
 existing tolerance and PSNR policy. The separate Core AI profiling call is also
 checked. A failure stops the run, retains its phase and one-based iteration,
-and exits nonzero. A failed run cannot support a speed comparison.
-Do not relax a tolerance to make a candidate pass. Fixtures can be large; keep
+and exits nonzero. Fixtures can be large; keep
 them in <code>build/</code> and regenerate them when the checkpoint or recipe changes.</p>
 
 <h2>2. Measure the default runtime and its stages</h2>
@@ -172,7 +171,7 @@ schedule; a new backend must preserve that contract.</p>
 <p>Language models: preserve tokenization, prompt formatting, sampling parameters
 and cache semantics. Check prefill, cache updates and multi-token decoding before
 reporting tokens per second. A vision-encoder export is not complete generation.</p>
-<p><strong>Rejected shortcuts:</strong> changing diffusion steps or scheduler to
+<p>Keep diffusion steps and scheduler fixed: changing them to
 make one backend faster changes the workload; lowering precision without a new
 output check can change logits; silently substituting a backend hides failures;
 claiming ANE execution from an allowed-device setting is unsupported; ranking

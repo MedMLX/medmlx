@@ -1,10 +1,7 @@
 # Extraction verifier
 
-Verifies a standalone MedMLX model repository beside this checkout with an
-explicitly selected environment.
-
-- Repository status, runtime-import review, tests, and lint in one verifier
-- Test and lint failures retain their exit codes
+Check a standalone MedMLX model repository's status, runtime imports, tests
+and lint using its existing environment. Failed checks return a nonzero exit code.
 
 Part of [MedMLX](https://github.com/MedMLX).
 

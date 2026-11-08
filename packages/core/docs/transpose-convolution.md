@@ -33,10 +33,8 @@ adds `out_phase_view` to `copies`, which are subsequently registered as
 temporaries. Those views share the public output buffer.
 [CommandEncoder::end_encoding](https://github.com/ml-explore/mlx/blob/64ea011cb65f14d9ce2737e60db9a4ae91ed7441/mlx/backend/metal/device.cpp#L445-L471)
 removes temporary buffers from the output set before registering cross-encoder
-fences. This is the inferred cause of the demonstrated graph corruption from
-the pinned source; an upstream C++ repair has not been built or qualified here.
+fences. This is the inferred cause; an upstream C++ repair has not been tested here.
 
 The regression checks the public core operation followed by a lazy skip
 addition against Torch, at the unchanged `dot` numerical budget, with repeated
-48-cubed inputs. Released SegResNet checkpoint parity remains a separate gate:
-removing this corruption does not establish full-model or clinical qualification.
+48-cubed inputs. Released SegResNet checkpoints have a separate full-model comparison.

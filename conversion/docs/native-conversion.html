@@ -24,7 +24,7 @@ pre{overflow:auto;background:#172b37;color:#f4f8fa;padding:20px;border-radius:5p
 <h2>Implemented path</h2>
 <div class="flow">Original upstream model + checkpoint → strict torch.export → functionalization with an empty decomposition table → versioned schema-2 portable graph + Safetensors → medmlx-core Metal execution</div>
 <p>Capture, functionalization, and reloaded MLX output are each compared directly to the original model. The graph retains explicit tensor references, source names, roles, shapes and dtypes. Consumed persistent buffers, nonpersistent buffers and constants are stored alongside parameters. Unknown operators, training, input/state mutation and unsupported variants fail explicitly. File loading happens on the host; model arithmetic runs on Metal.</p>
-<p>The <a href="../../packages/core/src/medmlx_core/graph/schema.py">graph ontology</a>, <a href="../src/medmlx_convert/native/capture.py">Torch graph capture</a>, <a href="../../packages/core/src/medmlx_core/graph/operators.py">MLX lowering</a> and <a href="../src/medmlx_convert/native/check.py">comparison gate</a> are separate modules. The runtime preserves source tensor axes between operations and adapts layouts locally. This is a correctness baseline, without a throughput claim.</p>
+<p>The <a href="../../packages/core/src/medmlx_core/graph/schema.py">graph ontology</a>, <a href="../src/medmlx_convert/native/capture.py">Torch graph capture</a>, <a href="../../packages/core/src/medmlx_core/graph/operators.py">MLX lowering</a> and <a href="../src/medmlx_convert/native/check.py">comparison gate</a> are separate modules. The runtime preserves source tensor axes between operations and adapts layouts locally.</p>
 
 <h2>Pilot evidence</h2>
 <div class="scroll"><table>
@@ -35,7 +35,7 @@ pre{overflow:auto;background:#172b37;color:#f4f8fa;padding:20px;border-radius:5p
 <p>Receipts and source fixtures live under <code>build/native-pilot/</code>. The original BraTS attempt retains a FAIL receipt: the generic MLX 0.32.3 2× transposed-convolution path produced a large lazy-execution error. Stage-by-stage execution reduced the final discrepancy below 10⁻⁴. The corrected path reuses the pinned <code>medmlx-core</code> decoder implementation; it does not loosen tolerance or force every layer to synchronize.</p>
 
 <h2>Architecture inventory and expansion strategy</h2>
-<p>The review covered 18 neural-model packages below. Entries describe inspected architecture demands and proposed routes; only the pilot evidence above establishes conversion execution here.</p>
+<p>The table lists architecture requirements and proposed routes for 18 packages. Implemented conversions are listed in the pilot results above.</p>
 <div class="scroll"><table>
 <tr><th>Package / architectures</th><th>Runtime behavior that must survive conversion</th><th>Route after the pilot</th></tr>
 <tr><td>nnunet-mlx<br>PlainConvUNet, ResidualEncoderUNet</td><td>2D/3D plans, anisotropic strides, InstanceNorm, learned upsampling, folds, regions, TTA.</td><td>Expand graph operator coverage with plan-specific fixtures; compare whole pipelines separately.</td></tr>
@@ -65,7 +65,7 @@ pre{overflow:auto;background:#172b37;color:#f4f8fa;padding:20px;border-radius:5p
 <li>Add attention and token-layout contracts, then explicit state inputs/outputs for SAM memory, language caches and diffusion trajectories.</li>
 <li>Keep host preprocessing/postprocessing in model recipes and compare complete pipelines separately. Precision optimization and performance measurements come after the source FP32 baseline.</li>
 </ol>
-<p>Do not build a universal Python transpiler. The observed torch2mlx failures involved semantics that layer names alone cannot express. An ONNX route can provide another comparison, but an execution provider's CPU fallback does not establish native Metal coverage. Compatible Keras code can use its Torch backend; TensorFlow-specific custom code still needs migration. These are bounded engineering choices, not claims that one route is universally best.</p>
+<p>Conversion needs operation semantics beyond layer names. Use the existing Torch capture path for compatible Keras code; TensorFlow-specific code needs migration. An ONNX route would need its own Metal execution and output comparisons.</p>
 
 <h2>Ownership and installation</h2>
 <p>Model applications need only medmlx-core and their model package. Conversion tools and upstream frameworks stay in <code>medmlx_convert</code>. The canonical schema and codec are defined once in core; ATen names are translated before serialization. Schema-1 pilot bundles require regeneration. The core runtime never imports the converter.</p>

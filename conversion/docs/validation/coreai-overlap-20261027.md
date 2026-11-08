@@ -10,7 +10,7 @@ the underlying Apple kernel or runtime defect has not been identified.
 On the M5 test machine (macOS 27.2, Core AI from the OS, coreai-core 1.0.0b3,
 coreai-torch 0.4.3, coremltools 9.0 and PyTorch 2.13.0), BraTS SegResNet and
 PANTHER pancreas produced intermittent errors on the saved synthetic FP32
-fixtures. These are fixed-shape network checks, not clinical validation.
+fixtures. The checks use fixed-shape network inputs.
 
 - The original BraTS Core AI asset matched PyTorch to 6.68e-6 on 20 consecutive
   calls in one isolated run. Two overlapping processes then produced errors
