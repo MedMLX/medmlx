@@ -172,3 +172,36 @@ def test_one_model_holds_memory_per_machine(
     assert row["run_ready"] is not False
     assert medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path).wait()["state"] == (
         "completed")
+
+
+def test_active_runs_never_miss_a_run_while_its_pid_is_recorded(run_registry: Path) -> None:
+    script = """
+import sys
+from medmlx.memory import record_pid
+print("ready", flush=True)
+sys.stdin.readline()
+for pid in range(2000):
+    record_pid("busy", pid)
+"""
+    with memory.admit("busy", "sleeper", None):
+        writer = subprocess.Popen(
+            [sys.executable, "-c", script], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        try:
+            assert writer.stdout is not None and writer.stdout.readline() == "ready\n"
+            assert writer.stdin is not None
+            writer.stdin.write("go\n")
+            writer.stdin.flush()
+            reads = 0
+            while writer.poll() is None:
+                assert [run["job_id"] for run in memory.active_runs()] == ["busy"]
+                reads += 1
+            _, error = writer.communicate(timeout=10)
+            assert writer.returncode == 0, error
+            assert reads > 0
+        finally:
+            if writer.poll() is None:
+                writer.kill()
+                writer.communicate(timeout=5)
+        assert memory.active_runs()[0]["pid"] == 1999

@@ -117,6 +117,22 @@ def record_peak(model_id: str, version: str | None, peak_memory_gb: float) -> No
             temporary_path.unlink(missing_ok=True)
 
 
+def _write_record(path: Path, record: object) -> None:
+    """Replace a run record atomically.
+
+    ``active_runs`` reads records without the admission lock, so an in-place
+    write could expose truncated JSON and hide a live run from the report.
+    """
+    descriptor, name = mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    temporary_path = Path(name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
+            json.dump(record, temporary)
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
 def registry() -> Path:
     """Return the machine-wide run registry folder, creating it when needed."""
     default = Path(os.environ.get("MEDMLX_ASSET_CACHE", Path.home() / ".cache/medmlx")) / ".runs"
@@ -234,7 +250,7 @@ def admit(
                 **peak,
                 "started_at": datetime.now(UTC).isoformat(timespec="seconds"),
             }
-            (folder / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
+            _write_record(folder / f"{job_id}.json", record)
             yield descriptor
         except BaseException:
             os.close(descriptor)
@@ -250,7 +266,7 @@ def record_pid(job_id: str, pid: int) -> None:
     with suppress(OSError, ValueError):
         record = json.loads(path.read_text(encoding="utf-8"))
         record["pid"] = pid
-        path.write_text(json.dumps(record), encoding="utf-8")
+        _write_record(path, record)
 
 
 def release(job_id: str) -> None:
