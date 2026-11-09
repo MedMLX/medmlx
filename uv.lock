@@ -414,6 +414,15 @@ wheels = [
 ]
 
 [[package]]
+name = "isal"
+version = "1.9.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/43/6cf9c6b2e80f02fb7bd809ab91496cc4bd1f9145bd3a5a312a91d76af8be/isal-1.9.1.tar.gz", hash = "sha256:d210dca02a689ef2af709d2c62d2daac2e36b5d2fa06e6dc0d023c83fee77e91", size = 4255817, upload-time = "2026-11-03T16:15:59.857Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/d3/454b2f0bad429556803a702c8719cc8141712880a1d048fac3a8518cea8a/isal-1.9.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a2059238d509c871d181c13dd3e027936b2cec0275838aa2b12fd8deddbb2af8", size = 242493, upload-time = "2026-11-03T16:14:42.665Z" },
+]
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -577,7 +586,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.4.7"
+version = "0.4.8"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -693,8 +702,8 @@ requires-dist = [
     { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.4.1,<0.5" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", specifier = ">=0.3.5,<0.4" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", specifier = ">=0.3.5,<0.4" },
-    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'all'", specifier = "==0.1.0.dev9" },
-    { name = "mlxradiomics", extras = ["io"], marker = "extra == 'vision'", specifier = "==0.1.0.dev9" },
+    { name = "mlxradiomics", marker = "extra == 'all'", specifier = ">=1.0.0,<1.1" },
+    { name = "mlxradiomics", marker = "extra == 'vision'", specifier = ">=1.0.0,<1.1" },
     { name = "nibabel", marker = "extra == 'all'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'generate'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'reason-tools'", specifier = ">=5.4.2,<6" },
@@ -883,19 +892,21 @@ wheels = [
 
 [[package]]
 name = "mlxradiomics"
-version = "0.1.0.dev9"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "isal" },
     { name = "medmlx-core" },
     { name = "mlx" },
     { name = "nibabel" },
     { name = "numpy" },
     { name = "pyyaml" },
+    { name = "scipy" },
     { name = "simpleitk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/37/0e/026b3d07588ac33dee5b84ec7c86fc911ce0def5adafab912609ab851ab0/mlxradiomics-0.1.0.dev9.tar.gz", hash = "sha256:912dd69c97f1e4790b33b54a7cad5cba82fc1e45ba12636d467985310b01db3a", size = 112054, upload-time = "2026-11-01T03:54:57.326Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/36/c30a26b201219d69fbe736034fc4c23f1dcd1883983638d014cb9335a7da/mlxradiomics-1.0.0.tar.gz", hash = "sha256:1f81ad0546e9043df735b0a6f220ed359b75ed4ae99a9193be9e374518c86246", size = 334098, upload-time = "2026-11-09T02:30:37.244Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/77/5769ad920e27daaf0546c08e7900d3563ff408c178dd20a56d8260d9c61a/mlxradiomics-0.1.0.dev9-py3-none-any.whl", hash = "sha256:b48b84183fb3f228a8742164a4e35158b7efc8bf1ba0cc35479599c57c43e2df", size = 124081, upload-time = "2026-11-01T03:54:56.362Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/22/1fbcd3563c2efaf8f8b9647f8c92325a1b8f543ceecb7bd045942ab638a6/mlxradiomics-1.0.0-py3-none-any.whl", hash = "sha256:88fea1937626d28027c0e6940ec2b70878eece265e27bfee41647fbc9e8d3442", size = 386416, upload-time = "2026-11-09T02:30:36.088Z" },
 ]
 
 [[package]]

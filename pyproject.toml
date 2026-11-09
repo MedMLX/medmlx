@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.4.7"
+version = "0.4.8"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -56,7 +56,7 @@ generate = [
   "lesiondiffusion-mlx>=0.2.7,<0.3",
 ]
 vision = [
-  "mlxradiomics[io]==0.1.0.dev9",
+  "mlxradiomics>=1.0.0,<1.1",
   "radimagenet-mlx>=0.3.3,<0.4",
   "lung-nodule-mlx>=0.2.6,<0.3",
 ]
@@ -78,7 +78,7 @@ all = [
   "medsam2-mlx>=0.3.0,<0.4",
   "mlx-generate-ctmr>=0.5.2,<0.6",
   "mlx-segment-ct>=0.3.5,<0.4",
-  "mlxradiomics[io]==0.1.0.dev9",
+  "mlxradiomics>=1.0.0,<1.1",
   "nnunet-mlx>=0.7.0,<0.8",
   "radimagenet-mlx>=0.3.3,<0.4",
   "segresnet-mlx>=0.3.3,<0.4",

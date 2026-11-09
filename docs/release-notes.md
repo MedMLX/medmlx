@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.4.8
+
+Fixes installation of the `all` and `vision` extras, which selected the obsolete
+MLXRadiomics development release in 0.4.7. These extras now install
+[`mlxradiomics` 1.0.0](https://github.com/MedMLX/mlx-radiomics/releases/tag/v1.0.0)
+or a compatible 1.0.x update.
+
 ## 0.4.7
 
 ### Breaking changes
