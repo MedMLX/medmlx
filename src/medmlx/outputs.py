@@ -169,7 +169,7 @@ def preview_output(
 
     Volumes are reoriented to RAS and shown radiologically: patient right on the
     image left, anterior at the top. For a label mask the slice with the most
-    labelled voxels is shown, coloured by label; otherwise the middle slice. A
+    labeled voxels is shown, colored by label; otherwise the middle slice. A
     scan whose values reach below -500 is shown in a soft-tissue CT window
     (-160 to 240 HU); other scans use their 1st to 99th percentiles.
     Overlays require matching shapes and canonical affines within 1e-5 mm; images

@@ -51,7 +51,7 @@ def _frame(
     overlay = Image.blend(original, Image.new("RGB", size, (30, 220, 160)), 0.45)
     combined = Image.composite(overlay, original, foreground)
     if box_xyxy is not None:
-        # The box uses the same flipped voxel-centre coordinates as the axial image.
+        # The box uses the same flipped voxel-center coordinates as the axial image.
         x0, y0, x1, y1 = box_xyxy
         rectangle = [
             (ct.shape[0] - 0.5 - x1) * size[0] / ct.shape[0],

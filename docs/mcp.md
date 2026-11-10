@@ -212,7 +212,7 @@ appear in a legend. The PNG also stores `labels` as JSON and `names_from` as tex
 (`outputs`, `declaration` or `null`). Python's `medmlx.preview_output` still returns
 PNG bytes. Python calls with `job_id` also pass the owning `Jobs` session as `jobs`.
 
-Previews show the slice with the most labelled voxels in radiological orientation
+Previews show the slice with the most labeled voxels in radiological orientation
 (patient right on the image left). Pass `image_path` to overlay the mask on its
 scan. Neither tool interprets findings.
 

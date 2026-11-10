@@ -247,7 +247,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
     ) -> Annotated[CallToolResult, OutputSummary]:
         """Return a PNG and summary of a NIfTI output, over its scan when given.
 
-        Masks show the slice with the most labelled voxels, coloured by label,
+        Masks show the slice with the most labeled voxels, colored by label,
         in radiological orientation (patient right on the image left).
         job_id supplies output names before model_id supplies declared names.
         names_from reports outputs, declaration or null.

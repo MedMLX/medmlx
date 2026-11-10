@@ -3,7 +3,7 @@
 NiBabel owns reorientation and resampling. Orthogonal inputs are only permuted
 and flipped; oblique/sheared inputs use linear HU interpolation onto an
 orthogonal RAS grid at the canonical input voxel sizes. Label restoration uses
-inverse orientation or nearest neighbours. No coordinates come from the model.
+inverse orientation or nearest neighbors. No coordinates come from the model.
 """
 
 from __future__ import annotations
@@ -86,7 +86,7 @@ def ground_candidates(
 ) -> tuple[list[Candidate], int]:
     """Convert finite RAS centre/size boxes into native-pixel slice prompts.
 
-    All eight corners are transformed, then clipped to voxel-centre bounds.
+    All eight corners are transformed, then clipped to voxel-center bounds.
     Boxes wholly outside the image are excluded and counted. IDs retain the
     original detection row, independent of thresholding and score sorting.
     Padding expands the propagation interval only, by physical millimetres.
@@ -146,7 +146,7 @@ def restore_mask(scan: Scan, candidate: Candidate, mask_path: Path, output: Path
     slices, or a seed mask missing its detector prompt. Orthogonal grids use
     exact inverse permutation/flips: resampling them can lose boundary voxels
     to serialized-affine rounding, particularly after unit conversion. Oblique
-    grids require nearest-neighbour restoration. Measurements use source voxels
+    grids require nearest-neighbor restoration. Measurements use source voxels
     and the determinant of the mm affine, including anisotropy/shear.
     """
     mask = read_nifti(mask_path)
