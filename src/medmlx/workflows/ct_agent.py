@@ -250,7 +250,6 @@ def execute(
                 tool_history=history,
                 response_choices=choices,
                 anatomy_region="chest",
-                precision="float32",
                 max_new_tokens=limits.max_new_tokens,
             )
             response = (step_dir / "report.txt").read_text().strip()
@@ -341,7 +340,6 @@ def execute(
                     weights_path=reason_weights_path,
                     output_dir=output_dir / "interpretation",
                     anatomy_region="chest",
-                    precision="float32",
                     max_new_tokens=limits.max_new_tokens,
                     prompt=(
                         f"{limits.prompt}\nThe following tools have now completed on this CT. "
