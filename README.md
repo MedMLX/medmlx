@@ -109,7 +109,6 @@ either way, so a Mac with too little memory may swap or fail. Declared peaks:
 | :--- | ---: |
 | `siam` | 16 GB |
 | `mlx-reason-ct`, `nnunet-pancreas` | 14.5 GB |
-| `sam3` | 12 GB |
 | `synthseg` | 11.6 GB |
 | `mlx-generate-ctmr-ct` | 11.1 GB |
 | `mlx-segment-ctmr` | 11.0 GB |
@@ -119,6 +118,7 @@ either way, so a Mac with too little memory may swap or fail. Declared peaks:
 | `swin-unetr`, `nnunet-brats2021` | 7.5 GB |
 | `unest` | 7.3 GB |
 | `mlx-segment-ct` | 6.0 GB |
+| `sam3` | 5.4 GB |
 | `totalsegmentator`, `segresnet-brats` | 5.0 GB |
 | `nnunet-autopet` | 4.8 GB |
 | `segresnet-renal-cect` | 4.1 GB |

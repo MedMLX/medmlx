@@ -1,29 +1,22 @@
 # Release notes
 
-## Unreleased
+## 0.6.0
 
-- Pin registered automatic weight bundles to the revisions documented by the
-  latest runtime release tags, including their linked Hugging Face model cards.
-  SAM3 retains its existing pin. Unlisted model IDs still resolve
-  `MedMLX/<model_id>` at `main` on first use. Existing weight files whose hashes
-  match the pin can be reused across commits; changed cards and other selected
-  files still use the resumable download path.
+### Breaking changes
 
-  The nnU-Net pins preserve these `dataset.json` foreground labels (background is 0):
+**Requires [`sam3-mlx` 0.3](https://github.com/MedMLX/sam3-mlx/releases/tag/v0.3.0).** `sam3` results can change slightly: float images in [0, 1] are converted to 8-bit as upstream SAM 3 does, and attention arithmetic changed at FP32 rounding level. A `sam3` run in a process started with `MLX_ENABLE_TF32=1` now stops with an error unless it asks for `precision=tf32`.
 
-  | Model ID | Weight revision and label source | Labels |
-  | --- | --- | --- |
-  | `nnunet-autopet` | [459d23802ae289be0f6539d40ca70c7facb1a9de](https://huggingface.co/MedMLX/nnunet-autopet-mlx/blob/459d23802ae289be0f6539d40ca70c7facb1a9de/dataset.json) | 1 tumor |
-  | `nnunet-brats2021` | [7632a1f3c74d350eb6f2daeb35b43b75ef7601bd](https://huggingface.co/MedMLX/nnunet-brats-mlx/blob/7632a1f3c74d350eb6f2daeb35b43b75ef7601bd/dataset.json) | 1 edema, 2 nonenhancing, 3 empty, 4 enhancing |
-  | `nnunet-liver` | [574a9c601b9b1a9e906ce985fbd46b106c5b7caa](https://huggingface.co/MedMLX/nnunet-liver-mlx/blob/574a9c601b9b1a9e906ce985fbd46b106c5b7caa/dataset.json) | 1 liver, 2 cancer |
-  | `nnunet-pancreas` | [b2d5f14bb31f9793e3d9ab2c24096427eea983ae](https://huggingface.co/MedMLX/nnunet-pancreas-mlx/blob/b2d5f14bb31f9793e3d9ab2c24096427eea983ae/dataset.json) | 1 pancreas, 2 cancer |
+### New
 
-- Automatic weight setup verifies unmarked or outdated caches against the selected
-  Hub commit's LFS SHA-256 or Git blob hashes before reusing them. Verified files
-  are kept, including files from the older top-level layout, which are copied into
-  the current layout without deleting or linking the originals; only missing or
-  mismatched files are downloaded. `cached_weights` remains offline and read-only;
-  `refresh=True` still forces a download.
+**`sam3` takes `precision`: `fp32` (default), `tf32` or `bf16`.** On an M5 Max, one image with one text prompt took 0.48-0.53 of the FP32 time with `tf32` (M5 or later) and 0.74-0.76 with `bf16`, with the same detections as upstream on sam3-mlx's medical test images. Its declared peak is now 5.4 GB instead of 12 GB.
+
+```sh
+medmlx run sam3 --arg image_path=scan.png text_prompt=liver output_dir=out precision=tf32
+```
+
+### Fixes
+
+**Readiness names `medmlx setup` when a model's weights are not cached.** It used to name only the `prepare_model` MCP tool.
 
 ## 0.5.0
 
@@ -44,6 +37,17 @@ medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
 **`medmlx.start_cohort` runs up to 256 cases through one loaded model.** Each case reports its own result or error, and the model is closed when the cohort finishes or is cancelled. `nnunet-liver` supports it.
 
 **Successful runs report `memory_metrics`.** They give the worker's peak RSS and MLX active, peak and cache counters in bytes; `measured_peak_memory_gb` keeps its MLX-only meaning.
+
+**Automatic weight bundles are pinned to the revisions documented by each runtime's latest release, including their Hugging Face model cards.** SAM 3 keeps its existing pin, and unlisted model IDs still resolve `MedMLX/<model_id>` at `main` on first use. The nnU-Net pins keep these `dataset.json` foreground labels (background is 0):
+
+| Model ID | Weight revision and label source | Labels |
+| --- | --- | --- |
+| `nnunet-autopet` | [459d23802ae289be0f6539d40ca70c7facb1a9de](https://huggingface.co/MedMLX/nnunet-autopet-mlx/blob/459d23802ae289be0f6539d40ca70c7facb1a9de/dataset.json) | 1 tumor |
+| `nnunet-brats2021` | [7632a1f3c74d350eb6f2daeb35b43b75ef7601bd](https://huggingface.co/MedMLX/nnunet-brats-mlx/blob/7632a1f3c74d350eb6f2daeb35b43b75ef7601bd/dataset.json) | 1 edema, 2 nonenhancing, 3 empty, 4 enhancing |
+| `nnunet-liver` | [574a9c601b9b1a9e906ce985fbd46b106c5b7caa](https://huggingface.co/MedMLX/nnunet-liver-mlx/blob/574a9c601b9b1a9e906ce985fbd46b106c5b7caa/dataset.json) | 1 liver, 2 cancer |
+| `nnunet-pancreas` | [b2d5f14bb31f9793e3d9ab2c24096427eea983ae](https://huggingface.co/MedMLX/nnunet-pancreas-mlx/blob/b2d5f14bb31f9793e3d9ab2c24096427eea983ae/dataset.json) | 1 pancreas, 2 cancer |
+
+**Automatic weight setup reuses verified cached files instead of downloading them again.** Unmarked or outdated caches are checked against the selected Hub commit's LFS SHA-256 or Git blob hashes; verified files are kept, including files from the older top-level layout, which are copied into the current layout. Only missing or mismatched files are downloaded. `cached_weights` stays offline and read-only, and `refresh=True` still forces a download.
 
 ### Fixes
 

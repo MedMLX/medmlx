@@ -586,7 +586,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -720,8 +720,8 @@ requires-dist = [
     { name = "pydantic", marker = "extra == 'reason-tools'", specifier = ">=2.14,<3" },
     { name = "radimagenet-mlx", marker = "extra == 'all'", specifier = ">=0.3.3,<0.4" },
     { name = "radimagenet-mlx", marker = "extra == 'vision'", specifier = ">=0.3.3,<0.4" },
-    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", specifier = ">=0.2.4,<0.3" },
-    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", specifier = ">=0.2.4,<0.3" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'all'", specifier = ">=0.3.0,<0.4" },
+    { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", specifier = ">=0.3.0,<0.4" },
     { name = "scipy", marker = "extra == 'all'", specifier = ">=1.18,<2" },
     { name = "scipy", marker = "extra == 'reason-tools'", specifier = ">=1.18,<2" },
     { name = "segresnet-mlx", marker = "extra == 'all'", specifier = ">=0.3.3,<0.4" },
@@ -1289,7 +1289,7 @@ wheels = [
 
 [[package]]
 name = "sam3-mlx"
-version = "0.2.4"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ftfy" },
@@ -1301,9 +1301,9 @@ dependencies = [
     { name = "regex" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c4/73/2726aba4d351d722503adf1388d99f01e9cbf6ffa453bf606aa67aa6a5e1/sam3_mlx-0.2.4.tar.gz", hash = "sha256:9b949a41b82e5e9c2a1b1a23c9ca005f2362da5df6e0ca9c6db3ce1115b15d7f", size = 3959578, upload-time = "2026-11-01T03:56:41.48Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/f3/37fb28c41e8c9e9fa0cff2f5085f6492c718c878c2903ac096aa3dd79693/sam3_mlx-0.3.0.tar.gz", hash = "sha256:6546fac49c00573ca08935d36969fc3be5088688071e1e29bb2186c5768ad1b6", size = 1463541, upload-time = "2026-11-10T09:37:34.912Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/3f/6798c6d607f0a6e154b7db7ce77646303d1d44a76747aaf9070e77b783d3/sam3_mlx-0.2.4-py3-none-any.whl", hash = "sha256:f09d1f3670abaf10fc6f8b9ad73e8e70c2984a3a0547e92794a135f118f2dfdd", size = 1479299, upload-time = "2026-11-01T03:56:40.003Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/d8/c4085675a6ec8d5a274d931a5fd6044bfadb9fc4615d464335c2015d2c17/sam3_mlx-0.3.0-py3-none-any.whl", hash = "sha256:79734aa42fa4b9d05b7d65f7549141135cee7bd564408792ccd8d4ef72217656", size = 1486458, upload-time = "2026-11-10T09:37:33.543Z" },
 ]
 
 [package.optional-dependencies]

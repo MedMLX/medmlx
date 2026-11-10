@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.5.0"
+version = "0.6.0"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -35,7 +35,7 @@ reason-tools = [
   "pillow>=13,<14",
 ]
 segment = [
-  "sam3-mlx[video]>=0.2.4,<0.3",
+  "sam3-mlx[video]>=0.3.0,<0.4",
   "biomedparse-mlx>=0.1.5,<0.2",
   "flexible-unet-mlx>=0.2.6,<0.3",
   "swin-unetr-mlx>=0.2.6,<0.3",
@@ -67,7 +67,7 @@ all = [
   "scipy>=1.18,<2",
   "pillow>=13,<14",
   "nibabel>=5.4.2,<6",
-  "sam3-mlx[video]>=0.2.4,<0.3",
+  "sam3-mlx[video]>=0.3.0,<0.4",
   "mlx-reason-ct[tools]>=0.4.1,<0.5",
   "biomedparse-mlx>=0.1.5,<0.2",
   "fdg-pet-ct-mlx>=0.3.0,<0.4",
