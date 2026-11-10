@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.6.0"
+version = "0.7.0"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -25,7 +25,7 @@ reason-ct-tools = "medmlx.workflows.reason_ct:MODEL"
 # Kept as an empty compatibility extra; automatic downloads are included by default.
 setup = []
 reason-tools = [
-  "mlx-reason-ct[tools]>=0.4.1,<0.5",
+  "mlx-reason-ct[tools]>=0.6.0,<0.7",
   "lung-nodule-mlx>=0.2.6,<0.3",
   "medsam2-mlx>=0.3.0,<0.4",
   "pydantic>=2.14,<3",
@@ -50,7 +50,7 @@ segment = [
 ]
 generate = [
   "nibabel>=5.4.2,<6",
-  "mlx-reason-ct>=0.4.1,<0.5",
+  "mlx-reason-ct>=0.6.0,<0.7",
   "fdg-pet-ct-mlx>=0.3.0,<0.4",
   "mlx-generate-ctmr>=0.6.0,<0.7",
   "lesiondiffusion-mlx>=0.2.7,<0.3",
@@ -68,7 +68,7 @@ all = [
   "pillow>=13,<14",
   "nibabel>=5.4.2,<6",
   "sam3-mlx[video]>=0.3.0,<0.4",
-  "mlx-reason-ct[tools]>=0.4.1,<0.5",
+  "mlx-reason-ct[tools]>=0.6.0,<0.7",
   "biomedparse-mlx>=0.1.5,<0.2",
   "fdg-pet-ct-mlx>=0.3.0,<0.4",
   "flexible-unet-mlx>=0.2.6,<0.3",

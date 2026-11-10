@@ -1,8 +1,10 @@
 # Release notes
 
-## 0.6.0
+## 0.7.0
 
 ### Breaking changes
+
+**Requires [`mlx-reason-ct` 0.6](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.6.0).** Reports generated without a prompt change, because the request now uses the NV-Reason-CT model card's wording ("Write a structured abdominal CT report." instead of "write a structured abdomen CT report"). Reason-CT runs in `bfloat16_fast` by default and the `float32` and `bfloat16_fp32` profiles are removed; the CT agent now uses that default instead of `float32`.
 
 **Requires [`sam3-mlx` 0.3](https://github.com/MedMLX/sam3-mlx/releases/tag/v0.3.0).** `sam3` results can change slightly: float images in [0, 1] are converted to 8-bit as upstream SAM 3 does, and attention arithmetic changed at FP32 rounding level. A `sam3` run in a process started with `MLX_ENABLE_TF32=1` now stops with an error unless it asks for `precision=tf32`.
 
@@ -16,7 +18,13 @@ medmlx run sam3 --arg image_path=scan.png text_prompt=liver output_dir=out preci
 
 ### Fixes
 
+**`reason-ct-tools` prompts match NV-Reason-CT's processor token for token.** `mlx-reason-ct` 0.4.x sorted tool schema keys and escaped `<`, `>`, `&` and `'`, which could change the model's answer.
+
 **Readiness names `medmlx setup` when a model's weights are not cached.** It used to name only the `prepare_model` MCP tool.
+
+### Faster
+
+**Reason-CT reports take less time and memory.** On an M5 Max with a LUNA16 chest CT, a full report takes 12.4 s instead of 17.9 s, and readiness declares a 12.5 GB peak instead of 14.5 GB.
 
 ## 0.5.0
 
