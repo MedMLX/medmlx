@@ -26,10 +26,17 @@ Run TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more through their independ
 uv tool install --python 3.13 "medmlx[all,mcp]"
 ```
 
-For a Python project, use `uv add "medmlx[all,mcp]"`. Replace `all` with
-`segment`, `generate` or `vision` for a smaller install, and run
-`uv tool upgrade medmlx` to update MedMLX and its models. Model weights download
-on first use and keep their own terms.
+For a Python project, use `uv add "medmlx[all,mcp]"`. Run `uv tool upgrade medmlx` to
+update MedMLX and its models. Model weights download on first use and keep their own
+terms. For a smaller install, replace `all` with one group:
+
+| Extra | Installs |
+| :--- | :--- |
+| `all` | Every model runtime, with Reason-CT tools |
+| `segment` | Segmentation runtimes, including SAM 3 video |
+| `generate` | Reason-CT, NV-Generate, LesionDiffusion and FDG PET synthesis |
+| `vision` | Lung nodule detection, RadImageNet features and radiomics |
+| `mcp` | The MCP server |
 
 ## Quickstart
 
@@ -56,11 +63,12 @@ medmlx readiness mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
 medmlx run mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
 ```
 
-`readiness` checks Metal and the input paths without downloading anything. The
-first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
-cache. The mask is written to `segment-ct/mlx_segment_ct_mask.nii.gz`. Run
-`medmlx setup --all --progress` to download every model's weights for offline
-use. See [automatic weights and readiness](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md).
+- `readiness` checks Metal and the input paths without downloading anything.
+- The first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
+  cache.
+- The mask is written to `segment-ct/mlx_segment_ct_mask.nii.gz`.
+- `medmlx setup --all --progress` downloads every model's weights for offline use. See
+  [automatic weights and readiness](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md).
 
 ## Models
 
