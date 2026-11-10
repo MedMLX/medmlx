@@ -128,6 +128,7 @@ _LAZY = {
 
 
 def __getattr__(name: str) -> object:
+    """Import a sliding-window name on first access and cache it in the module."""
     module = _LAZY.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
