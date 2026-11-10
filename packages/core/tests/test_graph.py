@@ -63,3 +63,51 @@ def test_cast_dtype_is_parsed_before_runtime(dtype: object) -> None:
     assert loads(dumps(graph)) == graph
     with pytest.raises(ValueError):
         loads(dumps(graph).replace('"value": "float32"', f'"value": {json.dumps(dtype)}'))
+
+
+def test_branched_tuple_graph_retains_outputs_and_reuses_session() -> None:
+    """Final-use release preserves branches, repeated tuple edges and saved state."""
+    base = _graph(6)
+    calls = (*base.calls,
+             Call("parts", Op.SPLIT, (Argument("input", Ref("sum")),
+                                      Argument("chunk_size", 3), Argument("axis", 1))),
+             Call("first", Op.GETITEM, (Argument("value", Ref("parts")), Argument("index", 0))),
+             Call("second", Op.GETITEM, (Argument("value", Ref("parts")), Argument("index", 1))),
+             Call("joined", Op.CAT, (Argument("tensors", (Ref("first"), Ref("second"),
+                                                         Ref("first"))), Argument("axis", 1))),
+             Call("residual", Op.ADD, (Argument("input", Ref("first")),
+                                       Argument("other", Ref("second")), Argument("alpha", 1))))
+    outputs = tuple(Ref(name) for name in ("joined", "sum", "first", "residual"))
+    graph = Graph(base.tensors, calls, outputs, base.producer)
+    offset = np.arange(6, dtype=np.float32)
+    session = Session(graph, {"offset": mx.array(offset)})
+    for shift in (2, 7):
+        source = np.arange(6, dtype=np.float32)[None, :] + shift
+        summed = source + offset
+        first, second = np.split(summed, 2, axis=1)
+        expected = (np.concatenate((first, second, first), axis=1), summed, first, first + second)
+        actual = session(mx.array(source))
+        for result, reference in zip(actual, expected, strict=True):
+            np.testing.assert_array_equal(np.asarray(result, dtype=np.float32), reference)
+
+
+def test_long_graph_chain_has_bounded_metal_intermediate_memory() -> None:
+    """A long lazy chain must not pin every completed node's Metal buffer."""
+    shape, count = (1024, 1024), 32
+    calls = tuple(Call(f"n{i}", Op.ADD,
+                       (Argument("input", Ref("x" if i == 0 else f"n{i - 1}")),
+                        Argument("other", 1), Argument("alpha", 1))) for i in range(count))
+    graph = Graph((Tensor("x", "image", Role.INPUT, shape, DType.FLOAT32),), calls,
+                  (Ref(f"n{count - 1}"),), Producer("independent-test", "1"))
+    source = mx.ones(shape, dtype=mx.float32)
+    invoke(mx, "eval", source)
+    invoke(mx, "clear_cache")
+    invoke(mx, "reset_peak_memory")
+    output, = Session(graph, {})(source)
+    peak = invoke(mx, "get_peak_memory")
+    assert isinstance(peak, int)
+    np.testing.assert_array_equal(np.asarray(output, dtype=np.float32),
+                                  np.full(shape, count + 1, dtype=np.float32))
+    # Input, output and bounded scheduling scratch fit comfortably below eight
+    # full arrays; retaining all 32 node results exceeds this envelope.
+    assert peak < 8 * source.nbytes
