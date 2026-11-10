@@ -1,13 +1,24 @@
+<div align="center">
+
 # MedMLX
 
 One Python API, command line and MCP server for native medical imaging on Apple Silicon.
 Run TotalSegmentator, nnU-Net, MedSAM2, SynthSeg and more through their independent MLX runtimes.
 
+[![PyPI](https://img.shields.io/pypi/v/medmlx)](https://pypi.org/project/medmlx/)
+[![Python](https://img.shields.io/badge/python-3.13-blue)](https://pypi.org/project/medmlx/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/MedMLX/medmlx/blob/main/LICENSE)
+[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-MLX-black?logo=apple)](https://github.com/ml-explore/mlx)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97_Hugging_Face-weights-yellow)](https://huggingface.co/MedMLX)
+[![MCP](https://img.shields.io/badge/MCP-server-A51C30)](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md)
+
 [Models](#models) · [Setup guide](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md) · [MCP guide](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md) · [Website](https://medmlx.org)
 
-![Outputs across CT, PET/CT, radiographs, endoscopy and MRI](https://raw.githubusercontent.com/MedMLX/medmlx/main/docs/gallery.jpg)
+<img src="https://raw.githubusercontent.com/MedMLX/medmlx/main/docs/gallery.jpg" alt="Outputs across CT, PET/CT, radiographs, endoscopy and MRI" width="100%">
 
 **Apple Silicon · Metal · Python 3.13** · [uv](https://docs.astral.sh/uv/)
+
+</div>
 
 ## Install
 
