@@ -6,14 +6,16 @@ The orchestration layer does not resample images or select a substitute backend.
 
 from __future__ import annotations
 
+import builtins
 import gzip
 import inspect
+import math
 import struct
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from types import TracebackType
-from typing import Self, cast
+from types import NoneType, TracebackType, UnionType
+from typing import Literal, Self, TypeAliasType, Union, cast, get_args, get_origin
 
 from medmlx_core.outputs import validate_outputs
 from medmlx_core.weights import cached_weights, weights_repo
@@ -47,6 +49,8 @@ from medmlx.setup import setup_model as setup_model
 from medmlx.setup import setup_plan as setup_plan
 
 _NIFTI_SUFFIXES = (".nii", ".nii.gz")
+
+_SCALARS: tuple[object, ...] = (bool, int, float)
 
 _MLX_HINT = "Use macOS arm64 (Apple Silicon) with MLX installed and Metal available."
 
@@ -181,6 +185,111 @@ def describe_model(model_id: str) -> ModelDescription:
         "example_arguments": spec.example(),
         **memory.peak_info(spec.id, spec.version, spec.peak_memory_gb),
     }
+
+
+def text_arguments(model_id: str, text: Mapping[str, str]) -> dict[str, JsonValue]:
+    """Convert command-line text values to the types the model's runner declares.
+
+    Each value is converted by its parameter's evaluated annotation, ignoring
+    ``None``: an annotation that admits a string or path keeps the text, ``bool``
+    accepts only ``true`` or ``false``, ``int`` takes an integer and ``float`` a
+    finite number. In a union of strings and scalars such as ``str | int``, text
+    that would parse as one of the scalars is ambiguous and rejected; other text
+    stays a string. Ambiguous values, lists, mappings and unannotated parameters
+    have to be given as JSON by the caller instead.
+
+    Raises:
+        LookupError: ``model_id`` is not a discovered model.
+        ValueError: A name is not one of the runner's parameters, a value does
+            not parse as its declared scalar type, or the type cannot be written
+            as plain text.
+    """
+    spec = registry.get_model(model_id)
+    declared = inspect.signature(registry.resolve(spec.run), eval_str=True).parameters
+    converted: dict[str, JsonValue] = {}
+    for name, value in text.items():
+        parameter = declared.get(name)
+        if parameter is None or parameter.kind in (
+            inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD,
+        ):
+            raise ValueError(
+                f"{model_id} has no argument {name!r}; choose: {', '.join(declared)}"
+            )
+        converted[name] = _text_value(name, value, parameter.annotation)
+    return converted
+
+
+def _annotation_members(annotation: object) -> list[object]:
+    """Flatten aliases, ``NewType`` and unions into their non-``None`` members."""
+    if isinstance(annotation, TypeAliasType):
+        return _annotation_members(annotation.__value__)
+    supertype: object = getattr(annotation, "__supertype__", None)
+    if supertype is not None:
+        return _annotation_members(supertype)
+    if get_origin(annotation) in (Union, UnionType):
+        return [member for argument in get_args(annotation)
+                for member in _annotation_members(argument)]
+    return [] if annotation is NoneType else [annotation]
+
+
+def _is_text(member: object) -> bool:
+    """Whether a plain string satisfies ``member``: ``str``, a path type or string literals."""
+    if get_origin(member) is Literal:
+        return all(isinstance(choice, str) for choice in get_args(member))
+    kind = get_origin(member) or member
+    # os.PathLike and pathlib paths define __fspath__ on the class; str does not.
+    return kind is str or (isinstance(kind, type) and hasattr(kind, "__fspath__"))
+
+
+def _text_value(name: str, value: str, annotation: object) -> JsonValue:
+    members = _annotation_members(annotation)
+    if any(_is_text(member) for member in members):
+        # In a union such as ``str | int``, "3" could mean either member.
+        scalars = [member for member in members if member in _SCALARS]
+        if not any(_parses_as(member, value) for member in scalars):
+            return value
+        raise ValueError(
+            f"Argument {name!r} has type {_spelled(annotation)}, so {value!r} is ambiguous; "
+            f"pass it as JSON with {name}:={value} or {name}:='\"{value}\"'"
+        )
+    try:
+        match members:
+            case [builtins.bool]:
+                if value not in ("true", "false"):
+                    raise ValueError
+                return value == "true"
+            case [builtins.int]:
+                return int(value)
+            case [builtins.float]:
+                number = float(value)
+                if not math.isfinite(number):
+                    raise ValueError
+                return number
+            case _:
+                pass
+    except ValueError:
+        raise ValueError(
+            f"Argument {name!r} expects {_spelled(annotation)}, got {value!r}"
+        ) from None
+    raise ValueError(
+        f"Argument {name!r} has type {_spelled(annotation)}; pass it as JSON with {name}:=VALUE"
+    )
+
+
+def _parses_as(scalar: object, value: str) -> bool:
+    try:
+        _text_value("", value, scalar)
+    except ValueError:
+        return False
+    return True
+
+
+def _spelled(annotation: object) -> str:
+    if annotation is inspect.Parameter.empty:
+        return "no declared type"
+    if isinstance(annotation, type):
+        return annotation.__name__
+    return str(annotation).replace("collections.abc.", "")
 
 
 def _output_names(

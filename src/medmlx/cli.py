@@ -34,6 +34,65 @@ def read_arguments(path: Path) -> dict[str, JsonValue]:
     return cast(dict[str, JsonValue], value)
 
 
+def inline_arguments(model_id: str, pairs: list[str]) -> dict[str, JsonValue]:
+    """Parse ``--arg`` pairs into one runner's keyword arguments.
+
+    ``KEY=VALUE`` converts ``VALUE`` to the type ``KEY`` declares (see
+    ``api.text_arguments``); ``KEY:=JSON`` passes a finite JSON value unchanged,
+    for lists, mappings, ``null`` and ambiguous unions.
+
+    Raises:
+        LookupError: ``model_id`` is not a discovered model.
+        ValueError: A pair is malformed or repeated, a name is not a declared
+            argument, a text value does not convert, or JSON is invalid or
+            non-finite.
+    """
+    text: dict[str, str] = {}
+    literal: dict[str, JsonValue] = {}
+    for pair in pairs:
+        name, separator, value = pair.partition("=")
+        is_json = name.endswith(":")
+        name = name.removesuffix(":")
+        if not separator or not name.isidentifier():
+            raise ValueError(f"Expected KEY=VALUE or KEY:=JSON, got {pair!r}")
+        if name in text or name in literal:
+            raise ValueError(f"Argument {name!r} is given more than once")
+        if not is_json:
+            text[name] = value
+            continue
+        try:
+            literal[name] = json.loads(value, parse_constant=_reject_constant)
+            json.dumps(literal[name], allow_nan=False)
+        except ValueError as error:
+            raise ValueError(f"Argument {name!r} is not finite JSON: {error}") from None
+    return {**api.text_arguments(model_id, text), **literal}
+
+
+def _arguments(
+    model_id: str, path: Path | None, pairs: list[str] | None,
+) -> dict[str, JsonValue] | None:
+    """Merge an ``--arguments`` file with ``--arg`` pairs; pairs replace file entries."""
+    if path is None and not pairs:
+        return None
+    return {
+        **({} if path is None else read_arguments(path)),
+        **inline_arguments(model_id, pairs or []),
+    }
+
+
+def _add_argument_options(command: argparse.ArgumentParser, help_file: str) -> None:
+    command.add_argument(
+        "--arg", dest="pairs", action="extend", nargs="+", metavar="KEY=VALUE",
+        help="Runner argument; values take the declared type. Use KEY:=JSON for lists, "
+             "objects and null. See medmlx describe MODEL for the names.",
+    )
+    command.add_argument("--arguments", type=Path, help=help_file)
+    command.add_argument(
+        "--root", type=Path, default=Path.cwd(),
+        help="Resolve relative paths against this directory (default: current directory).",
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="medmlx", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -48,8 +107,7 @@ def _parser() -> argparse.ArgumentParser:
     describe.add_argument("model_id")
     ready = commands.add_parser("readiness", help="Check model and Metal readiness.")
     ready.add_argument("model_ids", nargs="*")
-    ready.add_argument("--arguments", type=Path, help="Check one model's argument JSON and paths.")
-    ready.add_argument("--root", type=Path, default=Path.cwd())
+    _add_argument_options(ready, "Check one model's argument JSON file and paths.")
     setup = commands.add_parser(
         "setup", help="Optionally pre-download model weights for offline use.",
     )
@@ -66,8 +124,7 @@ def _parser() -> argparse.ArgumentParser:
     setup.add_argument("--progress", action="store_true", help="Stream JSON progress on stderr.")
     run = commands.add_parser("run", help="Run a model and wait for its result.")
     run.add_argument("model_id")
-    run.add_argument("--arguments", type=Path, required=True, help="JSON keyword-argument file.")
-    run.add_argument("--root", type=Path, default=Path.cwd())
+    _add_argument_options(run, "JSON keyword-argument file; --arg entries override it.")
     serve = commands.add_parser("serve", help="Serve MCP on stdio (requires the mcp extra).")
     serve.add_argument("--root", type=Path, default=Path.cwd())
     serve.add_argument(
@@ -190,14 +247,17 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
         case "describe":
             return api.describe_model(options.model_id), 0
         case "readiness":
-            arguments = None if options.arguments is None else read_arguments(options.arguments)
+            arguments = None
+            if options.arguments is not None or options.pairs:
+                if len(options.model_ids) != 1:
+                    raise ValueError("Supply exactly one model_id when checking arguments")
+                arguments = _arguments(options.model_ids[0], options.arguments, options.pairs)
             return api.model_readiness(
                 options.model_ids or None, arguments=arguments, root=options.root,
             ), 0
         case "run":
-            return api.run(
-                options.model_id, arguments=read_arguments(options.arguments), root=options.root
-            ), 0
+            arguments = _arguments(options.model_id, options.arguments, options.pairs)
+            return api.run(options.model_id, arguments=arguments or {}, root=options.root), 0
         case "serve":
             return None, _serve(options.root, restrict=options.restrict_root)
         case "convert":

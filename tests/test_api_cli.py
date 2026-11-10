@@ -34,6 +34,11 @@ def test_python_and_cli_execute_the_same_runner_and_report_failures(
     completed = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, check=False)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["result"]["foreground"] == 1
+    inline = [sys.executable, "-m", "medmlx", "run", "threshold",
+              "--arg", "image_path=image.json", "output_path=mask.json", "level=0.75"]
+    completed = subprocess.run(inline, cwd=tmp_path, capture_output=True, text=True, check=False)
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads(completed.stdout)["result"]["foreground"] == 1
     with pytest.raises(RuntimeError):
         medmlx.run("failing", arguments={"message": "provider failure"}, root=tmp_path)
     (tmp_path / "arguments.json").write_text('{"level": NaN}')
@@ -49,6 +54,16 @@ def test_arguments_reject_nonfinite_values_nonobjects_and_bad_json(
     path.write_text(text)
     with pytest.raises(ValueError):
         read_arguments(path)
+
+
+@pytest.mark.parametrize(
+    "pair", ["level=high", "level=nan", "levle=0.75", "level:=[1", "level", "image_path=a"],
+)
+def test_inline_arguments_reject_unknown_ill_typed_and_repeated_values(
+    model_site: Path, pair: str,
+) -> None:
+    with pytest.raises(ValueError):
+        cli.inline_arguments("threshold", [pair, "image_path=image.json"])
 
 
 @pytest.mark.parametrize(
