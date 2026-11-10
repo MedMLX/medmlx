@@ -16,6 +16,33 @@ class WorkerError(TypedDict):
     message: str
 
 
+class RunMemory(TypedDict):
+    """Separate allocation and residency measurements, all in bytes.
+
+    RSS sampling covers runner import through return, including result shape/key
+    checks. The kernel's worker RSS peak covers its entire process lifetime.
+    MLX counters retain their native scope (since startup or the runner's last
+    reset); active/cache are final readings. Descendant RSS is a sum per sample,
+    so shared pages can appear in multiple processes. These counters overlap:
+    none is added to another or treated as macOS physical footprint. Sampling
+    can miss short-lived processes or peaks, including while the GIL is held.
+    ``sampling_errors`` counts inaccessible/disappearing process readings.
+    """
+
+    scope: Literal["runner_import_through_return"]
+    worker_peak_rss_bytes: int
+    sample_interval_seconds: float
+    sampling_duration_seconds: float
+    sample_count: int
+    sampling_errors: int
+    sampled_worker_rss_peak_bytes: int | None
+    sampled_descendants_rss_sum_peak_bytes: int | None
+    sampled_process_count_peak: int
+    mlx_active_bytes: NotRequired[int]
+    mlx_peak_bytes: NotRequired[int]
+    mlx_cache_bytes: NotRequired[int]
+
+
 class WorkerResponse(TypedDict):
     """The packet a worker writes: ``result`` when ``ok``, otherwise ``error``."""
 
@@ -23,6 +50,7 @@ class WorkerResponse(TypedDict):
     result: NotRequired[JsonValue]
     error: NotRequired[WorkerError]
     measured_peak_memory_gb: NotRequired[float]
+    memory_metrics: NotRequired[RunMemory]
 
 
 class JobPayload(TypedDict):
@@ -39,6 +67,7 @@ class JobPayload(TypedDict):
     result: NotRequired[JsonValue]
     error: NotRequired[WorkerError | None]
     measured_peak_memory_gb: NotRequired[float]
+    memory_metrics: NotRequired[RunMemory]
     outputs_error: NotRequired[str]
 
 

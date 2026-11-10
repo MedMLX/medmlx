@@ -127,7 +127,8 @@ class Job:
         cancellation that left no response; a cancelled job can still carry a
         response written before it stopped.
         Successful responses include ``measured_peak_memory_gb`` when MLX was
-        loaded in the worker; this measures MLX allocations only.
+        loaded in the worker; this measures MLX allocations only. Separate
+        ``memory_metrics`` report worker/descendant RSS and named MLX counters.
         ``outputs_error`` reports invalid output metadata without changing the
         result or failing the run.
         """
@@ -149,6 +150,8 @@ class Job:
                 payload["result"] = self.response.get("result")
                 if "measured_peak_memory_gb" in self.response:
                     payload["measured_peak_memory_gb"] = self.response["measured_peak_memory_gb"]
+                if "memory_metrics" in self.response:
+                    payload["memory_metrics"] = self.response["memory_metrics"]
                 if self.outputs_error is not None:
                     payload["outputs_error"] = self.outputs_error
             else:
