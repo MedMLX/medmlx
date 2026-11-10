@@ -519,7 +519,8 @@ def _judge(row: ModelReadiness, reasons: list[str]) -> None:
         return
     if row["weights"]["source"] == "download":
         reasons.append(
-            "Weights are not cached; the run downloads them first (prepare_model does it now)"
+            "Weights are not cached; the run downloads them first (setup_model, "
+            "`medmlx setup` or the prepare_model MCP tool downloads them ahead of time)"
         )
     checked = {item["path"] for item in row["image_checks"]}
     unchecked = [
@@ -673,6 +674,7 @@ class ModelRun:
     """
 
     def __init__(self, jobs: Jobs, job_id: str) -> None:
+        """Track job ``job_id`` in ``jobs``; ``start`` creates runs."""
         self._jobs = jobs
         self.job_id = job_id
 
@@ -712,12 +714,14 @@ class ModelRun:
         self._jobs.close()
 
     def __enter__(self) -> Self:
+        """Return the run."""
         return self
 
     def __exit__(
         self, kind: type[BaseException] | None, error: BaseException | None,
         trace: TracebackType | None,
     ) -> None:
+        """Release the session, cancelling an unfinished worker."""
         self.close()
 
 

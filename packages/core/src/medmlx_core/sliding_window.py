@@ -236,7 +236,6 @@ def sliding_window_inference(
     Output dtype follows the input, including when predictor dtype differs.
     ``predictor_input='numpy'`` explicitly passes/receives host NumPy windows,
     allowing float64 stitching around a predictor that exports paired Metal words.
-    ``with_coord`` passes MONAI's list of batch/channel/spatial slice lists.
 
     ``sw_device`` is None, 'gpu', mx.gpu or an MLX GPU device; both predictor modes require Metal.
     ``device`` is None or 'cpu' because stitching is on the host. Active buffering, process_fn,
@@ -258,6 +257,13 @@ def sliding_window_inference(
             ``'reflect'``, ``'replicate'`` or ``'circular'``.
         cval: Fill value for ``'constant'`` padding; other modes require 0 when
             padding is needed. Padding arguments are unused when no padding is needed.
+        buffer_steps, buffer_dim, process_fn, progress: MONAI's buffering,
+            post-processing and progress options, kept for signature
+            compatibility. ``buffer_dim`` is ignored because buffering is
+            unsupported; a positive ``buffer_steps``, a ``process_fn`` or
+            ``progress=True`` raises.
+        with_coord: Also pass each batch's window coordinates to ``predictor``,
+            as MONAI's list of batch, channel and spatial slice lists.
         roi_weight_map: Window weights replacing the ``mode`` map, shaped
             ``roi_size`` or ``(1, 1, *roi_size)``. Values are not checked for
             finiteness or positivity; zero accumulated weights or nonfinite
