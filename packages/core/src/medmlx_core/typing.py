@@ -131,6 +131,10 @@ class MlxRuntime(Protocol):
         """Evaluate the given arrays and their dependencies in place."""
         ...
 
+    def async_eval(self, *args: array | Sequence[array]) -> None:
+        """Schedule arrays without waiting for their Metal work to finish."""
+        ...
+
     def reset_peak_memory(self) -> None:
         """Reset the backend's peak memory counter."""
         ...

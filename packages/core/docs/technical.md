@@ -250,3 +250,28 @@ network execution or establish a throughput improvement.
 
 Streaming trades some stitching time for lower peak host memory; the saving grows
 with the number of classes. Labels match the dense path exactly.
+
+### Optional prediction/stitching overlap
+
+`sliding_window_inference(..., overlap_prediction=True)` schedules at most one
+Metal prediction ahead of the owned host batch being weighted and stitched.
+Window order, predictor-dtype multiplication, accumulator dtype and workspace
+behavior are preserved. It requires an MLX predictor whose returned arrays stay
+immutable across calls. The default remains synchronous.
+
+On an M5 Max with MLX 0.32.4, six alternating fresh-process pairs measured this
+synthetic case: float32 input `(1, 1, 80, 96, 96)`, `48³` windows, 50% overlap,
+Gaussian weighting and two `3³` convolutions (channels `1→8→8`, ReLU between).
+Each process discarded 0.1 seconds of warm-up and measured five warm calls.
+Outputs were bit-identical for every batch size; negative strides, final partial
+batches, mixed precision and workspace results also match the MONAI regressions.
+
+| Window batch | Synchronous warm median | Overlapped warm median | MLX peak, both paths | Worker peak RSS, synchronous / overlap |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 82.41 ms | 58.59 ms | 30.87 MiB | 140.54 / 140.60 MiB |
+| 2 | 81.07 ms | 60.35 ms | 61.66 MiB | 175.17 / 175.13 MiB |
+| 4 | 76.53 ms | 60.09 ms | 123.26 MiB | 278.15 / 278.09 MiB |
+
+RSS is the process-lifetime kernel peak; MLX tracks its own allocations. They
+overlap and are not added. These measurements cover this synthetic predictor;
+the opt-in path can require another live batch for other networks.

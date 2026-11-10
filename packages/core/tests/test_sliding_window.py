@@ -274,10 +274,14 @@ def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal() -> Non
 @pytest.mark.parametrize(
     "input_dtype,prediction_dtype", [(np.float32, np.float16), (np.float16, np.float32)]
 )
+@pytest.mark.parametrize("batch_size", [1, 2, 4])
+@pytest.mark.parametrize("overlap_prediction", [False, True])
 def test_predictor_weighting_precedes_accumulator_dtype_conversion(
-    input_dtype: DTypeLike, prediction_dtype: DTypeLike
+    input_dtype: DTypeLike, prediction_dtype: DTypeLike, batch_size: int, overlap_prediction: bool,
 ) -> None:
-    inputs = np.random.default_rng(41).integers(-32, 33, (1, 1, 9, 7)).astype(input_dtype) / 32
+    inputs = np.random.default_rng(41).integers(-32, 33, (1, 1, 11, 8)).astype(input_dtype) / 32
+    inputs = inputs[..., ::-1]
+    original = inputs.copy()
     weight = monai_importance((6, 4), "gaussian").numpy()
     torch_dtype = torch.float16 if prediction_dtype == np.float16 else torch.float32
     mlx_dtype = mx.float16 if prediction_dtype == np.float16 else mx.float32
@@ -288,11 +292,19 @@ def test_predictor_weighting_precedes_accumulator_dtype_conversion(
     def mlx_half(x: mx.array) -> mx.array:
         return mlx_predict(x).astype(mlx_dtype)
 
-    expected = monai_inference(from_numpy(inputs), (6, 4), 1, torch_half,
-                               roi_weight_map=from_numpy(weight))
+    expected = monai_inference(from_numpy(np.ascontiguousarray(inputs)), (6, 4), batch_size,
+                               torch_half, roi_weight_map=from_numpy(weight))
     assert isinstance(expected, torch.Tensor)
-    actual = sliding_window_inference(inputs, (6, 4), 1, mlx_half, roi_weight_map=weight)
+    actual = sliding_window_inference(inputs, (6, 4), batch_size, mlx_half, roi_weight_map=weight,
+                                      overlap_prediction=overlap_prediction)
     assert_parity(actual, expected.numpy(), exact=True)
+    with VolumeWorkspace() as workspace:
+        streamed = sliding_window_inference(
+            inputs, (6, 4), batch_size, mlx_half, roi_weight_map=weight,
+            overlap_prediction=overlap_prediction, workspace=workspace,
+        )
+        np.testing.assert_array_equal(streamed, actual)
+    np.testing.assert_array_equal(inputs, original)
 
 
 @pytest.mark.parametrize("roi", [4, (None, -1)])
@@ -375,8 +387,10 @@ def scaled_output(x: mx.array) -> mx.array:
 @pytest.mark.parametrize(
     "predictor,error", [(multiple_outputs, TypeError), (scaled_output, ValueError)],
 )
+@pytest.mark.parametrize("overlap_prediction", [False, True])
 def test_unsupported_predictor_outputs_fail_explicitly(
-    predictor: Callable[[mx.array], object], error: type[Exception]
+    predictor: Callable[[mx.array], object], error: type[Exception], overlap_prediction: bool,
 ) -> None:
     with pytest.raises(error):
-        sliding_window_inference(np.zeros((1, 1, 4, 4), np.float32), 4, 1, predictor)
+        sliding_window_inference(np.zeros((1, 1, 4, 4), np.float32), 3, 1, predictor,
+                                  overlap_prediction=overlap_prediction)

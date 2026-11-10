@@ -12,7 +12,8 @@ receive host arrays. Both paths require an available MLX Metal runtime.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Generator, Sequence
+from contextlib import closing
 from itertools import product
 from typing import Literal, cast, overload
 
@@ -225,6 +226,7 @@ def sliding_window_inference(
     predictor_input: Literal["mlx", "numpy"] = "mlx",
     preserve_window_strides: bool = False,
     workspace: VolumeWorkspace | None = None,
+    overlap_prediction: bool = False,
     **kwargs: object,
 ) -> FloatArray:
     """Predict and blend 1D/2D/3D windows, returning host NumPy logits.
@@ -268,6 +270,11 @@ def sliding_window_inference(
             first-axis ROI-depth ring and return file-backed cropped logits,
             valid only while the workspace remains open. Patch order, rounding
             and predictor batching are identical to the dense path.
+        overlap_prediction: Opt in to a two-slot Metal pipeline: launch the next
+            prediction before weighting/stitching the previous owned host copy.
+            Keeps window order and rounding, at the cost of another live batch.
+            Requires an MLX predictor; predictors must leave outputs immutable
+            after returning, including when the next call starts.
         *args, **kwargs: Passed through to ``predictor``.
 
     Returns:
@@ -303,6 +310,8 @@ def sliding_window_inference(
         raise ValueError("inputs must be a nonempty (N, C, *spatial) 1D/2D/3D array")
     if predictor_input not in {"mlx", "numpy"}:
         raise ValueError("predictor_input must be 'mlx' or 'numpy'")
+    if overlap_prediction and predictor_input != "mlx":
+        raise ValueError("overlap_prediction requires an MLX predictor")
     allowed_dtypes = (np.dtype(np.float16), np.dtype(np.float32))
     if predictor_input == "numpy":
         allowed_dtypes = (*allowed_dtypes, np.dtype(np.float64))
@@ -345,7 +354,8 @@ def sliding_window_inference(
         for window in windows:
             counts[(slice(None), slice(None), *window)] += importance
     num_windows = len(windows)
-    for start in range(0, num_windows * host.shape[0], sw_batch_size):
+
+    def launch(start: int) -> tuple[list[list[slice]], mx.array | HostArray]:
         coordinates = [
             [
                 slice(index // num_windows, index // num_windows + 1),
@@ -370,49 +380,91 @@ def sliding_window_inference(
             if predictor_input == "mlx":
                 if not isinstance(prediction, mx.array):
                     raise TypeError("predictor must return one MLX array")
-                runtime.eval(prediction)
+                if overlap_prediction:
+                    runtime.async_eval(prediction)
             elif not isinstance(prediction, np.ndarray):
                 raise TypeError("NumPy predictor must return one NumPy array")
-            predicted = cast(
-                FloatArray, np.array(cast(HostArray | mx.array, prediction), copy=True)
-            )
-        if (
-            predicted.ndim != host.ndim
-            or predicted.shape[0] != len(coordinates)
-            or predicted.shape[2:] != roi
-            or predicted.shape[1] < 1
-        ):
-            raise ValueError("predictor output must match the window batch and ROI spatial shape")
-        if output is None:
-            if workspace is None:
-                output = np.zeros(
-                    (host.shape[0], predicted.shape[1], *image_size), dtype=host.dtype
-                )
-            else:
-                output = workspace.empty((host.shape[0], predicted.shape[1], *spatial), host.dtype)
-                destination = output
+        return coordinates, cast(mx.array | HostArray, prediction)
 
-                def store(
-                    image: int,
-                    start: int,
-                    values: FloatArray,
-                    destination: FloatArray = destination,
-                ) -> None:
-                    destination[image, :, start : start + values.shape[1]] = values
+    def materialize(prediction: mx.array | HostArray) -> FloatArray:
+        if isinstance(prediction, mx.array):
+            runtime.eval(prediction)
+        # Weight only an owned copy, never the predictor's borrowed storage.
+        return cast(FloatArray, np.array(prediction, copy=True))
 
-                accumulator = SlabAccumulator(
-                    image_size, roi, crop, predicted.shape[1], host.dtype, importance[0, 0], store
-                )
-        elif predicted.shape[1] != output.shape[1]:
-            raise ValueError("predictor output channels must stay constant across windows")
-        # MONAI's in-place multiplication rounds to predictor dtype BEFORE the
-        # addition into the input-dtype accumulator. Keep these separate.
-        predicted *= importance
-        for coord, patch in zip(coordinates, predicted, strict=True):
-            if accumulator is None:
-                output[tuple(coord)] += patch
-            else:
-                accumulator.add(coord[0].start, coord[2:], patch)
+    def predictions() -> Generator[tuple[list[list[slice]], FloatArray]]:
+        pending: tuple[list[list[slice]], mx.array | HostArray] | None = None
+        try:
+            for start in range(0, num_windows * host.shape[0], sw_batch_size):
+                if not overlap_prediction:
+                    coordinates, prediction = launch(start)
+                    yield coordinates, materialize(prediction)
+                    continue
+                completed = None
+                if pending is not None:
+                    coordinates, prediction = pending
+                    completed = coordinates, materialize(prediction)
+                    pending = None
+                    del prediction
+                pending = launch(start)
+                if completed is not None:
+                    yield completed
+                    del completed
+            if pending is not None:
+                coordinates, prediction = pending
+                pending = None
+                yield coordinates, materialize(prediction)
+        finally:
+            # An invalid prior shape or host stitching error must not leave a
+            # scheduled prediction running beyond this invocation.
+            if pending is not None and isinstance(pending[1], mx.array):
+                runtime.eval(pending[1])
+
+    with closing(predictions()) as batches:
+        for coordinates, predicted in batches:
+            if (
+                predicted.ndim != host.ndim
+                or predicted.shape[0] != len(coordinates)
+                or predicted.shape[2:] != roi
+                or predicted.shape[1] < 1
+            ):
+                raise ValueError(
+                    "predictor output must match the window batch and ROI spatial shape")
+            if output is None:
+                if workspace is None:
+                    output = np.zeros(
+                        (host.shape[0], predicted.shape[1], *image_size), dtype=host.dtype
+                    )
+                else:
+                    output = workspace.empty((host.shape[0], predicted.shape[1], *spatial),
+                                             host.dtype)
+                    destination = output
+
+                    def store(
+                        image: int,
+                        start: int,
+                        values: FloatArray,
+                        destination: FloatArray = destination,
+                    ) -> None:
+                        destination[image, :, start : start + values.shape[1]] = values
+
+                    accumulator = SlabAccumulator(
+                        image_size, roi, crop, predicted.shape[1], host.dtype,
+                        importance[0, 0], store,
+                    )
+            elif predicted.shape[1] != output.shape[1]:
+                raise ValueError("predictor output channels must stay constant across windows")
+            # MONAI's in-place multiplication rounds to predictor dtype BEFORE the
+            # addition into the input-dtype accumulator. Keep these separate.
+            predicted *= importance
+            for coord, patch in zip(coordinates, predicted, strict=True):
+                if accumulator is None:
+                    output[tuple(coord)] += patch
+                else:
+                    accumulator.add(coord[0].start, coord[2:], patch)
+            # Release the last view before the iterator materializes another batch.
+            patch = None
+            del predicted
     assert output is not None  # Nonempty images always produce at least one window.
     if accumulator is not None:
         accumulator.finish()
