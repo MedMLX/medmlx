@@ -638,6 +638,8 @@ def test_cached_weights_reads_the_model_folder_in_the_custom_cache(
     folder = root / relative_folder
     folder.mkdir(parents=True)
     (folder / ".medmlx-revision").write_text(revision + "\n")
+    if model_id in BUNDLE_LAYOUTS:
+        (folder / BUNDLE_LAYOUTS[model_id][1]).touch()
     assert cached_weights(model_id) == folder
 
 
@@ -657,12 +659,33 @@ def test_cached_weights_requires_the_companion_file(cache: Path) -> None:
     folder = target / "ct"
     folder.mkdir(parents=True)
     (folder / ".medmlx-revision").write_text(CTMR_REVISION)
+    (folder / "model.safetensors").touch()
     assert cached_weights("mlx-generate-ctmr-ct") is None
 
     companion = target / "mask" / "model.safetensors"
     companion.parent.mkdir()
     companion.touch()
     assert cached_weights("mlx-generate-ctmr-ct") == folder
+
+
+def test_deleted_primary_weights_are_downloaded_again(
+    cache: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    folder = cache / "mlx-generate-ctmr-mr" / "MedMLX--mlx-generate-ctmr" / "mr"
+    folder.mkdir(parents=True)
+    (folder / ".medmlx-revision").write_text(CTMR_REVISION)
+    assert cached_weights("mlx-generate-ctmr-mr") is None
+    downloads: list[str] = []
+
+    def download(repo: str, *, local_dir: Path, **_kwargs: object) -> str:
+        downloads.append(repo)
+        (local_dir / "mr/model.safetensors").write_bytes(b"weights")
+        return str(local_dir)
+
+    hub(monkeypatch, download, "MedMLX/mlx-generate-ctmr", revision=CTMR_REVISION)
+    assert weights_dir("mlx-generate-ctmr-mr") == folder
+    assert downloads == ["MedMLX/mlx-generate-ctmr"]
+    assert cached_weights("mlx-generate-ctmr-mr") == folder
 
 
 @pytest.mark.parametrize("byte_reporting", [True, False], ids=["bytes", "legacy-strings"])

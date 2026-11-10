@@ -202,7 +202,60 @@ def test_output_summary_treats_many_uint16_values_as_an_image(tmp_path: Path) ->
     assert summary["value_range"] == [0.0, 512.0]
 
 
-def test_dicom_series_converts_to_nifti_once(tmp_path: Path) -> None:
+@pytest.mark.parametrize("difference", ["origin", "spacing", "shear", "units"])
+def test_preview_rejects_same_shape_on_different_physical_grids(
+    tmp_path: Path, difference: str,
+) -> None:
+    mask = tmp_path / "mask.nii.gz"
+    scan = tmp_path / "scan.nii.gz"
+    nib.save(nib.Nifti1Image(np.ones((3, 4, 2), np.uint8), np.eye(4)), mask)
+    affine = np.eye(4)
+    if difference == "origin":
+        affine[0, 3] = 20
+    elif difference == "spacing":
+        affine[2, 2] = 2
+    elif difference == "shear":
+        affine[0, 1] = 0.2
+    image = nib.Nifti1Image(np.zeros((3, 4, 2), np.int16), affine)
+    if difference == "units":
+        image.header.set_xyzt_units("meter")
+    nib.save(image, scan)
+    with pytest.raises(ValueError, match="affine"):
+        medmlx.preview_output(mask, image_path=scan)
+
+
+@pytest.mark.parametrize(("units", "scale"), [("mm", 1.0), ("meter", 0.001), ("micron", 1000.0)])
+def test_output_summary_and_preview_use_physical_millimetres(
+    tmp_path: Path, units: str, scale: float,
+) -> None:
+    mask, scan = tmp_path / "mask.nii", tmp_path / "scan.nii"
+    image = nib.Nifti1Image(
+        np.ones((2, 2, 2), np.uint8), np.diag([2 * scale, 3 * scale, 4 * scale, 1]),
+    )
+    image.header.set_xyzt_units(units)
+    nib.save(image, mask)
+    reference = nib.Nifti1Image(
+        np.zeros((2, 2, 2), np.int16), np.diag([2.0, 3.0, 4.0, 1.0]),
+    )
+    reference.header.set_xyzt_units("mm")
+    nib.save(reference, scan)
+    summary = medmlx.summarize_output(mask)
+    assert summary["spacing_mm"] == pytest.approx([2, 3, 4], rel=1e-7)
+    assert summary["labels"][0]["volume_ml"] == 0.192  # 8 voxels * 24 mm^3 / 1000.
+    with Image.open(io.BytesIO(medmlx.preview_output(mask, image_path=scan))) as picture:
+        assert picture.format == "PNG"
+
+
+def test_output_summary_uses_voxel_volume_for_sheared_affines(tmp_path: Path) -> None:
+    affine = np.diag([2.0, 3.0, 4.0, 1.0])
+    affine[0, 1] = 4  # Column lengths change; each voxel still occupies 24 mm^3.
+    path = tmp_path / "sheared-mask.nii"
+    nib.save(nib.Nifti1Image(np.ones((2, 2, 2), np.uint8), affine), path)
+    assert medmlx.summarize_output(path)["labels"][0]["volume_ml"] == 0.192
+
+
+@pytest.fixture
+def dicom_folder(tmp_path: Path) -> Path:
     folder = tmp_path / "dicom"
     folder.mkdir()
     for index in range(3):
@@ -216,9 +269,37 @@ def test_dicom_series_converts_to_nifti_once(tmp_path: Path) -> None:
         writer.KeepOriginalImageUIDOn()  # one series UID across the slices
         writer.SetFileName(str(folder / f"slice{index}.dcm"))
         writer.Execute(plane)
-    listed = medmlx.list_dicom_series(folder)
+    return folder
+
+
+def test_dicom_series_converts_to_nifti_once(tmp_path: Path, dicom_folder: Path) -> None:
+    listed = medmlx.list_dicom_series(dicom_folder)
     assert [(row["modality"], row["files"]) for row in listed] == [("CT", 3)]
-    converted = medmlx.convert_dicom(folder, tmp_path / "ct.nii.gz")
+    converted = medmlx.convert_dicom(dicom_folder, tmp_path / "ct.nii.gz")
     assert converted["shape"] == [5, 4, 3] and converted["spacing_mm"] == [0.5, 0.5, 2.0]
     with pytest.raises(FileExistsError):
-        medmlx.convert_dicom(folder, tmp_path / "ct.nii.gz")
+        medmlx.convert_dicom(dicom_folder, tmp_path / "ct.nii.gz")
+
+
+@pytest.mark.parametrize("problem", ["writer-failure", "concurrent-output"])
+def test_dicom_conversion_preserves_destination_on_write_failure_or_conflict(
+    tmp_path: Path, dicom_folder: Path, monkeypatch: pytest.MonkeyPatch, problem: str,
+) -> None:
+    target = tmp_path / "ct.nii.gz"
+    original = sitk.WriteImage
+
+    def write(image: sitk.Image, filename: str) -> None:
+        if problem == "writer-failure":
+            Path(filename).write_bytes(b"partial")
+            raise RuntimeError("writer failed")
+        target.write_bytes(b"concurrent output")
+        original(image, filename)
+
+    monkeypatch.setattr(sitk, "WriteImage", write)
+    expected = RuntimeError if problem == "writer-failure" else FileExistsError
+    with pytest.raises(expected):
+        medmlx.convert_dicom(dicom_folder, target)
+    if problem == "writer-failure":
+        assert not target.exists()
+    else:
+        assert target.read_bytes() == b"concurrent output"

@@ -6,18 +6,19 @@ nibabel and Pillow, and DICOM conversion needs SimpleITK; all three come with
 ``medmlx[all]``, and SimpleITK alone with ``medmlx[dicom]``. They are imported
 only when a helper is called.
 
-Nothing here interprets findings. Volumes are voxel counts times the header's
-voxel size, and previews are display renderings of one slice.
+Nothing here interprets findings. Volumes are voxel counts times the affine's
+voxel volume, and previews are display renderings of one slice.
 """
 
 from __future__ import annotations
 
 import io
 import json
-import math
+import os
 import textwrap
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 from medmlx.payloads import (
@@ -81,6 +82,13 @@ def _volume(image: nibabel.Nifti1Image) -> NDArray[np.generic]:
     return data[:, :, None] if data.ndim == 2 else data
 
 
+def _millimetres_per_unit(image: nibabel.Nifti1Image) -> float:
+    """Convert declared spatial units; retain the existing mm assumption when unspecified."""
+    return {"meter": 1000.0, "mm": 1.0, "micron": 0.001, "unknown": 1.0}[
+        image.header.get_xyzt_units()[0]
+    ]
+
+
 def summarize_output(
     path: str | Path, *, labels: Mapping[int, str] | None = None, root: str | Path | None = None,
 ) -> OutputSummary:
@@ -88,8 +96,10 @@ def summarize_output(
 
     Integer-valued volumes with at most 512 distinct values are treated as label
     masks; every nonzero label is reported with its voxel count and volume in
-    millilitres from the header's voxel size. ``labels`` supplies names, such as
+    millilitres from the affine's voxel volume. ``labels`` supplies names, such as
     a model's declared label map. Other volumes report their value range.
+    Declared spatial units are converted to millimetres; unspecified units are
+    treated as millimetres.
 
     Raises:
         FileNotFoundError: ``path`` does not exist.
@@ -101,8 +111,13 @@ def summarize_output(
     file = _resolve(path, root)
     image = _nifti(file)
     data = _volume(image)
-    zooms = [float(size) for size in image.header.get_zooms()[:3]]
-    voxel_ml = math.prod(zooms) / 1000.0
+    scale = _millimetres_per_unit(image)
+    zooms = [float(size) * scale for size in image.header.get_zooms()[:3]]
+    affine = image.affine
+    if affine is None:
+        raise ValueError(f"{file} has no spatial affine")
+    # Multiplying axis lengths overstates voxel volume when the affine has shear.
+    voxel_ml = abs(float(np.linalg.det(affine[:3, :3]))) * scale**3 / 1000.0
     summary: OutputSummary = {
         "path": file.as_posix(), "shape": [int(size) for size in data.shape],
         "spacing_mm": zooms, "dtype": str(data.dtype), "kind": "image",
@@ -157,6 +172,8 @@ def preview_output(
     labelled voxels is shown, coloured by label; otherwise the middle slice. A
     scan whose values reach below -500 is shown in a soft-tissue CT window
     (-160 to 240 HU); other scans use their 1st to 99th percentiles.
+    Overlays require matching shapes and canonical affines within 1e-5 mm; images
+    on different physical grids must be registered or resampled first.
     Named labels appear in a legend. PNG text fields contain ``labels`` as JSON
     and ``names_from`` as ``outputs``, ``declaration`` or ``null``.
 
@@ -179,10 +196,17 @@ def preview_output(
     index = int(np.argmax((data != 0).sum(axis=(0, 1)))) if mask else data.shape[2] // 2
     label_plane = _display(data[:, :, index]).astype(np.int64) if mask else None
     if image_path is not None:
-        scan = _volume(_nifti(_resolve(image_path, root)))
+        scan_image = _nifti(_resolve(image_path, root))
+        scan = _volume(scan_image)
         if scan.shape != data.shape:
             raise ValueError(
                 f"Output grid {list(data.shape)} differs from scan grid {list(scan.shape)}")
+        output_affine, scan_affine = volume.affine, scan_image.affine
+        if output_affine is None or scan_affine is None or not np.allclose(
+            output_affine[:3] * _millimetres_per_unit(volume),
+            scan_affine[:3] * _millimetres_per_unit(scan_image), rtol=0, atol=1e-5,
+        ):
+            raise ValueError("Output affine differs from scan affine; overlay grids must match")
         plane = _display(scan[:, :, index]).astype(np.float64)
     elif label_plane is not None:
         plane = np.zeros(label_plane.shape)
@@ -283,7 +307,8 @@ def convert_dicom(
     """Write one DICOM series as NIfTI, keeping its geometry and rescaled values (HU for CT).
 
     With one series in the folder ``series_uid`` may be omitted. The output name
-    must end in ``.nii.gz`` or ``.nii``; an existing file is not replaced.
+    must end in ``.nii.gz`` or ``.nii``; a completed temporary file is published
+    without replacing an existing file, including one created during conversion.
 
     Raises:
         NotADirectoryError: ``directory`` is not a folder.
@@ -322,7 +347,10 @@ def convert_dicom(
     reader.SetFileNames(files)
     image = reader.Execute()
     target.parent.mkdir(parents=True, exist_ok=True)
-    sitk.WriteImage(image, str(target))
+    with TemporaryDirectory(prefix=".medmlx-dicom-", dir=target.parent) as staging:
+        temporary = Path(staging) / target.name
+        sitk.WriteImage(image, str(temporary))
+        os.link(temporary, target)
     return {
         "output_path": target.as_posix(), "series_uid": series_uid,
         "modality": modality, "description": _tag(files[0], "0008|103e"),

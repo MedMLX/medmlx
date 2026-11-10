@@ -458,12 +458,14 @@ def _locations(model_id: str, source: _HubSource) -> tuple[Path, Path, Path]:
 def _complete(source: _HubSource, target: Path, folder: Path) -> bool:
     """Whether a managed folder finished downloading the selected revision."""
     cached_revision = weights_revision(folder)
+    primary_ready = not source.filename or (folder / source.filename).is_file()
     companion_ready = (
         not source.companion_subfolder
         or (target / source.companion_subfolder / source.filename).is_file()
     )
     return (cached_revision is not None
             and (source.revision is None or cached_revision == source.revision)
+            and primary_ready
             and companion_ready)
 
 
