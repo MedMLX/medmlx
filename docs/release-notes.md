@@ -2,9 +2,6 @@
 
 ## Unreleased
 
-- Memory no longer refuses a run. Readiness reports `fits: false` and adds a reason
-  when a model's peak exceeds the available memory, and the run starts anyway; the
-  `insufficient_memory` error code is gone. One model still runs at a time per Mac.
 - Pin registered automatic weight bundles to the revisions documented by the
   latest runtime release tags, including their linked Hugging Face model cards.
   SAM3 retains its existing pin. Unlisted model IDs still resolve
@@ -27,6 +24,36 @@
   the current layout without deleting or linking the originals; only missing or
   mismatched files are downloaded. `cached_weights` remains offline and read-only;
   `refresh=True` still forces a download.
+
+## 0.5.0
+
+### Breaking changes
+
+**Memory no longer refuses a run.** Readiness still reports a model's peak, the available memory and `fits`, and adds a reason when the model does not fit, but `run` and `start` go ahead either way. The `insufficient_memory` error code is gone.
+
+**Requires [`nnunet-mlx` 0.8](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.8.0), [`totalsegmentator-mlx` 0.2](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.2.0) and [`mlx-generate-ctmr` 0.6](https://github.com/MedMLX/mlx-generate-ctmr/releases/tag/v0.6.0).** nnU-Net and TotalSegmentator labels can change at voxels where two classes nearly tie, because restoration now rounds as nnU-Net 2.8.1 does. `mlx-generate-ctmr-mr` now rejects T2 and FLAIR; use `mlx-generate-ctmr-mr-brain` for those contrasts.
+
+### New
+
+**`medmlx run` and `medmlx readiness` take a model's arguments on the command line.** `--arg` accepts the names `medmlx describe` lists, converts each value to its declared type, and takes lists and objects as `KEY:=JSON`. `--arguments FILE` still works, and `--arg` overrides its keys.
+
+```sh
+medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
+```
+
+**`medmlx.start_cohort` runs up to 256 cases through one loaded model.** Each case reports its own result or error, and the model is closed when the cohort finishes or is cancelled. `nnunet-liver` supports it.
+
+**Successful runs report `memory_metrics`.** They give the worker's peak RSS and MLX active, peak and cache counters in bytes; `measured_peak_memory_gb` keeps its MLX-only meaning.
+
+### Fixes
+
+**Output summaries compute label volumes from the image affine and honor declared spatial units.** Volumes were the product of header voxel sizes, assuming millimetres, which overstated them for sheared affines and was wrong for files in metres or microns.
+
+**`memory_status` no longer drops a live run while its record is being written.**
+
+### Lower memory
+
+**Generation peaks at 10.3 GiB for CT from a mask and 9.5 GiB for MR-Brain**, through `mlx-generate-ctmr` 0.6.0, measured at 256³ CT and the default MR-Brain grid on an M5 Max with MLX 0.32.4. Readiness now declares 11.1 GB and 10.2 GB for these models, down from 30 GB and 26 GB.
 
 ## 0.4.8
 

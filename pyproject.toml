@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.4.8"
+version = "0.5.0"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -45,14 +45,14 @@ segment = [
   "unest-mlx>=0.2.7,<0.3",
   "synthseg-mlx>=0.3.4,<0.4",
   "flexray-mlx>=0.2.6,<0.3",
-  "nnunet-mlx>=0.7.0,<0.8",
-  "totalsegmentator-mlx>=0.1.7,<0.2",
+  "nnunet-mlx>=0.8.0,<0.9",
+  "totalsegmentator-mlx>=0.2.0,<0.3",
 ]
 generate = [
   "nibabel>=5.4.2,<6",
   "mlx-reason-ct>=0.4.1,<0.5",
   "fdg-pet-ct-mlx>=0.3.0,<0.4",
-  "mlx-generate-ctmr>=0.5.2,<0.6",
+  "mlx-generate-ctmr>=0.6.0,<0.7",
   "lesiondiffusion-mlx>=0.2.7,<0.3",
 ]
 vision = [
@@ -76,15 +76,15 @@ all = [
   "lesiondiffusion-mlx>=0.2.7,<0.3",
   "lung-nodule-mlx>=0.2.6,<0.3",
   "medsam2-mlx>=0.3.0,<0.4",
-  "mlx-generate-ctmr>=0.5.2,<0.6",
+  "mlx-generate-ctmr>=0.6.0,<0.7",
   "mlx-segment-ct>=0.3.5,<0.4",
   "mlxradiomics>=1.0.0,<1.1",
-  "nnunet-mlx>=0.7.0,<0.8",
+  "nnunet-mlx>=0.8.0,<0.9",
   "radimagenet-mlx>=0.3.3,<0.4",
   "segresnet-mlx>=0.3.3,<0.4",
   "swin-unetr-mlx>=0.2.6,<0.3",
   "synthseg-mlx>=0.3.4,<0.4",
-  "totalsegmentator-mlx>=0.1.7,<0.2",
+  "totalsegmentator-mlx>=0.2.0,<0.3",
   "unest-mlx>=0.2.7,<0.3",
 ]
 mcp = [

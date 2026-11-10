@@ -107,14 +107,14 @@ either way, so a Mac with too little memory may swap or fail. Declared peaks:
 
 | Model | Peak MLX memory |
 | :--- | ---: |
-| `mlx-generate-ctmr-ct` | 30 GB |
-| `mlx-generate-ctmr-mr-brain` | 26 GB |
 | `siam` | 16 GB |
 | `mlx-reason-ct` | 14.5 GB |
 | `sam3` | 12 GB |
 | `synthseg` | 11.6 GB |
+| `mlx-generate-ctmr-ct` | 11.1 GB |
 | `mlx-segment-ctmr` | 11.0 GB |
 | `lung-nodule` | 10.8 GB |
+| `mlx-generate-ctmr-mr`, `mlx-generate-ctmr-mr-brain` | 10.2 GB |
 | `swin-unetr` | 7.5 GB |
 | `unest` | 7.3 GB |
 | `mlx-segment-ct` | 6.0 GB |

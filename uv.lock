@@ -586,7 +586,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.4.8"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -696,8 +696,8 @@ requires-dist = [
     { name = "medsam2-mlx", marker = "extra == 'all'", specifier = ">=0.3.0,<0.4" },
     { name = "medsam2-mlx", marker = "extra == 'reason-tools'", specifier = ">=0.3.0,<0.4" },
     { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = ">=0.3.0,<0.4" },
-    { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = ">=0.5.2,<0.6" },
-    { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = ">=0.5.2,<0.6" },
+    { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = ">=0.6.0,<0.7" },
+    { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = ">=0.6.0,<0.7" },
     { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.4.1,<0.5" },
     { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.4.1,<0.5" },
     { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.4.1,<0.5" },
@@ -708,8 +708,8 @@ requires-dist = [
     { name = "nibabel", marker = "extra == 'all'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'generate'", specifier = ">=5.4.2,<6" },
     { name = "nibabel", marker = "extra == 'reason-tools'", specifier = ">=5.4.2,<6" },
-    { name = "nnunet-mlx", marker = "extra == 'all'", specifier = ">=0.7.0,<0.8" },
-    { name = "nnunet-mlx", marker = "extra == 'segment'", specifier = ">=0.7.0,<0.8" },
+    { name = "nnunet-mlx", marker = "extra == 'all'", specifier = ">=0.8.0,<0.9" },
+    { name = "nnunet-mlx", marker = "extra == 'segment'", specifier = ">=0.8.0,<0.9" },
     { name = "numpy", marker = "extra == 'all'", specifier = ">=2.3,<3" },
     { name = "numpy", marker = "extra == 'reason-tools'", specifier = ">=2.3,<3" },
     { name = "packaging", specifier = ">=24" },
@@ -732,8 +732,8 @@ requires-dist = [
     { name = "swin-unetr-mlx", marker = "extra == 'segment'", specifier = ">=0.2.6,<0.3" },
     { name = "synthseg-mlx", marker = "extra == 'all'", specifier = ">=0.3.4,<0.4" },
     { name = "synthseg-mlx", marker = "extra == 'segment'", specifier = ">=0.3.4,<0.4" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'all'", specifier = ">=0.1.7,<0.2" },
-    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", specifier = ">=0.1.7,<0.2" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'all'", specifier = ">=0.2.0,<0.3" },
+    { name = "totalsegmentator-mlx", marker = "extra == 'segment'", specifier = ">=0.2.0,<0.3" },
     { name = "unest-mlx", marker = "extra == 'all'", specifier = ">=0.2.7,<0.3" },
     { name = "unest-mlx", marker = "extra == 'segment'", specifier = ">=0.2.7,<0.3" },
     { name = "uv", specifier = ">=0.8,<1" },
@@ -827,7 +827,7 @@ wheels = [
 
 [[package]]
 name = "mlx-generate-ctmr"
-version = "0.5.2"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -837,9 +837,9 @@ dependencies = [
     { name = "safetensors" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/6a/96c6f144d8618ffb3a93adf60116a10a77509d7ba85ce2fe26b2ce3d6ecb/mlx_generate_ctmr-0.5.2.tar.gz", hash = "sha256:3006cafe146840a8d4ae7d38cc9bbac36dd551bfca81d535237dff7ed2887777", size = 1158177, upload-time = "2026-11-01T03:52:35.604Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/b5/d72e6e138894b2e9e540b2e7e81971e23a107ebb578e6fff9861378a5640/mlx_generate_ctmr-0.6.0.tar.gz", hash = "sha256:3988b72a6cd2441c20ce497251f706b724e9cc82b7060967b06e637bf05a6a5b", size = 1163415, upload-time = "2026-11-10T06:48:23.11Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/58/6d3c4b098fab7176e166d9b75c8598d6fd62faeb6da396ea616be98fceb4/mlx_generate_ctmr-0.5.2-py3-none-any.whl", hash = "sha256:6a1685580aabaef2f9d605271ed1271d732708a463339796a3a4864628885c1b", size = 1188479, upload-time = "2026-11-01T03:52:34.323Z" },
+    { url = "https://files.pythonhosted.org/packages/65/1e/fdcb2b9304d5a5e6c6862035f71cf6ccfde8cb3605321028e04a55701391/mlx_generate_ctmr-0.6.0-py3-none-any.whl", hash = "sha256:0bf82e718914e87db9e286747330056cbe61217e9cd18b4e01708b9bb3c36cec", size = 1193013, upload-time = "2026-11-10T06:48:21.295Z" },
 ]
 
 [[package]]
@@ -977,7 +977,7 @@ wheels = [
 
 [[package]]
 name = "nnunet-mlx"
-version = "0.7.0"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "blosc2" },
@@ -994,9 +994,9 @@ dependencies = [
     { name = "tifffile" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/f9/4def1b7bd1d57dfe215cbef4d910276fbe559012076f52b5678c72d6bb07/nnunet_mlx-0.7.0.tar.gz", hash = "sha256:3976e0280057028d4e460b68403ae82029e9230633d439b483fd99a95125c8f9", size = 141683, upload-time = "2026-11-06T07:43:01.228Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/54/72e0cdc3077dbbbd68e4a58eb84c05c0178856cf8efcbea39e57839ce133/nnunet_mlx-0.8.0.tar.gz", hash = "sha256:fdd899a7371e204bf046be10084b3865922c6b0895fc5de5946f92ed51595f9f", size = 158167, upload-time = "2026-11-10T06:48:06.456Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/a6/ad4fcad3e47db56939d3ddfa49cc86dee18504fcb2221a97c0b21dc60af2/nnunet_mlx-0.7.0-py3-none-any.whl", hash = "sha256:40df3e4eb362bd012bfa78751a7d45dc6fdf3eabfcedce4f1bccc8e2c0f74df6", size = 175327, upload-time = "2026-11-06T07:42:59.795Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/cd/0f92929bdc2db32f2c4af366553251076509fa6cf28c35e883ede518b1f4/nnunet_mlx-0.8.0-py3-none-any.whl", hash = "sha256:2b0543cef338072ccf3f8af93eecd7a45b03d5b9c8b1e86744e77e0cead2b841", size = 194686, upload-time = "2026-11-10T06:48:05.299Z" },
 ]
 
 [[package]]
@@ -1515,7 +1515,7 @@ wheels = [
 
 [[package]]
 name = "totalsegmentator-mlx"
-version = "0.1.7"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -1525,9 +1525,9 @@ dependencies = [
     { name = "numpy" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/b0/e52683138f8cb1d14e2c44789861cb95f17fda57b7a4b2b25d1e0c1bcf32/totalsegmentator_mlx-0.1.7.tar.gz", hash = "sha256:165e57d1aa309f466413a135e7313c3d31b276becefaf91f2b522c2a1d0d9dc6", size = 31129, upload-time = "2026-11-06T07:50:22.361Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/ee/5daad3391bee3ccd515b0da6acb9832edfc4f6dc8ff4381a6c9fe8ef77a3/totalsegmentator_mlx-0.2.0.tar.gz", hash = "sha256:62d20f721c8587bd41b75a67c891cd9ece5316e4085fdafb65a97c2606bfa028", size = 32669, upload-time = "2026-11-10T06:54:27.554Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/52/be02732df99fb51dff0e4e2109bbe3cf414e3cf006d1862d991d9a144f01/totalsegmentator_mlx-0.1.7-py3-none-any.whl", hash = "sha256:bc740eb21c97ea2f7935f7a8ba18f2c701ebe24bfda3c5d4dbf5354db8620645", size = 38993, upload-time = "2026-11-06T07:50:21.363Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/5d/f570b5d4533de8d3da518491bc4ae05785f815b7e3ad963c32cdd706c114/totalsegmentator_mlx-0.2.0-py3-none-any.whl", hash = "sha256:9e72bbda9a101905a74dabbdf27ba3ad3d0df2fbe4c48f286467a3c393673c44", size = 40561, upload-time = "2026-11-10T06:54:26.592Z" },
 ]
 
 [[package]]
