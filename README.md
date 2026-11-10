@@ -41,28 +41,25 @@ terms. For a smaller install, replace `all` with one group:
 ## Quickstart
 
 `medmlx models` lists the installed models. To segment a CT scan, put it in a
-working folder:
+working folder and run from there:
 
 ```sh
 mkdir -p ~/medmlx-work && cd ~/medmlx-work
 cp /path/to/ct.nii.gz .
 ```
 
-Save the run's arguments there as `arguments.json`. Relative paths resolve
-against `--root`:
-
-```json
-{"image_path": "ct.nii.gz", "output_dir": "segment-ct"}
-```
-
 Then show the model's arguments, check that it can run, and run it:
 
 ```sh
 medmlx describe mlx-segment-ct
-medmlx readiness mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
-medmlx run mlx-segment-ct --arguments arguments.json --root ~/medmlx-work
+medmlx readiness mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
+medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
 ```
 
+- `--arg` takes the argument names `describe` lists. Values are converted to the
+  declared types; give lists and other JSON values as `KEY:=JSON`, for example
+  `points:='[[120, 140, 60]]'`. `--arguments FILE` reads them from a JSON file.
+- Relative paths resolve against the current folder, or against `--root`.
 - `readiness` checks Metal and the input paths without downloading anything.
 - The first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
   cache.
