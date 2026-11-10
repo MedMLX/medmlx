@@ -163,5 +163,13 @@ def model_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path
     monkeypatch.setenv("PYTHONPATH", str(site) if not existing else f"{site}{os.pathsep}{existing}")
     # Each test writes its own copy of the fake package; never reuse another test's import.
     sys.modules.pop("fakemlx", None)
+    # Discovery imports real model packages in-process, and some import mlx.core
+    # at load; with the site first on sys.path that resolves to the fake MLX.
+    # Scope both to this test so later tests see the real MLX again.
+    real_mlx = {name: sys.modules.pop(name, None) for name in ("mlx", "mlx.core")}
     yield site
     sys.modules.pop("fakemlx", None)
+    for name, module in real_mlx.items():
+        sys.modules.pop(name, None)
+        if module is not None:
+            sys.modules[name] = module

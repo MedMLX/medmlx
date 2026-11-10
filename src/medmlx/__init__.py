@@ -19,6 +19,7 @@ from medmlx.api import (
     setup_model,
     setup_plan,
     start,
+    start_cohort,
     summarize_output,
 )
 from medmlx.outputs import convert_dicom, list_dicom_series
@@ -45,5 +46,6 @@ __all__ = [
     "setup_model",
     "setup_plan",
     "start",
+    "start_cohort",
     "summarize_output",
 ]

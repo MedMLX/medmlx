@@ -641,6 +641,49 @@ def start(
     return ModelRun(jobs, submitted["job_id"])
 
 
+def start_cohort(
+    model_id: str, *, preparation: dict[str, JsonValue],
+    cases: Sequence[dict[str, JsonValue]], root: str | Path | None = None,
+) -> ModelRun:
+    """Start a finite cohort with one prepared model in one supervised worker.
+
+    The provider must declare a ``cohort`` factory with ``run(**case)`` and
+    ``close()`` hooks. ``preparation`` fixes weights and model configuration;
+    ``cases`` contains 1..256 case argument objects, processed in input order.
+    ``wait()`` returns ``result.cases`` entries with ``index``, ``ok`` and a
+    ``result`` or ``error``; ordinary case failures do not stop later cases.
+    The worker closes automatically after the last case. Its admission claim
+    covers loading through close; cancellation stops its entire process group.
+    Start another cohort to select different weights or configuration.
+    """
+    from medmlx.cohort import MAX_CASES
+
+    directory = Path.cwd() if root is None else Path(root).resolve()
+    if not directory.is_dir():
+        raise NotADirectoryError(directory)
+    if not 1 <= len(cases) <= MAX_CASES:
+        raise ValueError(f"A cohort requires 1..{MAX_CASES} cases")
+    spec = registry.get_model(model_id)
+    if spec.cohort is None:
+        raise ValueError(f"{model_id} does not declare a prepared cohort adapter")
+    try:
+        inspect.signature(registry.resolve(spec.cohort)).bind(**preparation)
+    except TypeError as error:
+        raise ValueError(f"Invalid preparation for {model_id}: {error}") from error
+    mlx = runtime_info()["mlx"]
+    if not mlx["usable"]:
+        raise RuntimeError(f"MLX is not usable: {mlx.get('reason')}. {_MLX_HINT}")
+    jobs = Jobs(directory)
+    try:
+        job = jobs.start(model_id, "medmlx.cohort:run",
+                         {"prepare": spec.cohort, "preparation": preparation, "cases": list(cases)},
+                         peak_memory_gb=spec.peak_memory_gb, version=spec.version)
+    except BaseException:
+        jobs.close()
+        raise
+    return ModelRun(jobs, job.job_id)
+
+
 def run(
     model_id: str,
     *,

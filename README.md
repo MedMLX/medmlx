@@ -176,6 +176,25 @@ result = medmlx.run(
 )
 ```
 
+For a model declaring a `cohort` adapter, queue up to 256 cases with one prepared
+model. The liver adapter supports this explicitly:
+
+```python
+with medmlx.start_cohort(
+    "nnunet-liver",
+    preparation={"weights_path": "liver-model"},
+    cases=[
+        {"image_path": "ct-a.nii.gz", "output_dir": "out-a"},
+        {"image_path": "ct-b.nii.gz", "output_dir": "out-b"},
+    ],
+) as cohort:
+    cases = cohort.wait()["result"]["cases"]
+```
+
+Cases run in order and report individual results or errors. Weights and model
+configuration stay fixed until the cohort closes automatically after its final
+case. Leaving the context early cancels the worker and its child processes.
+
 ## More
 
 - [Reason-CT with nodule tools](https://github.com/MedMLX/medmlx/blob/main/docs/reason-ct-tools.md):

@@ -29,6 +29,9 @@ false; providers whose assets must be supplied by hand set ``setup_supported`` f
 that runs other models sets ``weights_from`` to a mapping from each weight
 argument to the model ID whose automatic weights it uses, such as
 ``{"detector_weights_path": "lung-nodule"}``; setup then prepares those models.
+An optional ``cohort`` reference names a preparation factory whose returned
+object provides ``run(**case)`` and ``close()`` in one supervised worker.
+Weights and configuration belong to preparation, not per-case arguments.
 Other fields are ignored and reported as discovery warnings, so a declaration
 written for a newer MedMLX still loads.
 ``id`` uses lowercase letters, digits, ``.``, ``_``
@@ -65,7 +68,7 @@ ENTRY_POINT_GROUP = "medmlx.models"
 _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _REFERENCE = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_][\w.]*$")
 _REQUIRED = ("id", "label", "task", "run")
-_OPTIONAL = ("readiness", "summary")
+_OPTIONAL = ("readiness", "summary", "cohort")
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +91,8 @@ class ModelSpec:
     peak_memory_gb: float | None = None
     #: (run argument, model ID) pairs for workflows that reuse other models' weights.
     weights_from: tuple[tuple[str, str], ...] = ()
+    #: Factory for a prepared object with run(**case) and close(), in one worker.
+    cohort: str | None = None
 
     def label_names(self) -> dict[int, str]:
         """Return the declared output label names by integer value."""
@@ -101,7 +106,7 @@ class ModelSpec:
 
     def to_payload(self) -> ModelPayload:
         """Return the declaration as a JSON-serializable mapping."""
-        return {
+        payload: ModelPayload = {
             "id": self.id,
             "label": self.label,
             "task": self.task,
@@ -113,6 +118,9 @@ class ModelSpec:
             "entry_point": self.entry_point,
             "requires_weights": self.requires_weights,
         }
+        if self.cohort is not None:
+            payload["cohort"] = self.cohort
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -338,7 +346,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
     model_id = cast(str, fields["id"])
     if not _ID.match(model_id):
         raise ValueError(f"id {model_id!r} must be lowercase letters, digits, '.', '_', or '-'")
-    for key in ("run", "readiness"):
+    for key in ("run", "readiness", "cohort"):
         reference = fields[key]
         if reference is not None and not _REFERENCE.match(reference):
             raise ValueError(f"field {key!r} must be a 'module:attribute' reference")
@@ -368,6 +376,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         requires_weights=requires_weights,
         setup_supported=setup_supported,
         weights_from=weights_from,
+        cohort=fields["cohort"],
     )
     return spec, unknown
 

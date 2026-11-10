@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from medmlx.jobs import Jobs
+from medmlx.payloads import JsonValue
 from tests.conftest import BROKEN_MLX, set_mlx
 
 _RUNNER = """
@@ -42,6 +43,15 @@ def run(*, pid_path, outcome):
     if outcome == "running":
         time.sleep(60)
     return {}
+
+class Prepared:
+    def run(self, **case):
+        return run(**case)
+    def close(self):
+        pass
+
+def prepare():
+    return Prepared()
 """
 
 _ENVIRONMENT_RUNNER = """
@@ -175,15 +185,19 @@ def run():
 @pytest.mark.parametrize(
     ("outcome", "close_session"), [("completed", False), ("crash", False), ("running", True)],
 )
+@pytest.mark.parametrize("cohort", [False, True])
 def test_worker_exit_or_session_close_stops_children(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, outcome: str, close_session: bool,
+    cohort: bool,
 ) -> None:
     _install(tmp_path, monkeypatch, "child_runner", _RUNNER)
     pid_path = tmp_path / "child.pid"
     jobs = Jobs(tmp_path)
     try:
-        job = jobs.start("child-test", "child_runner:run",
-                         {"pid_path": str(pid_path), "outcome": outcome})
+        case: dict[str, JsonValue] = {"pid_path": str(pid_path), "outcome": outcome}
+        job = (jobs.start("child-test", "medmlx.cohort:run",
+                          {"prepare": "child_runner:prepare", "preparation": {}, "cases": [case]})
+               if cohort else jobs.start("child-test", "child_runner:run", case))
         assert _wait(pid_path.exists), job.to_payload()
         child_pid = int(pid_path.read_text())
         if close_session:

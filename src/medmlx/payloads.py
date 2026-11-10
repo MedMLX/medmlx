@@ -120,6 +120,7 @@ class ModelPayload(TypedDict):
     readiness: str | None
     entry_point: str
     requires_weights: bool
+    cohort: NotRequired[str]
 
 
 class ModelListItem(ModelPayload):
