@@ -187,11 +187,6 @@ _SOURCES = {
         revision="b72a14d8127e17e6f2a3d2e075bbbf4307ba146e",
     ),
     # Model card linked by segresnet-mlx/README.md@v0.3.3.
-    "segresnet-brats": _HubSource(
-        "MedMLX/segresnet-brats-mlx",
-        revision="14f9cda3649965729663c7365c49fd839c81a01b",
-    ),
-    # Model card linked by segresnet-mlx/README.md@v0.3.3.
     "segresnet-renal-cect": _HubSource(
         "MedMLX/segresnet-renal-cect-mlx",
         revision="fa67ec6dca88f1dbbf6f52d6061b34ddefe45057",

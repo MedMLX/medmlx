@@ -83,7 +83,7 @@ Model IDs are what `medmlx run` and `medmlx describe` take.
 | `sam3` | Text-, box- or point-prompted image segmentation | 2D images, video frames | segment |
 | `biomedparse-v2` | Text-prompted segmentation | 3D volumes, 2D images | segment |
 | `swin-unetr` | 13 abdominal organs | Contrast CT | segment |
-| `segresnet-brats`, `segresnet-renal-cect` | Brain tumor and renal structures | Brain MRI, multiphase CT | segment |
+| `segresnet-renal-cect` | Renal arteries, veins, ureters, tumors and parenchyma | Multiphase CT | segment |
 | `unest` | Kidney cortex, medulla and collecting system | CT | segment |
 | `flexray` | Radiograph anatomy | Radiographs | segment |
 | `flexible-unet` | Surgical tools | Endoscopy frames | segment |
@@ -120,7 +120,7 @@ either way, so a Mac with too little memory may swap or fail. Declared peaks:
 | `unest` | 7.3 GB |
 | `mlx-segment-ct` | 6.0 GB |
 | `sam3` | 5.4 GB |
-| `totalsegmentator`, `segresnet-brats` | 5.0 GB |
+| `totalsegmentator` | 5.0 GB |
 | `nnunet-autopet` | 4.8 GB |
 | `segresnet-renal-cect` | 4.1 GB |
 | `biomedparse-v2` | 3.9 GB |

@@ -75,8 +75,6 @@ PINNED_BUNDLES = [
      "fd1c2663266360c899211c9a23ffc24f805d282a"),
     ("sam3", "mlx-community/sam3-image",
      "b72a14d8127e17e6f2a3d2e075bbbf4307ba146e"),
-    ("segresnet-brats", "MedMLX/segresnet-brats-mlx",
-     "14f9cda3649965729663c7365c49fd839c81a01b"),
     ("segresnet-renal-cect", "MedMLX/segresnet-renal-cect-mlx",
      "fa67ec6dca88f1dbbf6f52d6061b34ddefe45057"),
     ("swin-unetr", "MedMLX/swin-unetr-mlx",

@@ -29,8 +29,8 @@ Run details record the downloaded Hub commit as `weights_revision`; for local
 folders, it is `null` unless known. Explicit paths are used as supplied.
 
 Variants are model IDs, including `nnunet-liver`, `nnunet-autopet`,
-`segresnet-brats`, `segresnet-renal-cect`, `mlx-generate-ctmr-ct`, `mlx-generate-ctmr-mr`
-and `mlx-generate-ctmr-mr-brain`. No separate setup IDs or bundle arguments are needed.
+`segresnet-renal-cect`, `mlx-generate-ctmr-ct`, `mlx-generate-ctmr-mr` and
+`mlx-generate-ctmr-mr-brain`. No separate setup IDs or bundle arguments are needed.
 Weight-free models, such as radiomics and FDG PET synthesis, do not download
 weights; their actual image, mask and profile inputs remain explicit.
 
