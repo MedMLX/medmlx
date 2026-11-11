@@ -184,6 +184,7 @@ def array_cases() -> tuple[dict[str, HostArray], dict[str, list[ArrayCase]]]:
         "linear_x": random((2, 4)),
         "linear_w": random((3, 4)),
         "bad_rank": random((2, 3)),
+        # No case reads "skip"; drawing it keeps the later seeded arrays unchanged.
         "skip": random((1, 2, 2, 4, 6)),
         "half": random((1, 2, 1, 2, 3)).astype(np.float16),
     }
@@ -280,9 +281,6 @@ def _add_decoder_cases(add: AddCase) -> None:
     add("upsample", "deconv2x_ncdhw", ["small", "bad_rank", None], error=ValueError)
     add("upsample", "deconv2x_ncdhw", ["small", "w", None], error=ValueError)
     add("upsample", "deconv2x_ncdhw", ["small", "wd", "norm_bias"], error=ValueError)
-    add("upsample", "upsample_add_ncdhw", ["small", "skip"])
-    add("upsample", "upsample_add_ncdhw", ["half", "skip"], error=TypeError)
-    add("upsample", "upsample_add_ncdhw", ["small", "x"], error=ValueError)
 
 
 def _add_precision_cases(add: AddCase, arrays: dict[str, HostArray], random: RandomArray) -> None:

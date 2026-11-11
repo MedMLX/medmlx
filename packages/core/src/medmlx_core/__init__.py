@@ -59,7 +59,7 @@ from medmlx_core.runtime import (
     require_mlx_device,
     require_mlx_runtime,
 )
-from medmlx_core.upsample import deconv2x_ncdhw, upsample_add_ncdhw
+from medmlx_core.upsample import deconv2x_ncdhw
 from medmlx_core.weights import DownloadProgress, weights_dir, weights_revision
 
 # Set the default before this package runs MLX operations. An earlier MLX
@@ -111,7 +111,6 @@ __all__ = [
     "to_ndhwc",
     "tokens_from_ncdhw",
     "tokens_to_ncdhw",
-    "upsample_add_ncdhw",
     "upsample_nearest_ncdhw",
     "upsample_trilinear_ncdhw",
     "weights_dir",

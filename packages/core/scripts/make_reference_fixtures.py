@@ -154,10 +154,6 @@ def reference(
         weight = args[1]
         assert weight is not None, "The deconvolution case requires a weight tensor"
         return F.conv_transpose3d(x, weight, args[2], stride=2)
-    if case.function == "upsample_add_ncdhw":
-        skip = args[1]
-        assert skip is not None, "The upsample-add case requires a skip tensor"
-        return F.interpolate(x, scale_factor=2, mode="trilinear", align_corners=False) + skip
     if name == "precision" and case.function == "conv":
         weight = args[1]
         assert weight is not None, "The convolution case requires a weight tensor"

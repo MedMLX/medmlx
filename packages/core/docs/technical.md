@@ -44,7 +44,7 @@ version or source revision. Reference frameworks are absent from runtime imports
 | `layout.py` | NCDHW/NDHWC, convolution-weight and token permutations; plain NumPy float64 reference |
 | `ops.py` | SiLU, linear, conv3d, conv_transpose3d, GroupNorm, pooling, interpolation, padding and concatenation; PyTorch functional operations |
 | `ops.py` split convolutions | Actual MONAI `MaisiConvolution`, including its overlap, integer size-ratio checks and crop semantics |
-| `upsample.py` | Kernel=stride=2 transpose convolution and fused trilinear interpolation + skip addition; PyTorch functional operations |
+| `upsample.py` | Kernel=stride=2 transpose convolution; PyTorch functional operations |
 | `precision.py` | Metal FP32 convolution and GroupNorm versus PyTorch; custom epsilon decomposition and Welford moments versus NumPy float64 |
 | `sliding_window.py` | MONAI `inferers/utils.py` and `data/utils.py` |
 | `channel_last.py` | PyTorch layers, MONAI Swish and `UnetResBlock`; individual layers and complete seeded 2D/3D graphs |

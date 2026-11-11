@@ -1,131 +1,20 @@
-"""Float32 decoder fusions for NCDHW SegResNet inference on MLX Metal.
+"""Float32 2x transposed convolution for NCDHW decoders on MLX Metal.
 
-``upsample_add_ncdhw`` fuses 2x trilinear upsampling with the skip addition in one
-Metal kernel, and ``deconv2x_ncdhw`` computes a 2x transposed convolution with
-an ordered FP32 projection. Both cover the pinned SegResNet decoder configuration only.
+``deconv2x_ncdhw`` computes a kernel=stride=2 transposed convolution with an
+ordered FP32 projection. It covers the pinned SegResNet decoder configuration only.
 """
 
 from __future__ import annotations
 
 from functools import cache
-from math import prod
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mlx.core import array as Array
 
 from medmlx_core.layout import require_ncdhw
 from medmlx_core.precision import Float32Operators as _Float32Operators
-from medmlx_core.typing import MetalKernel, MlxRuntime
-
-# Half-pixel coordinates implement PyTorch align_corners=False interpolation.
-_SOURCE = """
-uint idx = thread_position_in_grid.x;
-if (idx >= N * C * OD * OH * OW) return;
-uint n, c, oz, oy, ox;
-if (CHANNELS_LAST) {
-    c = idx % C;
-    uint v = idx / C;
-    ox = v % OW; oy = (v / OW) % OH; oz = (v / (OW * OH)) % OD;
-    n = v / (OW * OH * OD);
-} else {
-    ox = idx % OW; oy = (idx / OW) % OH; oz = (idx / (OW * OH)) % OD;
-    c = (idx / (OW * OH * OD)) % C;
-    n = idx / (OW * OH * OD * C);
-}
-int x0 = int(ox / 2) - ((ox & 1) == 0 ? 1 : 0);
-int y0 = int(oy / 2) - ((oy & 1) == 0 ? 1 : 0);
-int z0 = int(oz / 2) - ((oz & 1) == 0 ? 1 : 0);
-float tx = (ox & 1) ? 0.25f : 0.75f;
-float ty = (oy & 1) ? 0.25f : 0.75f;
-float tz = (oz & 1) ? 0.25f : 0.75f;
-// Clamp the coordinate before weighting, including singleton input axes.
-if (x0 < 0 || x0 >= W - 1) tx = 0.0f;
-if (y0 < 0 || y0 >= H - 1) ty = 0.0f;
-if (z0 < 0 || z0 >= D - 1) tz = 0.0f;
-x0 = clamp(x0, 0, W - 1); y0 = clamp(y0, 0, H - 1); z0 = clamp(z0, 0, D - 1);
-int x1 = min(x0 + 1, W - 1), y1 = min(y0 + 1, H - 1), z1 = min(z0 + 1, D - 1);
-int ca = CHANNELS_LAST ? 4 : 1;
-int za = CHANNELS_LAST ? 1 : 2;
-int ya = CHANNELS_LAST ? 2 : 3;
-int xa = CHANNELS_LAST ? 3 : 4;
-long base = long(n) * x_strides[0] + long(c) * x_strides[ca];
-long a000 = base + long(z0)*x_strides[za] + long(y0)*x_strides[ya] + long(x0)*x_strides[xa];
-long a001 = base + long(z0)*x_strides[za] + long(y0)*x_strides[ya] + long(x1)*x_strides[xa];
-long a010 = base + long(z0)*x_strides[za] + long(y1)*x_strides[ya] + long(x0)*x_strides[xa];
-long a011 = base + long(z0)*x_strides[za] + long(y1)*x_strides[ya] + long(x1)*x_strides[xa];
-long a100 = base + long(z1)*x_strides[za] + long(y0)*x_strides[ya] + long(x0)*x_strides[xa];
-long a101 = base + long(z1)*x_strides[za] + long(y0)*x_strides[ya] + long(x1)*x_strides[xa];
-long a110 = base + long(z1)*x_strides[za] + long(y1)*x_strides[ya] + long(x0)*x_strides[xa];
-long a111 = base + long(z1)*x_strides[za] + long(y1)*x_strides[ya] + long(x1)*x_strides[xa];
-float l00 = (1.0f-tx)*x[a000] + tx*x[a001];
-float l01 = (1.0f-tx)*x[a010] + tx*x[a011];
-float l10 = (1.0f-tx)*x[a100] + tx*x[a101];
-float l11 = (1.0f-tx)*x[a110] + tx*x[a111];
-float l0 = (1.0f-ty)*l00 + ty*l01;
-float l1 = (1.0f-ty)*l10 + ty*l11;
-float value = (1.0f-tz)*l0 + tz*l1;
-long s = long(n)*skip_strides[0] + long(c)*skip_strides[ca]
-       + long(oz)*skip_strides[za] + long(oy)*skip_strides[ya] + long(ox)*skip_strides[xa];
-out[idx] = value + skip[s];
-"""
-
-
-@cache
-def _kernel(mx: MlxRuntime) -> MetalKernel:
-    return cast(
-        MetalKernel,
-        mx.fast.metal_kernel(
-            name="medmlx_segresnet_trilinear2x_add",
-            input_names=["x", "skip"],
-            output_names=["out"],
-            source=_SOURCE,
-            header="#pragma clang fp contract(off)\n",
-            ensure_row_contiguous=False,
-            compile_options={"math_mode": "safe"},
-        ),
-    )
-
-
-def upsample_add_ncdhw(values: Array, skip: Array, *, mx: MlxRuntime) -> Array:
-    """Fuse align_corners=False 2x trilinear interpolation and skip addition on Metal.
-
-    Args:
-        values: Float32 ``(N, C, D, H, W)`` decoder input.
-        skip: Float32 ``(N, C, 2D, 2H, 2W)`` encoder skip tensor.
-        mx: MLX module.
-
-    Returns:
-        Float32 ``(N, C, 2D, 2H, 2W)`` array computed from interpolated ``values``
-        plus ``skip``. Floating-point rounding can differ from another backend.
-
-    Raises:
-        TypeError: An input is not float32.
-        ValueError: An input is not rank 5, ``skip`` has the wrong shape, or the
-            output element count exceeds the 32-bit Metal index limit.
-    """
-    require_ncdhw(values, name="decoder input")
-    require_ncdhw(skip, name="decoder skip")
-    if values.dtype != mx.float32 or skip.dtype != mx.float32:
-        raise TypeError("SegResNet decoder fusion requires float32 inputs")
-    n, c, d, h, w = values.shape
-    shape = (n, c, 2 * d, 2 * h, 2 * w)
-    if skip.shape != shape:
-        raise ValueError(f"Decoder skip shape {skip.shape} must equal {shape}")
-    count = prod(shape)
-    if count > 2**31 - 1:
-        raise ValueError("SegResNet decoder fusion exceeds the Metal index limit")
-    return _kernel(mx)(
-        inputs=[values, skip],
-        template=list(
-            dict(N=n, C=c, D=d, H=h, W=w, OD=2 * d, OH=2 * h, OW=2 * w, CHANNELS_LAST=False).items()
-        ),
-        grid=(((count + 255) // 256) * 256, 1, 1),
-        threadgroup=(256, 1, 1),
-        output_shapes=[shape],
-        output_dtypes=[mx.float32],
-        stream=mx.gpu,
-    )[0]
+from medmlx_core.typing import MlxRuntime
 
 
 @cache

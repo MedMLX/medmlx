@@ -44,7 +44,6 @@ This measures upstream FP32 rounding; it does not substitute for Metal testing.
 | `test_equivalence.py::test_upstream_outputs[ops.split_conv3d_ncdhw_19]` | Stride-2 split/crop matches upstream; compare numerically. |
 | `test_equivalence.py::test_upstream_outputs[ops.avg_pool3d_ncdhw_23]` | Eight-value FP32 average reductions need a rounding budget. |
 | `test_equivalence.py::test_upstream_outputs[ops.upsample_trilinear_ncdhw_27]` | Separable interpolation changes weighted-sum order. |
-| `test_equivalence.py::test_upstream_outputs[upsample.upsample_add_ncdhw_6]` | Interpolated sums and the skip addition need a rounding budget. |
 | `test_equivalence.py::test_upstream_outputs[precision.conv_1]` | Metal FP32 matrix accumulation differs from Torch CPU convolution. |
 | `test_equivalence.py::test_upstream_outputs[precision.conv_2]` | The same issue applies without bias. |
 | `test_equivalence.py::test_upstream_outputs[precision._moments_3]` | FP32 Welford is compared to a NumPy float64 population reference. |

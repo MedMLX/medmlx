@@ -57,29 +57,3 @@ def test_deconv2x_matches_torch_repeated(
         mx.eval(actual)
         host = cast(HostArray, np.asarray(actual))
         assert_reference(host, expected, budget="dot")
-
-
-@pytest.mark.parametrize("strided", [False, True])
-def test_decoder_fusion_matches_torch_at_borders_and_singleton_axes(strided: bool) -> None:
-    from medmlx_core.upsample import upsample_add_ncdhw
-
-    mx = cast(MlxRuntime, import_mlx())
-    pytest.importorskip("torch")
-    import torch
-
-    from_numpy = cast(Callable[[HostArray], torch.Tensor], vars(torch)["from_numpy"])
-    rng = np.random.default_rng(42)
-    values = rng.normal(size=(2, 3, 1, 3, 5)).astype(np.float32)
-    skip = rng.normal(size=(2, 3, 2, 6, 10)).astype(np.float32)
-    expected = (
-        torch.nn.functional.interpolate(
-            from_numpy(values.copy()), scale_factor=2, mode="trilinear", align_corners=False
-        ).numpy()
-        + skip
-    )
-    inputs = [mx.array(v) for v in (values, skip)]
-    if strided:
-        inputs = [mx.array(v.swapaxes(1, 4).copy()).swapaxes(1, 4) for v in (values, skip)]
-    actual = upsample_add_ncdhw(*inputs, mx=mx)
-    mx.eval(actual)
-    assert_reference(cast(HostArray, np.asarray(actual)), expected, budget="interpolation")

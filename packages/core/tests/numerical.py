@@ -79,5 +79,4 @@ def helper_budget(module: str, function: str) -> str:
         "norm": "normalization",
         "_moments": "moments",
         "upsample_trilinear_ncdhw": "interpolation",
-        "upsample_add_ncdhw": "interpolation",
     }[function]
