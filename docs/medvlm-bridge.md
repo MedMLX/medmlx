@@ -13,7 +13,7 @@ Save this as `arguments.json`, replacing the paths with your own:
   "weights_path": "models/medgemma",
   "prompt": "Describe the visible image features.",
   "output_dir": "results/example",
-  "max_new_tokens": 256,
+  "max_new_tokens": 2000,
   "timeout_seconds": 300,
   "overwrite": false
 }
@@ -39,7 +39,7 @@ tensor matching.
 | --- | --- |
 | `image_path` | One local PNG or JPEG |
 | `prompt` | 1–16384 Unicode characters, with nonblank text |
-| `max_new_tokens` | 1–2048 |
+| `max_new_tokens` | 1–2048; 2000 by default, as in Google's model card examples |
 | `timeout_seconds` | 1–3600 seconds for helper startup, loading and generation |
 | `overwrite` | Set to `true` to replace an existing report |
 

@@ -257,7 +257,7 @@ def _run(
 
 def medgemma(
     *, image_path: str, prompt: str, output_dir: str, weights_path: str | None = None,
-    max_new_tokens: int = 256, timeout_seconds: float = 300, overwrite: bool = False,
+    max_new_tokens: int = 2000, timeout_seconds: float = 300, overwrite: bool = False,
 ) -> dict[str, object]:
     """Generate text from a local MedGemma folder in a managed isolated runtime.
 
@@ -277,7 +277,8 @@ def medgemma(
         prompt: Nonblank text, at most 16384 Unicode characters (bridge limit).
         output_dir: Directory for report.json containing text, token counts and
             provisional status. Must be outside the checkpoint directory.
-        max_new_tokens: Integer output-token limit in [1, 2048] (bridge limit).
+        max_new_tokens: Integer output-token limit in [1, 2048] (bridge limit). The
+            default, 2000, is the value in Google's model card examples.
         timeout_seconds: Wall-clock seconds for helper startup, load and generation,
             finite in [1, 3600]. Supervised cancellation stops its process group.
         overwrite: Replace report.json atomically; false refuses existing output.
