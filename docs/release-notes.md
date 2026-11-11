@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.8.0
+
+### Breaking changes
+
+**MedGemma answers can run to 2000 new tokens by default, up from 256.** The `medgemma` default for `max_new_tokens` now follows Google's MedGemma 1.5 model card, which uses 2000 in its examples, and matches `mc-medgemma` 0.2.0 on CUDA. Answers that ended on their own before 256 tokens are unchanged; longer answers continue instead of stopping at 256. Pass `max_new_tokens=256` to keep the old limit.
+
 ## 0.7.0
 
 ### Breaking changes
