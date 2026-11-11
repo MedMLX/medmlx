@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.9.0
+
+### Breaking changes
+
+**`segresnet-brats` is removed, and `medmlx` requires [`segresnet-mlx` 0.4](https://github.com/MedMLX/segresnet-mlx/releases/tag/v0.4.0).** Use `nnunet-brats2021` for BraTS brain tumor segmentation. `segresnet-renal-cect` is unchanged.
+
 ## 0.8.0
 
 ### Breaking changes

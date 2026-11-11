@@ -586,7 +586,7 @@ wheels = [
 
 [[package]]
 name = "medmlx"
-version = "0.8.0"
+version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "medmlx-core" },
@@ -724,8 +724,8 @@ requires-dist = [
     { name = "sam3-mlx", extras = ["video"], marker = "extra == 'segment'", specifier = ">=0.3.0,<0.4" },
     { name = "scipy", marker = "extra == 'all'", specifier = ">=1.18,<2" },
     { name = "scipy", marker = "extra == 'reason-tools'", specifier = ">=1.18,<2" },
-    { name = "segresnet-mlx", marker = "extra == 'all'", specifier = ">=0.3.3,<0.4" },
-    { name = "segresnet-mlx", marker = "extra == 'segment'", specifier = ">=0.3.3,<0.4" },
+    { name = "segresnet-mlx", marker = "extra == 'all'", specifier = ">=0.4.0,<0.5" },
+    { name = "segresnet-mlx", marker = "extra == 'segment'", specifier = ">=0.4.0,<0.5" },
     { name = "simpleitk", marker = "extra == 'all'", specifier = ">=2.5,<3" },
     { name = "simpleitk", marker = "extra == 'dicom'", specifier = ">=2.5,<3" },
     { name = "swin-unetr-mlx", marker = "extra == 'all'", specifier = ">=0.2.6,<0.3" },
@@ -1346,7 +1346,7 @@ wheels = [
 
 [[package]]
 name = "segresnet-mlx"
-version = "0.3.3"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "medmlx-core" },
@@ -1354,9 +1354,9 @@ dependencies = [
     { name = "nibabel" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/1e/bdd664d1cd00572e7302c525a02dd8ba2c448341c0a78b18b73c118bdd42/segresnet_mlx-0.3.3.tar.gz", hash = "sha256:223ee83780dc1faf8516210226b1183ad0409d5b692150fe1b2251eac94c7eef", size = 40393, upload-time = "2026-11-01T03:53:36.41Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/42/21a8a2515164d7e194728b06213a3953df1754bc7897417c53b9ee9a9959/segresnet_mlx-0.4.0.tar.gz", hash = "sha256:04b16328c5696100de4a70d9d224f3d71f46a9a73e9c9f745812753abcfbde72", size = 35212, upload-time = "2026-11-11T19:42:02.994Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/2c/c00cc537c34ee8479bb350ecc97826797dbe281c2195a8d00df06993b2c6/segresnet_mlx-0.3.3-py3-none-any.whl", hash = "sha256:2653b3dda1406002436fe9d7dbdf22a9378c94ae6ed85539a627cbc151a408dd", size = 47521, upload-time = "2026-11-01T03:53:35.489Z" },
+    { url = "https://files.pythonhosted.org/packages/04/88/e0cf0e38ed7489353ae20c046b6f8e200bf48eb2e55be7b8f150a8ed0511/segresnet_mlx-0.4.0-py3-none-any.whl", hash = "sha256:ed5a07862598db4eea211ef8605b032b06f3c5b345ec6651fc2c276a09a0f273", size = 42591, upload-time = "2026-11-11T19:42:02.003Z" },
 ]
 
 [[package]]

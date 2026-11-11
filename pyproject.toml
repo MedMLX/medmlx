@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.8.0"
+version = "0.9.0"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -39,7 +39,7 @@ segment = [
   "biomedparse-mlx>=0.1.5,<0.2",
   "flexible-unet-mlx>=0.2.6,<0.3",
   "swin-unetr-mlx>=0.2.6,<0.3",
-  "segresnet-mlx>=0.3.3,<0.4",
+  "segresnet-mlx>=0.4.0,<0.5",
   "medsam2-mlx>=0.3.0,<0.4",
   "mlx-segment-ct>=0.3.5,<0.4",
   "unest-mlx>=0.2.7,<0.3",
@@ -81,7 +81,7 @@ all = [
   "mlxradiomics>=1.0.0,<1.1",
   "nnunet-mlx>=0.8.0,<0.9",
   "radimagenet-mlx>=0.3.3,<0.4",
-  "segresnet-mlx>=0.3.3,<0.4",
+  "segresnet-mlx>=0.4.0,<0.5",
   "swin-unetr-mlx>=0.2.6,<0.3",
   "synthseg-mlx>=0.3.4,<0.4",
   "totalsegmentator-mlx>=0.2.0,<0.3",
