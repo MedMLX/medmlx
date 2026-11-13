@@ -147,10 +147,12 @@ def load_fixture(name: str) -> tuple[FixtureMetadata, dict[str, HostArray]]:
     Raises ``FileNotFoundError`` if it is missing and ``ValueError`` if it was not
     recorded against the pinned upstream revisions.
     """
-    path = FIXTURES / f"{name}.npz"
+    root = (Path(__file__).resolve().parents[3] / "work/real-reference/core"
+            if name in {"sliding_window_constant", "sliding_window_gaussian"} else FIXTURES)
+    path = root / f"{name}.npz"
     if not path.is_file():
         raise FileNotFoundError(
-            f"Missing upstream reference: {path}; run the README fixture commands"
+            f"Missing upstream reference: {path}; run the docs/technical.md fixture commands"
         )
     with np.load(path, allow_pickle=False) as archive:
         metadata = FixtureMetadata.from_json(str(archive["metadata"]))

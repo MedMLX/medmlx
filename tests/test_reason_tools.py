@@ -26,29 +26,33 @@ from medmlx.workflows.ct_geometry import (
     restore_mask,
 )
 from medmlx.workflows.reason_ct import run
+from tests._medical_images import ct_crop
 
 
 def image_fixture(directory: Path, orientation: str = "ras") -> tuple[Path, NDArray[np.uint8]]:
-    """Make an asymmetric lesion whose physical centroid and volume are analytic."""
+    """Place a real CT crop and a controlled ROI on the requested physical grid."""
     labels = np.zeros((11, 13, 9), dtype=np.uint8)
     labels[2:5, 7:9, 3:6] = 1
+    data = ct_crop((11, 13, 9))
     affine = np.diag([2.0, 3.0, 4.0, 1.0])
     affine[:3, 3] = [-50, -80, -100]
     units = "mm"
     if orientation == "lps":
         labels = labels[::-1, ::-1, :]
+        data = data[::-1, ::-1, :]
         affine = affine @ np.asarray(
             [[-1, 0, 0, 10], [0, -1, 0, 12], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float64
         )
     elif orientation == "permuted":
         labels = labels.transpose(2, 0, 1)
+        data = data.transpose(2, 0, 1)
         affine = affine @ np.asarray(
             [[0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=np.float64
         )
     elif orientation in {"meter", "micron"}:
         units = orientation
         affine[:3] *= 0.001 if units == "meter" else 1000
-    image = nib.Nifti1Image(np.asarray(-900 + labels.astype(np.float32) * 600), affine)
+    image = nib.Nifti1Image(data, affine)
     image.header.set_xyzt_units(units)
     path = directory / "ct.nii.gz"
     nib.save(image, path)
@@ -95,8 +99,10 @@ def test_detector_prompt_and_mask_roundtrip_in_physical_space(
     candidate = candidates[0]
     np.testing.assert_allclose(candidate.box_xyxy, [1.5, 6.5, 4.5, 8.5], atol=2e-6)
     assert candidate.frame_idx == 4 and outside == 0 and not scan.resampled
-    # Independent synthetic segmenter: the HU lesion itself defines the mask.
-    labels = np.asarray(scan.working.get_fdata() > -600, dtype=np.uint8)
+    # Reorient the controlled labels independently of the workflow's image handling.
+    labels = np.asarray(nib.as_closest_canonical(
+        nib.Nifti1Image(expected, scan.original.affine),
+    ).get_fdata(), dtype=np.uint8)
     mask_path = tmp_path / "working_mask.nii.gz"
     nib.save(nib.Nifti1Image(labels, scan.working.affine, scan.working.header), mask_path)
     measurement = restore_mask(scan, candidate, mask_path, tmp_path / "native.nii.gz")
@@ -162,7 +168,7 @@ def test_oblique_resampling_preserves_a_world_space_sphere(tmp_path: Path) -> No
         dtype=np.float64,
     )
     shape = (21, 23, 19)
-    original = nib.Nifti1Image(np.full(shape, -700, dtype=np.float32), affine)
+    original = nib.Nifti1Image(ct_crop(shape), affine)
     original.header.set_xyzt_units("mm")
     source = tmp_path / "ct.nii.gz"
     nib.save(original, source)

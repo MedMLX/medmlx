@@ -22,6 +22,7 @@ from medmlx_convert.boundary import (
 )
 from medmlx_convert.check import CoreMLProfile, export_and_check
 from medmlx_convert.guidance import BuildProfile
+from medmlx_convert.image_inputs import ct_tensor
 from medmlx_convert.precision import SourceDevice
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.rewrites import COREAI_3D, COREML_3D
@@ -116,7 +117,7 @@ def export_nnunet_folds(
     for fold in folds:
         checkpoint = folder / f"fold_{fold}" / "checkpoint_final.pth"
         network = load_nnunet_network(folder, fold)
-        image = torch.randn(network.input_shape, generator=torch.Generator().manual_seed(0))
+        image = ct_tensor(network.input_shape)
         passed &= export_and_check(
             network.model, {"image": image}, ["logits"], out_dir / f"{name}_fold_{fold}",
             tolerance=1e-2, coreai_swaps=COREAI_3D, coreml_swaps=COREML_3D,

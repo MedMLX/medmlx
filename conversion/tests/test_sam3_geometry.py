@@ -3,7 +3,8 @@
 import torch
 from transformers import Sam3Config, Sam3Model
 
-from medmlx_convert.boundary import function
+from medmlx_convert.boundary import as_tensor, function
+from medmlx_convert.image_inputs import chest_input
 from medmlx_convert.sam3 import OUTPUTS, Sam3TextWithGeometry
 
 
@@ -38,7 +39,7 @@ def test_text_export_matches_a_fully_masked_box() -> None:
     )
     detector = Sam3Model(config).eval()
     wrapped = Sam3TextWithGeometry(detector).eval()
-    image = torch.randn((1, 3, 56, 56))
+    image = as_tensor(function(torch, "from_numpy")(chest_input((56, 56))))
     ids = torch.tensor([[1, 3, 2, *([0] * 29)]])
     mask = torch.tensor([[1, 1, 1, *([0] * 29)]])
     with torch.no_grad():

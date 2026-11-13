@@ -18,6 +18,7 @@ from medmlx_convert.boundary import (
     module_class,
 )
 from medmlx_convert.evidence import LabelMode, LabelRequirement
+from medmlx_convert.image_inputs import chest_tensor
 from medmlx_convert.provenance import BuildSource
 
 REPO = "VictorButoi/flexray"
@@ -55,7 +56,7 @@ snapshot = hf_snapshot(
     REPO, REVISION, ["members/*/config.yml", "members/*/model.safetensors"]
 )
 # flexray-mlx runs one 256x256 radiograph after percentile min-max scaling to [0, 1].
-image = torch.rand((1, 1, 256, 256), generator=torch.Generator().manual_seed(0))
+image = chest_tensor((256, 256), normalized=False, channels=1)
 model_class = fxr_unet()
 passed = True
 for member_name in ("flux000", "flux025", "flux0375", "flux050", "flux075"):

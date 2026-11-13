@@ -20,6 +20,7 @@ import medmlx
 from medmlx.jobs import Jobs
 from medmlx.payloads import JobPayload, JsonValue, ModelDescription, OutputSummary
 from medmlx.server import build_server
+from tests._medical_images import ct_crop
 from tests.conftest import add_distribution
 
 _LABELLED = '''
@@ -47,7 +48,7 @@ def test_outputs_report_named_volumes_and_a_preview(labelled_site: Path, tmp_pat
     mask[10:12, 10:12, 4:6] = 2
     affine = np.diag([2.0, 2.0, 5.0, 1.0])
     nib.save(nib.Nifti1Image(mask, affine), tmp_path / "mask.nii.gz")
-    scan = np.full(mask.shape, -1000, dtype=np.int16)
+    scan = ct_crop((20, 20, 10)).astype(np.int16)
     nib.save(nib.Nifti1Image(scan, affine), tmp_path / "ct.nii.gz")
 
     async def body(client: Client) -> None:
@@ -191,7 +192,8 @@ def test_output_summary_counts_sparse_unsigned_labels(
 
 
 def test_output_summary_treats_many_uint16_values_as_an_image(tmp_path: Path) -> None:
-    data = np.arange(513, dtype=np.uint16).reshape(3, 3, 57)
+    data = (ct_crop((24, 24, 24)) + 2048).astype(np.uint16)
+    assert np.unique(data).size > 512
     path = tmp_path / "intensity-image.nii"
     nib.save(nib.Nifti1Image(data, np.eye(4)), path)
 
@@ -199,7 +201,7 @@ def test_output_summary_treats_many_uint16_values_as_an_image(tmp_path: Path) ->
 
     assert summary["kind"] == "image"
     assert summary["labels"] == []
-    assert summary["value_range"] == [0.0, 512.0]
+    assert summary["value_range"] == [float(data.min()), float(data.max())]
 
 
 @pytest.mark.parametrize("difference", ["origin", "spacing", "shear", "units"])
@@ -216,7 +218,7 @@ def test_preview_rejects_same_shape_on_different_physical_grids(
         affine[2, 2] = 2
     elif difference == "shear":
         affine[0, 1] = 0.2
-    image = nib.Nifti1Image(np.zeros((3, 4, 2), np.int16), affine)
+    image = nib.Nifti1Image(ct_crop((3, 4, 2)).astype(np.int16), affine)
     if difference == "units":
         image.header.set_xyzt_units("meter")
     nib.save(image, scan)
@@ -235,7 +237,7 @@ def test_output_summary_and_preview_use_physical_millimetres(
     image.header.set_xyzt_units(units)
     nib.save(image, mask)
     reference = nib.Nifti1Image(
-        np.zeros((2, 2, 2), np.int16), np.diag([2.0, 3.0, 4.0, 1.0]),
+        ct_crop((2, 2, 2)).astype(np.int16), np.diag([2.0, 3.0, 4.0, 1.0]),
     )
     reference.header.set_xyzt_units("mm")
     nib.save(reference, scan)
@@ -258,8 +260,9 @@ def test_output_summary_uses_voxel_volume_for_sheared_affines(tmp_path: Path) ->
 def dicom_folder(tmp_path: Path) -> Path:
     folder = tmp_path / "dicom"
     folder.mkdir()
+    pixels = ct_crop((4, 5, 3)).astype(np.int16)
     for index in range(3):
-        plane = sitk.GetImageFromArray(np.full((1, 4, 5), index * 10, dtype=np.int16))
+        plane = sitk.GetImageFromArray(pixels[:, :, index][None])
         plane.SetSpacing((0.5, 0.5, 2.0))
         plane.SetOrigin((0.0, 0.0, index * 2.0))
         for tag, value in (("0008|0060", "CT"), ("0020|000e", "1.2.3"), ("0020|000d", "1.2"),

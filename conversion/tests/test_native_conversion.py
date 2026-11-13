@@ -24,6 +24,7 @@ from medmlx_convert.boundary import (
     function,
     library,
 )
+from medmlx_convert.image_inputs import ct_input
 from medmlx_convert.native.capture import convert
 
 _split = cast(Callable[[torch.Tensor, int, int], tuple[torch.Tensor, ...]], torch.split)
@@ -86,7 +87,7 @@ def test_original_networks_roundtrip() -> None:
                                  nonlin=torch.nn.LeakyReLU,
                                  nonlin_kwargs={"negative_slope": 0.01, "inplace": True}))
     model.eval()
-    image = torch.randn((1, 1, 8, 8, 8))
+    image = as_tensor(function(torch, "from_numpy")(ct_input()))
     folder = Path("native") / "network-0"
     convert(model, (image,), folder)
     output, = Session.load(folder)(mx.array(image.numpy()))

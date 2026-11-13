@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from importlib import import_module
+from pathlib import Path
 from typing import cast
 
 import numpy as np
@@ -11,7 +13,14 @@ import torch
 from monai.data.utils import compute_importance_map
 from monai.inferers import utils as inferer_utils
 from monai.transforms.post.array import AsDiscrete
+from numpy.typing import NDArray
 from reference_support import HostArray, output_directory, save_fixture
+
+# reference_support installs the tests path before this helper is imported.
+real_image = cast(
+    Callable[[tuple[int, ...]], NDArray[np.float32]],
+    vars(import_module("real_images"))["real_image"],
+)
 
 sliding_window_inference = cast(
     Callable[..., torch.Tensor | tuple[torch.Tensor, ...] | dict[str, torch.Tensor]],
@@ -29,9 +38,12 @@ def main() -> None:
     to 3 logits with a fixed affine map. ``coordinates`` holds each window's start index
     per spatial axis.
     """
-    root = output_directory(__doc__)
+    root = output_directory(
+        __doc__, default=Path(__file__).resolve().parents[3] / "work/real-reference/core"
+    )
     rng = np.random.default_rng(20261007)
-    inputs = rng.integers(-64, 65, (1, 1, 11, 9, 7)).astype(np.float32) / 64
+    rng.integers(-64, 65, (1, 1, 11, 9, 7))  # Preserve the recorded parameter sequence.
+    inputs = real_image((1, 1, 11, 9, 7))
     weights = rng.integers(-4, 5, (1, 3, 1, 1, 1)).astype(np.float32) / 8
     bias = rng.integers(-4, 5, (1, 3, 1, 1, 1)).astype(np.float32) / 16
     roi = (8, 6, 4)

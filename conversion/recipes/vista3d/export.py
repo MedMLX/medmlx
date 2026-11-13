@@ -17,6 +17,7 @@ from medmlx_convert.boundary import (
     module,
 )
 from medmlx_convert.check import check_source_outputs
+from medmlx_convert.image_inputs import ct_tensor
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.rewrites import COREAI_3D, COREML_3D
 
@@ -56,7 +57,7 @@ state = load_safetensors(weights)
 vista.load_state_dict({key.removeprefix("network."): value for key, value in state.items()})
 
 # One 128^3 sliding-window patch after the bundle's HU scaling to [0, 1].
-image = torch.rand((1, 1, 128, 128, 128), generator=torch.Generator().manual_seed(0))
+image = ct_tensor((1, 1, 128, 128, 128), hu_window=(-1024, 1024))
 class_vector = torch.arange(1, NUM_CLASSES + 1).reshape(-1, 1)
 wrapper = AutomaticSegmentation(vista).eval()
 with torch.no_grad():

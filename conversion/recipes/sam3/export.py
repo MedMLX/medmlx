@@ -3,7 +3,7 @@
 Follows apple/coreai-models' SAM 3 `--full` export: the Hugging Face Sam3Model at 1008x1008,
 returning masks, boxes, logits, presence and semantic segmentation. The exported
 inputs have a fixed 32-token length and attention mask; the recipe checks one
-synthetic image with the prompt ``liver``, not every possible prompt.
+chest radiograph with the fixed prompt ``liver``.
 """
 
 import sys
@@ -25,6 +25,7 @@ from medmlx_convert.boundary import (
     module,
 )
 from medmlx_convert.check import check_source_outputs
+from medmlx_convert.image_inputs import chest_tensor
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.sam3 import OUTPUTS as OUTPUT_NAMES
 from medmlx_convert.sam3 import Sam3TextWithGeometry, load_detector
@@ -75,11 +76,8 @@ def recording_rpb(boxes: torch.Tensor, spatial_shape: object) -> torch.Tensor:
     return as_tensor(rpb_matrix(boxes, grid), "position bias")
 
 
-# A synthetic random tensor at SAM 3's normalized input boundary, and one text prompt.
-# No image preprocessing is exercised by this fixture.
-pixel_values = torch.randn(
-    (1, 3, IMAGE_SIZE, IMAGE_SIZE), generator=torch.Generator().manual_seed(0)
-)
+# A real radiograph at SAM 3's normalized input boundary.
+pixel_values = chest_tensor((IMAGE_SIZE, IMAGE_SIZE))
 input_ids, attention_mask = tokenize(tokenizer, "max_length")
 
 # The fixed-length, masked prompt must give the same result as the prompt alone.

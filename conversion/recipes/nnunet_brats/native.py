@@ -3,8 +3,7 @@
 import argparse
 from pathlib import Path
 
-import torch
-
+from medmlx_convert.image_inputs import ct_tensor
 from medmlx_convert.native.check import convert_and_check
 from medmlx_convert.nnunet import load_nnunet_network
 from medmlx_convert.provenance import BuildSource
@@ -15,7 +14,7 @@ RELEASE = "https://zenodo.org/api/records/11582627/files/Dataset002_BRATS19.zip/
 def main() -> None:
     """Convert fold 0 and print the per-framework maximum absolute difference.
 
-    The checked input is a random cubic patch of ``--patch`` voxels per side.
+    The checked input is a sourced HCC-TACE crop sampled to ``--patch`` voxels per side.
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True, help="Extracted release root")
@@ -30,8 +29,7 @@ def main() -> None:
     checkpoint = folder / "fold_0/checkpoint_final.pth"
     network = load_nnunet_network(folder, 0)
     network.model.eval()
-    image = torch.randn((1, network.input_shape[1], *((options.patch,) * 3)),
-                         generator=torch.Generator().manual_seed(0))
+    image = ct_tensor((1, network.input_shape[1], *((options.patch,) * 3)))
     report = convert_and_check(network.model, (image,), options.out,
                                source=BuildSource.capture(
                                    Path(__file__), checkpoint, origin=RELEASE,

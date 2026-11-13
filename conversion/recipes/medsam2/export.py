@@ -31,6 +31,7 @@ from medmlx_convert.boundary import (
     tensor,
 )
 from medmlx_convert.check import check_source_outputs
+from medmlx_convert.image_inputs import chest_tensor
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.sources import github_source
 
@@ -375,7 +376,7 @@ sam = as_module(build(CONFIG, str(checkpoint), device="cpu"), "MedSAM2").eval()
 
 # One slice as medsam2-mlx feeds it: RGB in [0, 1], then ImageNet mean/std.
 generator = torch.Generator().manual_seed(0)
-image = torch.rand((1, 3, IMAGE_SIZE, IMAGE_SIZE), generator=generator)
+image = chest_tensor((IMAGE_SIZE, IMAGE_SIZE), normalized=False)
 mean = torch.tensor([0.485, 0.456, 0.406]).reshape(1, 3, 1, 1)
 std = torch.tensor([0.229, 0.224, 0.225]).reshape(1, 3, 1, 1)
 image = (image - mean) / std

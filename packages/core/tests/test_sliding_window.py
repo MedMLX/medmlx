@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from fixture_cases import HostArray, load_fixture
 from numpy.typing import DTypeLike
+from real_images import real_image
 
 from medmlx_core.sliding_window import FloatArray
 from medmlx_core.typing import ArrayEvaluator
@@ -69,7 +70,7 @@ def torch_predict(patch: torch.Tensor) -> torch.Tensor:
 
 
 def test_float64_host_windows_preserve_sub_float32_values_against_monai() -> None:
-    values = np.arange(77, dtype=np.float64).reshape(1, 1, 11, 7) + 1e8
+    values = real_image((1, 1, 11, 7)).astype(np.float64) + 1e8
 
     def host_prediction(patch: HostArray) -> HostArray:
         anchor = patch[:, :, :1, :1]
@@ -89,7 +90,7 @@ def test_float64_host_windows_preserve_sub_float32_values_against_monai() -> Non
 
 @pytest.mark.parametrize("layout", ["contiguous", "transposed"])
 def test_single_window_views_preserve_input_strides_without_copying(layout: str) -> None:
-    values = np.arange(2 * 2 * 6 * 7 * 8, dtype=np.float32).reshape(2, 2, 6, 7, 8)
+    values = real_image((2, 2, 6, 7, 8))
     if layout == "transposed":
         values = values.swapaxes(2, 4)
     calls = 0
@@ -147,7 +148,7 @@ def test_patch_dependent_blending_matches_monai(
     sw_batch_size: int,
 ) -> None:
     # Two images expose batch-crossing window groups; two channels expose channel placement.
-    inputs = np.random.default_rng(1203).integers(-64, 65, (2, 2, *shape)).astype(np.float32) / 64
+    inputs = real_image((2, 2, *shape))
     original = inputs.copy()
     options = WindowOptions(overlap=overlap, mode=mode, padding_mode="constant", cval=-0.25)
     expected = monai_inference(from_numpy(inputs), roi, sw_batch_size, torch_predict, **options)
@@ -168,7 +169,7 @@ def test_patch_dependent_blending_matches_monai(
 def test_padding_modes_match_monai(
     mode: Mode, cval: float
 ) -> None:
-    inputs = np.arange(60, dtype=np.float32).reshape(1, 2, 3, 5, 2).swapaxes(2, 3)
+    inputs = real_image((1, 2, 3, 5, 2)).swapaxes(2, 3)
     roi = (8, 6, 4)
     expected = monai_inference(from_numpy(inputs / 64), roi, 1, torch_predict,
                                padding_mode=mode, cval=cval)
@@ -213,8 +214,7 @@ def test_full_roi_window_settings_match_monai(
 ) -> None:
     # Exercise the real patch dimensions and padding without a costly network.
     shape = tuple(size - 1 for size in roi)
-    inputs = np.random.default_rng(704).integers(-32, 33, (1, 1, *shape), dtype=np.int8)
-    inputs = inputs.astype(np.float32) / 32
+    inputs = real_image((1, 1, *shape))
 
     def predict_torch(patch: torch.Tensor) -> torch.Tensor:
         assert patch.shape == (1, 1, *roi)
@@ -234,7 +234,7 @@ def test_full_roi_window_settings_match_monai(
 
 
 def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal() -> None:
-    inputs = np.random.default_rng(11).integers(-32, 33, (2, 1, 9, 7)).astype(np.float32) / 32
+    inputs = real_image((2, 1, 9, 7))
     weight = monai_importance((6, 4), "gaussian", (0.2, 0.15)).numpy()
     expected_coords: Coordinates = []
     actual_coords: Coordinates = []
@@ -279,7 +279,7 @@ def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal() -> Non
 def test_predictor_weighting_precedes_accumulator_dtype_conversion(
     input_dtype: DTypeLike, prediction_dtype: DTypeLike, batch_size: int, overlap_prediction: bool,
 ) -> None:
-    inputs = np.random.default_rng(41).integers(-32, 33, (1, 1, 11, 8)).astype(input_dtype) / 32
+    inputs = real_image((1, 1, 11, 8)).astype(input_dtype)
     inputs = inputs[..., ::-1]
     original = inputs.copy()
     weight = monai_importance((6, 4), "gaussian").numpy()
@@ -309,7 +309,7 @@ def test_predictor_weighting_precedes_accumulator_dtype_conversion(
 
 @pytest.mark.parametrize("roi", [4, (None, -1)])
 def test_scalar_and_fallback_roi_match_monai(roi: Sequence[int | None] | int) -> None:
-    inputs = np.arange(35, dtype=np.float32).reshape(1, 1, 5, 7) / 64
+    inputs = real_image((1, 1, 5, 7))
     expected = monai_inference(from_numpy(inputs), roi, 2, torch_predict, overlap=0.5)
     assert isinstance(expected, torch.Tensor)
     actual = sliding_window_inference(inputs, roi, 2, mlx_predict, overlap=0.5)
@@ -345,7 +345,7 @@ def test_recorded_monai_scores_coordinates_and_labels(
 def test_gpu_device_forms_are_explicitly_admitted(
     sw_device: mx.Device | mx.DeviceType | str | None,
 ) -> None:
-    inputs = np.arange(12, dtype=np.float32).reshape(1, 1, 3, 4)
+    inputs = real_image((1, 1, 3, 4))
 
     def predict(patch: mx.array) -> mx.array:
         assert mx.default_device().type == mx.gpu
@@ -372,7 +372,7 @@ def test_invalid_or_unimplemented_options_fail_before_prediction(
 
     with pytest.raises(error):
         sliding_window_inference(
-            np.zeros((1, 1, 3, 3), np.float32), 4, 1, unexpected_call, **options
+            real_image((1, 1, 3, 3)), 4, 1, unexpected_call, **options
         )
 
 
@@ -392,5 +392,5 @@ def test_unsupported_predictor_outputs_fail_explicitly(
     predictor: Callable[[mx.array], object], error: type[Exception], overlap_prediction: bool,
 ) -> None:
     with pytest.raises(error):
-        sliding_window_inference(np.zeros((1, 1, 4, 4), np.float32), 3, 1, predictor,
+        sliding_window_inference(real_image((1, 1, 4, 4)), 3, 1, predictor,
                                   overlap_prediction=overlap_prediction)

@@ -95,18 +95,20 @@ Recorded postprocessing references use MONAI `AsDiscrete(argmax=True)` only.
 
 ## Reference fixtures and regeneration
 
-Seven small upstream-reference archives are included under
-`tests/fixtures/darwin-arm64/` (each below 80 KB). Inputs retain the original
-seeds: 7081 for helpers and 20261007 for channel-last/window graphs. Coverage
-includes input/layout preparation, every helper, padding/cropping, window logits,
-coordinates, importance maps, argmax labels, and complete synthetic layer graphs.
+Five small operator-reference archives are included under
+`tests/fixtures/darwin-arm64/` (each below 80 KB). Tensor and parameter controls
+retain the original seeds: 7081 for helpers and 20261007 for channel-last graphs.
+They cover layout preparation, helper arithmetic, padding/cropping, and layer graphs.
+Sliding-window references use HCC-TACE CT and are recorded outside Git under
+`work/real-reference/core/` at the unified repository root. Their outputs include
+window logits, coordinates, importance maps, and argmax labels.
 Each archive has `schema_version=2`, upstream versions/revisions, seed, reference
 device, NumPy version, Torch build and recording platform. Generators use Torch
 CPU and NumPy, import neither MedMLX nor MLX, and are never imported by the
 numerical tests.
 The reference frameworks execute on the CPU of the recording Mac; the library
-itself runs on MLX Metal. Tests load the one recording directory directly, without
-backend selection. After explicitly provisioning the unified repository's development
+itself runs on MLX Metal. Tests load each archive from its declared location.
+After explicitly provisioning the unified repository's development
 environment, run regeneration from the component directory. Starting at the
 unified repository root on an Apple Silicon Mac:
 
@@ -120,6 +122,11 @@ PYTHON=../../.venv/bin/python
 
 "$PYTHON" -m pytest -q tests/test_numerical.py
 ```
+
+Real-image tests read `~/.cache/medmlx/test-data/hcc_063_ct.nii.gz` and
+`chest_xray.jpg`. `MEDMLX_TEST_CT` and `MEDMLX_TEST_XRAY` override those paths.
+CT and X-ray crops are scaled and quantized to 1/32 for exact blending checks;
+oversized CT requests use nearest-neighbor sampling of the source grid.
 
 That test checks the numerical gate's rounding allowance and its rejections without
 qualifying Metal arithmetic. For changed numerical operations, also select the
@@ -185,6 +192,10 @@ keys, shapes and dtypes, and arithmetic runs in an explicit Metal stream.
 with three-channel fields and zero-based ij voxel coordinates. A pull field samples
 the input at `x + displacement[x]`; border extension and constant fill match the
 pinned VoxelMorph/Neurite TensorFlow functions, which the tests compare against.
+The HCC-TACE pixel oracle is stored locally in
+`packages/core/tests/oracles/real-images/synthmorph-geometry-tensorflow.npz`.
+Regenerate it with `conversion/scripts/record_synthmorph_geometry.py` in the
+TensorFlow 2.20.0 reference environment, passing that path as `--out`.
 This qualifies those operations, not a learned SynthMorph model.
 
 Converters and model packages share core's execution operators. Core has no

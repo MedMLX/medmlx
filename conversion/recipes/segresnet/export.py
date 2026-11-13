@@ -3,9 +3,8 @@
 import sys
 from pathlib import Path
 
-import torch
-
 from medmlx_convert import export_and_check, load_bundle_network, recipe_args
+from medmlx_convert.image_inputs import ct_tensor
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.rewrites import COREAI_3D, COREML_3D
 
@@ -24,7 +23,7 @@ out_dir = options.out
 passed = True
 for bundle, revision, shape in BUNDLES:
     print(f"== {bundle}")
-    image = torch.randn(shape, generator=torch.Generator().manual_seed(0))
+    image = ct_tensor(shape)
     loaded = load_bundle_network(f"MONAI/{bundle}", revision)
     passed &= export_and_check(
         loaded.model,

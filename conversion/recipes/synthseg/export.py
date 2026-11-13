@@ -3,9 +3,12 @@
 import json
 import os
 import sys
+from collections.abc import Callable
+from importlib import import_module
 from pathlib import Path
 from typing import cast
 
+import nibabel as nib
 import numpy as np
 import torch
 
@@ -105,7 +108,9 @@ if not weights.is_file():
 function(encoder, "load_weights")(weights)
 encoder = function(attribute(keras, "models"), "clone_model")(encoder, clone_function=clone_layer)
 model = Segmentation(as_module(encoder)).eval()
-with np.load(fixtures / "synthseg-v1-tensorflow.npz", allow_pickle=False) as reference:
+default_references = Path(__file__).resolve().parents[2] / "build" / "real-reference"
+references = Path(os.environ.get("MEDMLX_CONVERSION_REFERENCES", str(default_references)))
+with np.load(references / "synthseg-v1-tensorflow.npz", allow_pickle=False) as reference:
     image = as_tensor(function(torch, "from_numpy")(as_array(reference["image"])))
     with torch.no_grad():
         actual = as_array(function(as_tensor(model(image)), "numpy")())
@@ -121,14 +126,24 @@ with np.load(fixtures / "synthseg-v1-tensorflow.npz", allow_pickle=False) as ref
     print(f"Keras Torch versus TensorFlow logits: {decision.max_abs_diff:.2e}")
     if decision.verdict != Verdict.PASS:
         raise RuntimeError("SynthSeg differs from the original TensorFlow graph")
-image = torch.rand((1, 64, 64, 64, 1), generator=torch.Generator().manual_seed(0))
+default_ct = Path.home() / ".cache" / "medmlx" / "test-data" / "hcc_063_ct.nii.gz"
+ct_path = os.environ.get("MEDMLX_TEST_CT", str(default_ct))
+loader = cast(Callable[[str], object], import_module("nibabel").load)
+ct = loader(ct_path)
+if not isinstance(ct, nib.Nifti1Image):
+    raise ValueError("Expected the HCC-TACE CT in NIfTI format")
+crop = np.asarray(ct.dataobj, dtype=np.float32)[100:164, 220:284, 30:94]
+if crop.shape != (64, 64, 64):
+    raise ValueError(f"Unexpected CT crop shape {crop.shape}")
+input_data = np.clip((crop + np.float32(175)) / np.float32(425), 0, 1)[None, ..., None]
+image = as_tensor(function(torch, "from_numpy")(input_data))
 passed = export_and_check(
     model, {"image": image}, ["logits"], out_dir / "synthseg_v1", tolerance=1e-3,
     source=BuildSource.capture(
         Path(__file__), weights,
         origin="BBillot/SynthSeg@2a2aa3bbfccb83f8253a51ca8b329b9938a2646d",
         configuration={"graph": "tests/fixtures/synthseg-v1-graph.json",
-                       "tensorflow_reference": "tests/fixtures/synthseg-v1-tensorflow.npz"},
+                       "tensorflow_reference": "synthseg-v1-tensorflow.npz"},
     ),
     profile=options.profile, source_device=options.source_device,
     coreml_profile=options.coreml_profile,

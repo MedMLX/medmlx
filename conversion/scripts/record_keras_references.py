@@ -1,4 +1,4 @@
-"""Regenerate synthetic CPU TensorFlow oracles, independently of the Torch exporter.
+"""Regenerate real-image CPU TensorFlow oracles independently of the Torch exporter.
 
 Run in an environment with tensorflow==2.20.0, keras==3.15.0, tf-keras==2.20.1,
 numpy<2.5 and h5py==3.15.1. This script never imports an MLX model.
@@ -8,15 +8,18 @@ import argparse
 import ast
 import json
 import os
+from collections.abc import Callable
 from dataclasses import asdict
 from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Protocol, TypeIs, cast, runtime_checkable
+from typing import Protocol, TypeGuard, cast, runtime_checkable
 
+import nibabel as nib
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 
 type FloatArray = npt.NDArray[np.float32]
 
@@ -69,7 +72,7 @@ class UNetFactory(Protocol):
         ...
 
 
-def is_float_array(value: object) -> TypeIs[FloatArray]:
+def is_float_array(value: object) -> TypeGuard[FloatArray]:
     """Admit FP32 oracle arrays without coercing historical numerical values."""
     return isinstance(value, np.ndarray) and cast(
         npt.NDArray[np.generic], value
@@ -119,26 +122,30 @@ def configure_cpu() -> None:
 
 def provenance(checkpoint: Path, source: Path | None = None) -> dict[str, object]:
     """Identify the supplied weights and source before computing a CPU TensorFlow oracle."""
-    from medmlx_convert.provenance import BuildSource
+    from medmlx_convert.provenance import SourceRevision
 
     origin = ("https://drive.google.com/file/d/1UgYviv2K6QPM1SCexqqab5-yTgwoAFEc"
               if source is None else "BBillot/SynthSeg@2a2aa3bbfccb83f8253a51ca8b329b9938a2646d")
-    record = asdict(BuildSource.capture(
-        Path(__file__), checkpoint, origin=origin,
-        configuration={} if source is None else {"reference_source": source.as_posix()},
-    ))
-    record["oracle_packages"] = {name: version(name) for name in (
-        "tensorflow", "keras", "tf-keras", "numpy", "h5py",
-    )}
-    return record
+    return {
+        "checkpoint": checkpoint.as_posix(),
+        "origin": origin,
+        "reference_source": None if source is None else source.as_posix(),
+        "revision": asdict(SourceRevision.capture(Path(__file__).resolve().parents[2])),
+        "oracle_packages": {name: version(name) for name in (
+            "tensorflow", "keras", "tf-keras", "numpy", "h5py",
+        )},
+    }
 
 
-def record_radimagenet(checkpoint: Path, output: Path) -> None:
-    """Recompute pooled and spatial RadImageNet features from the stored input image."""
+def record_radimagenet(checkpoint: Path, output: Path, xray: Path) -> None:
+    """Recompute RadImageNet features from a sourced chest X-ray."""
     identity = provenance(checkpoint)
     fixture = output / "radimagenet-tensorflow.npz"
-    with np.load(fixture, allow_pickle=False) as existing:
-        image = existing["image"]
+    with Image.open(xray) as source:
+        image = (
+            np.asarray(source.convert("RGB").resize((224, 224)), dtype=np.float32)[None]
+            / np.float32(255)
+        )
     encoder = load_model(checkpoint)
     spatial = model_array(encoder, image)
     np.savez_compressed(
@@ -147,7 +154,7 @@ def record_radimagenet(checkpoint: Path, output: Path) -> None:
     )
 
 
-def record_synthseg(checkpoint: Path, source: Path, output: Path) -> None:
+def record_synthseg(checkpoint: Path, source: Path, output: Path, ct: Path) -> None:
     """Rebuild the pinned SynthSeg UNet, record logits, and save its graph JSON."""
     tf_keras = import_module("tf_keras")
 
@@ -164,8 +171,16 @@ def record_synthseg(checkpoint: Path, source: Path, output: Path) -> None:
         Model=getattr(getattr(tf_keras, "models", None), "Model", None),
     )
     exec(compile(tree, str(source), "exec"), namespace)
-    with np.load(output / "synthseg-v1-tensorflow.npz", allow_pickle=False) as existing:
-        image, labels = existing["image"], existing["labels"]
+    loader = cast(Callable[[str], object], import_module("nibabel").load)
+    volume = loader(str(ct))
+    if not isinstance(volume, nib.Nifti1Image):
+        raise ValueError("Expected the HCC-TACE CT in NIfTI format")
+    crop = np.asarray(volume.dataobj, dtype=np.float32)[100:116, 220:236, 30:46]
+    if crop.shape != (16, 16, 16):
+        raise ValueError(f"Unexpected CT crop shape {crop.shape}")
+    image = np.clip((crop + np.float32(175)) / np.float32(425), 0, 1)[None, ..., None]
+    labels_path = Path(__file__).resolve().parents[1] / "tests/fixtures/synthseg-v1-labels.json"
+    labels = np.asarray(json.loads(labels_path.read_text()), dtype=np.int32)
     factory = namespace["unet"]
     if not isinstance(factory, UNetFactory):
         raise TypeError("Pinned SynthSeg unet must be callable")
@@ -194,17 +209,21 @@ def main() -> None:
     parser.add_argument("model", choices=("radimagenet", "synthseg"))
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--source", type=Path)
-    parser.add_argument("--output", type=Path, default=Path("tests/fixtures"))
+    parser.add_argument("--output", type=Path, required=True)
+    cache = Path.home() / ".cache" / "medmlx" / "test-data"
+    parser.add_argument("--ct", type=Path, default=cache / "hcc_063_ct.nii.gz")
+    parser.add_argument("--xray", type=Path, default=cache / "chest_xray.jpg")
     args = parser.parse_args()
     os.environ["KERAS_BACKEND"] = "tensorflow"
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    args.output.mkdir(parents=True, exist_ok=True)
     configure_cpu()
     if args.model == "radimagenet":
-        record_radimagenet(args.checkpoint, args.output)
+        record_radimagenet(args.checkpoint, args.output, args.xray)
         return
     if args.source is None:
         parser.error("SynthSeg requires --source pointing to pinned ext/neuron/models.py")
-    record_synthseg(args.checkpoint, args.source, args.output)
+    record_synthseg(args.checkpoint, args.source, args.output, args.ct)
 
 
 if __name__ == "__main__":

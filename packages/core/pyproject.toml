@@ -29,8 +29,10 @@ dev = [
   "pyright==1.1.414",
   "hypothesis>=6.140,<7",
   "monai==1.6.1",
+  "nibabel>=5.4.2,<6",
   "numpy>=2.2,<3",
   "pytest>=8.4,<10",
+  "pillow>=13,<14",
   "ruff>=0.13,<1",
   "torch==2.14.1",
 ]

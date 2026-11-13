@@ -7,7 +7,8 @@ import numpy as np
 
 from medmlx_core.registration import dense_warp3d, integrate_stationary_velocity
 
-FIXTURE = Path(__file__).with_name("oracles") / "synthmorph-geometry-tensorflow.npz"
+FIXTURE = (Path(__file__).with_name("oracles") / "real-images"
+           / "synthmorph-geometry-tensorflow.npz")
 
 
 def test_synthmorph_geometry_against_original_tensorflow() -> None:

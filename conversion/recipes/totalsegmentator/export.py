@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 
 from medmlx_convert import export_and_check, recipe_args
+from medmlx_convert.image_inputs import ct_tensor
 from medmlx_convert.nnunet import load_nnunet_network
 from medmlx_convert.provenance import BuildSource
 from medmlx_convert.rewrites import COREAI_3D, COREML_3D
@@ -52,7 +53,7 @@ folder = trained_model_folder()
 network = load_nnunet_network(folder)
 
 # One sliding-window patch at the plans patch size, after nnU-Net's CT normalization.
-image = torch.randn(network.input_shape, generator=torch.Generator().manual_seed(0))
+image = ct_tensor(network.input_shape)
 passed = export_and_check(
     network.model,
     {"image": image},

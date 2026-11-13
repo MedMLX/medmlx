@@ -28,8 +28,8 @@ from fixture_cases import (  # noqa: E402
 __all__ = ["ArrayCase", "HostArray", "array_cases", "output_directory", "save_fixture"]
 
 
-def output_directory(description: str | None) -> Path:
-    """Parse ``--output-dir`` and return it (default: the repository fixture folder).
+def output_directory(description: str | None, *, default: Path = FIXTURES) -> Path:
+    """Parse ``--output-dir``, using ``default`` when the option is omitted.
 
     Raises ``RuntimeError`` unless running on macOS arm64 with the pinned MONAI
     and PyTorch revisions, so recorded fixtures always match the declared references.
@@ -39,7 +39,7 @@ def output_directory(description: str | None) -> Path:
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--output-dir", type=Path)
     options = parser.parse_args()
-    root = options.output_dir or FIXTURES
+    root = options.output_dir or default
     if (monai.__version__, monai.__revision_id__) != (
         REFERENCE.monai_version,
         REFERENCE.monai_revision,

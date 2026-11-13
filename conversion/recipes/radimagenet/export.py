@@ -65,7 +65,10 @@ encoder = as_module(
     function(attribute(keras, "models"), "load_model")(weights, compile=False)
 )
 model = Features(encoder)
-fixture = Path(__file__).resolve().parents[2] / "tests/fixtures/radimagenet-tensorflow.npz"
+default_references = Path(__file__).resolve().parents[2] / "build" / "real-reference"
+fixture = Path(os.environ.get("MEDMLX_CONVERSION_REFERENCES", str(default_references))) / (
+    "radimagenet-tensorflow.npz"
+)
 names = ["features", "spatial_features"]
 comparisons: list[OutputComparison] = []
 with np.load(fixture, allow_pickle=False) as reference:
@@ -88,7 +91,7 @@ passed = export_and_check(
     model, {"image": image}, names, out_dir / "radimagenet_resnet50", tolerance=1e-3,
     source=BuildSource.capture(
         Path(__file__), weights, origin=f"https://drive.google.com/file/d/{ARCHIVE_ID}",
-        configuration={"tensorflow_reference": "tests/fixtures/radimagenet-tensorflow.npz"},
+        configuration={"tensorflow_reference": "radimagenet-tensorflow.npz"},
     ),
     profile=options.profile, source_device=options.source_device,
     coreml_profile=options.coreml_profile,
