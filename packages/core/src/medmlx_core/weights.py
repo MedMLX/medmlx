@@ -64,6 +64,10 @@ class _HubSource:
 
 
 _SOURCES = {
+    "musclemap": _HubSource(
+        "MedMLX/musclemap-mlx",
+        revision="a798b3073e3b2c449987c13aa193626aaacc3092",
+    ),
     "biomedparse-v2": _HubSource("MedMLX/biomedparse-v2-mlx"),
     "flexible-unet": _HubSource("MedMLX/flexible-unet-effnetb2-mlx"),
     "flexray": _HubSource("MedMLX/flexray-mlx"),
