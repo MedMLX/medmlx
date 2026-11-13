@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "medmlx"
-version = "0.9.0"
+version = "0.9.1"
 description = "MedMLX Python API, CLI, and MCP for independent medical imaging runtimes"
 readme = "README.md"
 classifiers = ["Operating System :: MacOS :: MacOS X"]
@@ -12,7 +12,7 @@ requires-python = ">=3.13,<3.14"
 license = "Apache-2.0"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
-dependencies = ["medmlx-core>=0.2.6,<0.3", "packaging>=24", "psutil>=7,<8", "uv>=0.8,<1"]
+dependencies = ["medmlx-core>=0.2.7,<0.3", "packaging>=24", "psutil>=7,<8", "uv>=0.8,<1"]
 
 [project.scripts]
 medmlx = "medmlx.cli:main"
@@ -35,6 +35,7 @@ reason-tools = [
   "pillow>=13,<14",
 ]
 segment = [
+  "musclemap-mlx>=0.1.0,<0.2",
   "sam3-mlx[video]>=0.3.0,<0.4",
   "biomedparse-mlx>=0.1.5,<0.2",
   "flexible-unet-mlx>=0.2.6,<0.3",
@@ -61,6 +62,7 @@ vision = [
   "lung-nodule-mlx>=0.2.6,<0.3",
 ]
 all = [
+  "musclemap-mlx>=0.1.0,<0.2",
   "SimpleITK>=2.5,<3",
   "pydantic>=2.14,<3",
   "numpy>=2.3,<3",

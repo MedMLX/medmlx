@@ -81,6 +81,10 @@ class _HubSource:
 
 
 _SOURCES = {
+    "musclemap": _HubSource(
+        "MedMLX/musclemap-mlx",
+        revision="a798b3073e3b2c449987c13aa193626aaacc3092",
+    ),
     # Model card linked by biomedparse-mlx/README.md@v0.1.5.
     "biomedparse-v2": _HubSource(
         "MedMLX/biomedparse-v2-mlx",

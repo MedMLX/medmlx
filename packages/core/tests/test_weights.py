@@ -33,6 +33,8 @@ FLEXIBLE_UNET_REVISION = "ccbbc596f2a9da8477e25cba0d7548cbb2191feb"
 
 # Expected commits from the runtime release documents and their linked model cards.
 PINNED_BUNDLES = [
+    ("musclemap", "MedMLX/musclemap-mlx",
+     "a798b3073e3b2c449987c13aa193626aaacc3092"),
     ("biomedparse-v2", "MedMLX/biomedparse-v2-mlx",
      "1c251c6561aa143cd79ff0ccdfa53a1a6e60c7f0"),
     ("flexible-unet", "MedMLX/flexible-unet-effnetb2-mlx",

@@ -73,6 +73,7 @@ Model IDs are what `medmlx run` and `medmlx describe` take.
 
 | Model ID | Task | Input | Extra |
 | :--- | :--- | :--- | :--- |
+| `musclemap` | 113 muscle and bone structures | MRI, CT | segment |
 | `totalsegmentator` | Whole-body CT segmentation | CT | segment |
 | `mlx-segment-ct`, `mlx-segment-ctmr` | Automatic and point-prompted segmentation (VISTA-3D) | CT, MRI | segment |
 | `nnunet-liver`, `nnunet-pancreas`, `nnunet-autopet`, `nnunet-brats2021` | Organ and tumor segmentation (nnU-Net v2) | CT, PET/CT, brain MRI | segment |

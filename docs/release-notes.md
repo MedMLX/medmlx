@@ -1,5 +1,16 @@
 # Release notes
 
+## 0.9.1
+
+Adds MuscleMap v1.4 to the `segment` and `all` extras. `musclemap` segments
+113 muscle and bone structures in MRI and CT, downloads its reviewed weights
+automatically and restores the original image grid and anatomical IDs.
+
+```sh
+medmlx setup musclemap
+medmlx run musclemap --arg image_path=scan.nii.gz output_dir=musclemap-out
+```
+
 ## 0.9.0
 
 ### Breaking changes
