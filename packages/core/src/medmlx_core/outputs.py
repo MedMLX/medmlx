@@ -40,6 +40,20 @@ class Artifact(TypedDict):
     units: NotRequired[str | None]
 
 
+class RunResult[Details, Outputs: Mapping[str, object] = dict[str, str]](TypedDict):
+    """What a runner's task function returns, shared by every runtime package.
+
+    ``outputs`` maps each role to the path written; a runtime may narrow it to
+    its own TypedDict of roles. ``artifacts`` describes the same roles and every
+    artifact role must appear in ``outputs`` (see ``validate_outputs``).
+    ``details`` is the runtime's own JSON-serializable record of the run.
+    """
+
+    outputs: Outputs
+    artifacts: dict[str, Artifact]
+    details: Details
+
+
 class CheckedOutputs(NamedTuple):
     """A result's role-to-path map and its artifact metadata by role."""
 
@@ -135,4 +149,6 @@ def _text(value: object, field: str) -> None:
         raise ValueError(f"{field} must be non-empty text")
 
 
-__all__ = ["Artifact", "CheckedOutputs", "OutputLabel", "artifact", "validate_outputs"]
+__all__ = [
+    "Artifact", "CheckedOutputs", "OutputLabel", "RunResult", "artifact", "validate_outputs",
+]
