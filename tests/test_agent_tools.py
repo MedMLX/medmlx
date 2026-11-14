@@ -21,10 +21,10 @@ from tests.conftest import add_distribution
 # A weight-free model with a NIfTI input, a model with automatic weights, and one
 # whose weights can only be supplied by hand.
 _AGENT_MODELS = '''
-SHAPE = {"id": "shape", "label": "Shape", "task": "testing", "run": "fakemlx:shape",
+SHAPE = {"id": "shape", "label": "Shape", "task": "workflow", "run": "fakemlx:shape",
          "requires_weights": False}
-WEIGHTED = {"id": "weighted", "label": "Weighted", "task": "testing", "run": "fakemlx:weighted"}
-MANUAL = {"id": "manual", "label": "Manual", "task": "testing", "run": "fakemlx:weighted",
+WEIGHTED = {"id": "weighted", "label": "Weighted", "task": "workflow", "run": "fakemlx:weighted"}
+MANUAL = {"id": "manual", "label": "Manual", "task": "workflow", "run": "fakemlx:weighted",
           "setup_supported": False}
 
 
@@ -167,6 +167,8 @@ def test_restricted_root_rejects_paths_outside_it(agent_site: Path, tmp_path: Pa
             ("model_readiness",
              {"model_ids": ["shape"], "arguments": {"image_path": str(outside)}}),
             ("run_model", {"model_id": "shape", "arguments": {"image_path": "../outside.nii.gz"}}),
+            ("run_model", {"model_id": "shape",
+                           "arguments": {"image_paths": {"ct": "../outside.nii.gz"}}}),
         )
         for tool, arguments in requests:
             assert (await _error(client, tool, arguments)).startswith("path_outside_root: ")

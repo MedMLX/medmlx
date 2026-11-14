@@ -10,12 +10,17 @@ group. The entry point names a mapping, or a callable returning one::
         "id": "totalsegmentator",
         "label": "TotalSegmentator",
         "task": "segmentation",
-        "run": "totalsegmentator_mlx.medmlx:run",
+        "run": "totalsegmentator_mlx.medmlx:segment",
         "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional
         "summary": "Whole-body CT segmentation.",  # optional
     }
 
-``id``, ``label``, ``task`` and ``run`` are required non-empty strings;
+``id``, ``label``, ``task`` and ``run`` are required non-empty strings.
+``task`` is one of ``OPERATIONS`` or ``workflow``, and ``run`` names the
+task's operation: a segmentation model's ``run`` is a ``segment`` function, a
+detection model's is ``detect``, and so on. A runner with a ``model`` keyword
+serves several declarations; MedMLX passes the declaration's ``id`` as
+``model`` and hides that argument from callers.
 ``readiness`` and ``summary`` are optional. ``requires_weights`` and
 ``setup_supported`` are optional booleans defaulting to true. ``labels``
 optionally maps each integer output label to its name (``{"1": "spleen"}``), and
@@ -29,8 +34,9 @@ false; providers whose assets must be supplied by hand set ``setup_supported`` f
 that runs other models sets ``weights_from`` to a mapping from each weight
 argument to the model ID whose automatic weights it uses, such as
 ``{"detector_weights_path": "lung-nodule"}``; setup then prepares those models.
-An optional ``cohort`` reference names a preparation factory whose returned
-object provides ``run(**case)`` and ``close()`` in one supervised worker.
+An optional ``cohort`` reference names the package's ``load_model`` factory, whose
+returned object provides the operation as a method (``segment(**case)``) and
+``close()`` in one supervised worker.
 Weights and configuration belong to preparation, not per-case arguments.
 Other fields are ignored and reported as discovery warnings, so a declaration
 written for a newer MedMLX still loads.
@@ -68,6 +74,19 @@ ENTRY_POINT_GROUP = "medmlx.models"
 _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _REFERENCE = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_][\w.]*$")
 _REQUIRED = ("id", "label", "task", "run")
+
+#: The operation function each declared task's ``run`` reference must name.
+OPERATIONS = {
+    "segmentation": "segment",
+    "detection": "detect",
+    "generation": "generate",
+    "feature-extraction": "extract",
+    "report-generation": "generate_report",
+}
+#: Orchestration declarations, whose runner name is free.
+WORKFLOW_TASK = "workflow"
+#: A runner keyword MedMLX fills with the declaration's model ID.
+MODEL_ARGUMENT = "model"
 _OPTIONAL = ("readiness", "summary", "cohort")
 
 
@@ -91,7 +110,7 @@ class ModelSpec:
     peak_memory_gb: float | None = None
     #: (run argument, model ID) pairs for workflows that reuse other models' weights.
     weights_from: tuple[tuple[str, str], ...] = ()
-    #: Factory for a prepared object with run(**case) and close(), in one worker.
+    #: The package's load_model: returns an object with the task's operation and close().
     cohort: str | None = None
 
     def label_names(self) -> dict[int, str]:
@@ -218,6 +237,8 @@ def parameters(spec: ModelSpec) -> list[ParameterPayload]:
     rows: list[ParameterPayload] = []
     for parameter in inspect.signature(runner).parameters.values():
         if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        if parameter.name == MODEL_ARGUMENT:
             continue
         required = parameter.default is inspect.Parameter.empty
         rows.append(
@@ -350,6 +371,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         reference = fields[key]
         if reference is not None and not _REFERENCE.match(reference):
             raise ValueError(f"field {key!r} must be a 'module:attribute' reference")
+    _check_operation(cast(str, fields["task"]), cast(str, fields["run"]), fields["cohort"])
     distribution = entry_point.dist
     requires_weights = raw.get("requires_weights", True)
     if not isinstance(requires_weights, bool):
@@ -379,6 +401,49 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         cohort=fields["cohort"],
     )
     return spec, unknown
+
+
+def _check_operation(task: str, run: str, cohort: str | None) -> None:
+    """Require the canonical operation name for the task, and ``load_model`` cohorts."""
+    if task == WORKFLOW_TASK:
+        return
+    operation = OPERATIONS.get(task)
+    if operation is None:
+        tasks = ", ".join((*OPERATIONS, WORKFLOW_TASK))
+        raise ValueError(f"task {task!r} must be one of: {tasks}")
+    name = run.rpartition(":")[2].rpartition(".")[2]
+    if name != operation:
+        raise ValueError(f"field 'run' of a {task} model must name {operation}, not {name}")
+    if cohort is not None and cohort.rpartition(":")[2].rpartition(".")[2] != "load_model":
+        raise ValueError("field 'cohort' must name the package's load_model")
+
+
+def operation(spec: ModelSpec) -> str:
+    """Return the method a prepared cohort model runs for each case."""
+    return OPERATIONS.get(spec.task) or spec.run.rpartition(":")[2].rpartition(".")[2]
+
+
+def binds_model(function: Callable[..., object]) -> bool:
+    """Whether MedMLX passes the declaration's model ID as ``model=``."""
+    return MODEL_ARGUMENT in inspect.signature(function).parameters
+
+
+def bound_arguments(
+    spec: ModelSpec, function: Callable[..., object], arguments: Mapping[str, JsonValue],
+) -> dict[str, JsonValue]:
+    """Return caller arguments plus ``model=spec.id`` for a shared runner or loader.
+
+    Raises:
+        ValueError: The caller passed ``model`` to a runner that MedMLX binds.
+    """
+    values = dict(arguments)
+    if binds_model(function):
+        if MODEL_ARGUMENT in values:
+            raise ValueError(
+                f"{spec.id} sets model itself; remove the model argument"
+            )
+        values[MODEL_ARGUMENT] = spec.id
+    return values
 
 
 def _labels(value: object) -> tuple[tuple[int, str], ...]:

@@ -47,10 +47,10 @@ def readiness() -> dict[str, object]:
             "reason": f"Missing {', '.join(missing)}",
             "setup_hint": "Install this source checkout with its reason-tools extra.",
         }
-    from mlx_reason_ct.medmlx import run as reason_run
+    from mlx_reason_ct.medmlx import generate_report
 
     supported = {"tools", "tool_history", "response_choices"} <= set(
-        signature(reason_run).parameters
+        signature(generate_report).parameters
     )
     return {
         "ready": supported,
@@ -95,9 +95,9 @@ def run(
         output_dir: New directory only; existing results are never replaced.
         reason_weights_path: Reason-CT model folder. Omit to use the
             ``mlx-reason-ct`` automatic download.
-        detector_weights_path: Lung-nodule model folder or ``network.safetensors``.
+        detector_weights_path: Lung-nodule model folder.
             Omit to use the ``lung-nodule`` automatic download.
-        medsam_weights_path: MedSAM2 model folder or ``MedSAM2_CTLesion.safetensors``.
+        medsam_weights_path: MedSAM2 model folder.
             Omit to use the ``medsam2`` automatic download.
         score_threshold: Candidate score cutoff, not a calibrated probability.
         max_candidates: Highest-scoring candidates offered to Reason-CT.

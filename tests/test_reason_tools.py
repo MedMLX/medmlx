@@ -270,7 +270,7 @@ def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> None:
         labels[2:5, 7:9, 3:6] = 1
         output_dir.mkdir(parents=True, exist_ok=False)
         nib.save(
-            nib.Nifti1Image(labels, image.affine, image.header), output_dir / "medsam2_mask.nii.gz"
+            nib.Nifti1Image(labels, image.affine, image.header), output_dir / "mask.nii.gz"
         )
         return {}
 
@@ -288,13 +288,11 @@ def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> None:
 
 def run_fixture(tmp_path: Path, *, max_steps: int = 8) -> dict[str, object]:
     source, _ = image_fixture(tmp_path, "lps")
-    weight = tmp_path / "weights.safetensors"
-    weight.touch()
     return run(
         image_path=source,
         reason_weights_path=tmp_path,
-        detector_weights_path=weight,
-        medsam_weights_path=weight,
+        detector_weights_path=tmp_path,
+        medsam_weights_path=tmp_path,
         output_dir=tmp_path / "out",
         max_steps=max_steps,
         padding_mm=0.0,

@@ -195,7 +195,7 @@ def test_invalid_weights_from_is_a_discovery_error(
     monkeypatch: pytest.MonkeyPatch, fields: dict[str, object],
 ) -> None:
     module = ModuleType("fake_workflow")
-    declaration = {"id": "fake", "label": "Fake", "task": "testing", "run": "fake:run"}
+    declaration = {"id": "fake", "label": "Fake", "task": "workflow", "run": "fake:run"}
     module.__dict__["MODEL"] = declaration | fields
     monkeypatch.setitem(sys.modules, "fake_workflow", module)
     entry = EntryPoint(name="fake", value="fake_workflow:MODEL", group="medmlx.models")

@@ -12,7 +12,7 @@ MODEL = {
     "id": "totalsegmentator",                            # lowercase letters, digits, ".", "_", "-"
     "label": "TotalSegmentator",
     "task": "segmentation",
-    "run": "totalsegmentator_mlx.medmlx:run",            # module:function
+    "run": "totalsegmentator_mlx.medmlx:segment",        # module:function named for the task
     "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional, module:function
     "summary": "Whole-body CT segmentation.",  # optional
 }
@@ -35,6 +35,7 @@ is returned as `instructions`.
 | `labels` | Integer label names, such as `{"1": "spleen"}`, for output summaries. |
 | `example_arguments` | One runnable argument object. |
 | `peak_memory_gb` | Measured peak memory in GB; readiness reports fit without blocking runs. |
+| `cohort` | The package's `load_model`, for prepared cohorts; see [Reusing a loaded model](#reusing-a-loaded-model). |
 | `weights_from` | Map workflow weight arguments to model IDs, such as `{"detector_weights_path": "lung-nodule"}`. Setup prepares each model; resolve omitted paths with `medmlx_core.weights.weights_dir(model_id)`. |
 
 Use the runtime's own labels, examples and measurements. Readiness checks runtime
@@ -72,28 +73,104 @@ to the run's working directory. Invalid `outputs` or `artifacts` add
 `outputs_error` to the job. The run still completes and its result stays
 unchanged.
 
-## Conventions for registered MedMLX runners
+## Runtime API
 
-Registered learned-weight runners use the common optional model-folder contract
-below. Image and output formats remain model-specific; `describe_model` exposes
-an installed runner's actual signature. Family membership alone does not register
-a model tool.
+Every runtime exposes the same small API, so code written for one model works
+for the next. `describe_model` shows an installed runner's actual signature.
 
-- Sub-packages target Apple Silicon only: macOS arm64 with MLX on Metal. Declare only that supported environment in `pyproject.toml`; do not provide backend extras. Reference fixtures are recorded on darwin-arm64 and loaded directly, without backend-keyed selection. Metal must be available for inference.
-- The declaration and runner live in `src/<package>/medmlx.py`, exported as `MODEL` and `run`. Use the same name for the entry point, model `id`, and Hugging Face repository under `MedMLX`. Register each checkpoint variant as a separate ID.
-- Model `task` is one of `segmentation`, `generation`, `detection`, or
-  `feature-extraction`. Multi-model orchestration uses `workflow`.
-- Prefer keyword-only arguments. File inputs should end in `_path` and directory inputs in `_dir`. Use `image_path` for one image or `image_paths` for ordered channels; name other inputs by role, such as `mask_path`. Use optional `weights_path` for the model folder. When omitted, call
-  `medmlx_core.weights.weights_dir(model_id)` and locate files inside that folder.
-  Use exactly the registered model ID as the helper key so pre-downloads and
-  normal runs share the same folder and lock.
-  Record `weights_revision(folder)` in result details. Use explicit paths as
-  given without resolving links before suffix checks. Runners that write files should take `output_dir` and `overwrite: bool = False`, and refuse to replace existing outputs unless `overwrite` is true.
-- For NIfTI volume workflows, document shape, affine and orientation changes. Segmentation masks and label maps should keep the input grid unless the model natively produces another grid. Other providers accept or produce raster images, arrays, video, or reports; state their formats explicitly.
-- Return the `outputs` map, and `artifacts` for files whose meaning a caller needs, as described above. Extra result fields such as `details` must contain only JSON values.
-- Failures raise `medmlx_core` errors with an actionable message: `InvalidInputError` for bad inputs, `AssetNotReadyError` for missing or mismatched weights, `MissingDependencyError` for a missing optional package. `medmlx.run` and `ModelRun.wait` raise `medmlx.ModelRunError`, whose `category` names that shared error and whose `hint` carries the error's setup hint.
-- Native runners should use `medmlx_core.import_mlx()` and avoid source-framework imports in inference. Document any provider-specific dependency or isolated bridge instead of assuming a fallback device.
-- Keep model declarations and package imports lightweight so discovery can report a model even when its runtime is unavailable. Runner imports and provider readiness checks can still fail; those failures are reported by discovery or readiness as applicable.
+### One operation per package
+
+| `task` | Operation | Usual output roles |
+| --- | --- | --- |
+| `segmentation` | `segment()` | `mask` |
+| `detection` | `detect()` | `detections` |
+| `generation` | `generate()` | `image`, `mask` |
+| `feature-extraction` | `extract()` | `features` |
+| `report-generation` | `generate_report()` | `report` |
+
+- The operation is exported from the package root (`from unest_mlx import segment`)
+  and is the function the declaration's `run` names; discovery rejects any other
+  name. Keep the root import free of MLX by exporting lazily.
+- `workflow` declarations orchestrate other models and may name any runner.
+- A package whose models share one set of arguments has one operation with a
+  required `model` keyword holding the model ID:
+  `segment(model="radimagenet-resnet50", ...)`. MedMLX passes the declaration's ID
+  and hides `model` from callers.
+- Models whose inputs or options differ each get a module with its own operation,
+  so `describe` lists exactly their arguments: `nnunet_mlx.named_models.liver.segment`.
+- Don't add aliases: the operation is the only one-shot entry point.
+
+### Arguments
+
+All public arguments are keyword-only and accept `str` or `os.PathLike` paths.
+Fixed choices are `Literal` types, so `describe_model` lists them.
+
+| Argument | Meaning |
+| --- | --- |
+| `image_path` | The case's one input image. |
+| `image_paths` | Several co-registered images of one case, as a map from the model's channel names to paths: `{"ct": "ct.nii.gz", "pet": "suv.nii.gz"}`. Keys must match exactly; order never matters. |
+| `<role>_path` | Other inputs, named by role: `mask_path`, `video_path`. |
+| `output_dir` | Required. Directory for the output files, created if missing. |
+| `weights_path=None` | The model's weights folder, as published. `None` downloads the pinned folder on first use. |
+| `overwrite=False` | Replace existing outputs only when true. |
+| `precision` | The model's numerical mode, where it offers more than one. |
+| `scratch_dir=None` | Parent folder for temporary memory-mapped files. |
+| `seed` | Integer seed for stochastic models. |
+| `prompt` | Text the model reads, such as a question or a target description. |
+| `classes` | Output classes to produce or keep, by name or class ID. |
+| `frame_index` | 0-based slice or frame for 2D prompts. |
+
+Other arguments are model-specific. Check every argument, input and output target
+before loading or downloading weights.
+
+`medmlx_core.files` holds the shared checks: `input_file`, `input_channels` for
+`image_paths`, `output_targets` for `output_dir` and `overwrite`, and `publish`,
+which writes a run's files together and restores earlier ones on failure.
+`medmlx_core.weights.model_folder(model_id, weights_path)` returns the caller's
+folder or downloads the managed one; record `weights_revision(folder)` in
+`details`. Use exactly the registered model ID so `medmlx setup` and runs share a folder.
+
+### Results and errors
+
+Return `outputs` and `artifacts` as described above, plus JSON-only `details`.
+Name roles by content, not file format: `mask`, `image`, `probabilities`,
+`detections`, `features`, `report`, `metadata`. Masks keep the input grid unless
+the model natively produces another; document any shape, affine or orientation change.
+
+Raise `medmlx_core` errors with an actionable message: `InvalidInputError` for bad
+inputs, `AssetNotReadyError` for missing or mismatched weights,
+`MissingDependencyError` for a missing package and `ModelExecutionError` for
+failures during inference. Model-specific errors subclass one of these. `medmlx.run`
+and `ModelRun.wait` raise `medmlx.ModelRunError`, whose `category` names the shared
+error and whose `hint` carries its setup hint.
+
+### Reusing a loaded model
+
+A package whose model is worth keeping loaded across cases exports
+`load_model(*, weights_path=None, ...)`, taking `model` too when it declares
+several. It returns an object with the operation as a method and `close()`, and
+works as a context manager:
+
+```python
+from nnunet_mlx.named_models.liver import load_model
+
+with load_model() as model:
+    for case in ("a.nii.gz", "b.nii.gz"):
+        model.segment(image_path=case, output_dir=f"out/{case[:-7]}")
+```
+
+Arguments that change the loaded weights or compiled graph belong to `load_model`;
+per-case arguments belong to the method. Declare it as `cohort` so
+`medmlx.start_cohort` reuses one loaded model for a list of cases. The one-shot
+operation releases its memory before returning; don't keep hidden global caches.
+
+### Platform
+
+- Runtimes target macOS arm64 with MLX on Metal. Declare only that environment in
+  `pyproject.toml`; there are no backend extras or CPU fallbacks for inference.
+- Use `medmlx_core.import_mlx()` and keep source frameworks out of inference.
+- Keep declarations and package imports light so discovery can report a model even
+  when its runtime is unavailable.
 
 ## Models declared by runtimes
 
@@ -110,5 +187,5 @@ channel order. `runner_installed` reports whether a runner was discovered;
 `qualification=not_assessed_by_catalog` is the catalog's status.
 
 Liver (Zenodo 18807203) and AutoPET II (Zenodo 8362371) correspond to
-`nnunet-liver` and `nnunet-autopet`. AutoPET channels are CT, then SUV PET.
+`nnunet-liver` and `nnunet-autopet`. AutoPET takes `image_paths={"ct": ..., "pet": ...}`.
 Use `setup` to download supported assets.

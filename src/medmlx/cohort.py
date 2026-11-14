@@ -18,11 +18,14 @@ MAX_CASES = 256
 
 
 def run(
-    *, prepare: str, preparation: dict[str, JsonValue], cases: list[dict[str, JsonValue]],
+    *, prepare: str, operation: str, preparation: dict[str, JsonValue],
+    cases: list[dict[str, JsonValue]],
 ) -> dict[str, JsonValue]:
     """Prepare once, run up to 256 cases in order, and close before returning.
 
-    The factory returns an object with ``run(**case)`` and ``close()`` methods.
+    ``prepare`` names the package's ``load_model``; the model it returns runs
+    each case with its ``operation`` method (``segment(**case)``) and is
+    released with ``close()``.
     Preparation fixes the model's weights/configuration for this cohort. All
     cases are queued before launch, so no idle worker waits for more work.
     Ordinary case failures are reported individually; a worker crash or
@@ -37,9 +40,9 @@ def run(
     if not callable(close):
         raise TypeError("Cohort preparation must return an object with close()")
     try:
-        runner = cast(object, getattr(prepared, "run", None))
+        runner = cast(object, getattr(prepared, operation, None))
         if not callable(runner):
-            raise TypeError("Cohort preparation must return an object with run(**case)")
+            raise TypeError(f"load_model must return an object with {operation}(**case)")
         call = runner
         # Reject configuration arguments or a malformed case before any case
         # publishes output. Value/geometry validation still belongs to the provider.

@@ -427,6 +427,31 @@ def _matches_hub_file(path: Path, entry: _RepoFile) -> bool:
         return False
 
 
+def model_folder(model_id: str, weights_path: str | os.PathLike[str] | None) -> Path:
+    """Return the weights folder a run uses: the caller's, or the managed download.
+
+    ``None`` returns ``weights_dir(model_id)``, downloading the pinned folder on
+    first use. An explicit path is used as given (``~`` expanded, links kept) and
+    must be an existing folder; files and missing paths are refused without
+    downloading anything. The folder's contents are the runner's to check.
+
+    Raises:
+        AssetNotReadyError: ``weights_path`` is not an existing folder, or the
+            automatic download failed (see ``weights_dir``).
+    """
+    if weights_path is None:
+        return weights_dir(model_id)
+    folder = Path(weights_path).expanduser()
+    if not folder.is_dir():
+        problem = "is a file" if folder.is_file() else "does not exist"
+        raise AssetNotReadyError(
+            f"weights_path {problem}: {folder}; pass the {model_id} model folder",
+            reason=f"weights_path {problem}",
+            hint=f"Omit weights_path to download it, or run medmlx setup {model_id}.",
+        )
+    return folder
+
+
 def cached_weights(model_id: str) -> Path | None:
     """Return a model's completed managed folder without downloading, or ``None``.
 
@@ -481,4 +506,11 @@ def weights_revision(directory: str | Path) -> str | None:
     return revision if _REVISION.fullmatch(revision) else None
 
 
-__all__ = ["DownloadProgress", "cached_weights", "weights_dir", "weights_repo", "weights_revision"]
+__all__ = [
+    "DownloadProgress",
+    "cached_weights",
+    "model_folder",
+    "weights_dir",
+    "weights_repo",
+    "weights_revision",
+]

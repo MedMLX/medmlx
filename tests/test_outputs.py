@@ -25,12 +25,15 @@ from tests.conftest import add_distribution
 
 _LABELLED = '''
 LABELLED = {"id": "labelled", "label": "Labelled", "task": "segmentation",
-            "run": "fakemlx:report_outputs",
+            "run": "fakemlx:labelled.segment",
             "requires_weights": False, "labels": {"1": "liver", "2": "spleen"},
             "example_arguments": {"seconds": 0}}
 
-def report_outputs(*, seconds=0, outputs=None, artifacts=None):
+def segment_outputs(*, seconds=0, outputs=None, artifacts=None):
     return {} if outputs is None else {"outputs": outputs, "artifacts": artifacts or {}}
+
+import types
+labelled = types.SimpleNamespace(segment=segment_outputs)
 '''
 
 
@@ -143,7 +146,7 @@ def test_python_output_names_ignore_a_different_file_and_allow_declared_fallback
     assert invalid.result == {"outputs": {"mask": 1}, "artifacts": {}}
     jobs = Jobs(tmp_path)
     try:
-        job = jobs.start("labelled", "fakemlx:report_outputs", arguments, holds_memory=False)
+        job = jobs.start("labelled", "fakemlx:labelled.segment", arguments, holds_memory=False)
         job.process.wait(timeout=5)
         assert jobs.get(job.job_id).state == "completed", job.to_payload()
         unnamed = medmlx.summarize_output("mask.nii.gz", job_id=job.job_id, jobs=jobs)

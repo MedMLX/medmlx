@@ -21,19 +21,19 @@ THRESHOLD = {
     "id": "threshold",
     "label": "Threshold",
     "task": "segmentation",
-    "run": "fakemlx:threshold",
+    "run": "fakemlx:segment",
     "readiness": "fakemlx:weights_missing",
     "summary": "Marks values above a level.",
 }
-SLEEPER = {"id": "sleeper", "label": "Sleeper", "task": "testing", "run": "fakemlx:sleep"}
-FAILING = {"id": "failing", "label": "Failing", "task": "testing", "run": "fakemlx:fail"}
-CRASHING = {"id": "crashing", "label": "Crashing", "task": "testing", "run": "fakemlx:crash"}
-INVALID = {"id": "invalid", "label": "Invalid", "task": "testing"}
-FUTURE = {"id": "future", "label": "Future", "task": "testing", "run": "fakemlx:sleep",
+SLEEPER = {"id": "sleeper", "label": "Sleeper", "task": "workflow", "run": "fakemlx:sleep"}
+FAILING = {"id": "failing", "label": "Failing", "task": "workflow", "run": "fakemlx:fail"}
+CRASHING = {"id": "crashing", "label": "Crashing", "task": "workflow", "run": "fakemlx:crash"}
+INVALID = {"id": "invalid", "label": "Invalid", "task": "workflow"}
+FUTURE = {"id": "future", "label": "Future", "task": "workflow", "run": "fakemlx:sleep",
           "future_field": True}
 
 
-def threshold(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
+def segment(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
     """Threshold a JSON array.
 
     Args:

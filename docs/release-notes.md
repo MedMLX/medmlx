@@ -1,5 +1,83 @@
 # Release notes
 
+## Unreleased
+
+### Breaking changes
+
+**Every model runs through one operation named for its task, and runtimes that
+still use the old names are not discovered.** Segmentation runs `segment`,
+detection `detect`, generation `generate`, feature extraction `extract` and report
+generation `generate_report`; `run`, `run_ct`, `renal_cect` and the per-backbone
+RadImageNet functions are gone. Each runtime exports its operation from the package
+root and lists the same arguments in `medmlx describe`. This needs `medmlx-core` 0.3
+and the runtime releases built on it.
+
+```diff
+-from totalsegmentator_mlx.medmlx import run
++from totalsegmentator_mlx import segment
+-from radimagenet_mlx.medmlx import resnet50
++from radimagenet_mlx import extract   # extract(model="radimagenet-resnet50", ...)
+-from nnunet_mlx.named_models import liver
++from nnunet_mlx.named_models.liver import segment
+```
+
+**Several arguments are renamed to the shared names.** Multi-image models take
+`image_paths` as a map from channel name to file, so channel order can no longer
+be swapped by mistake.
+
+| Model | Before | Now |
+| --- | --- | --- |
+| `nnunet-autopet` | `image_paths=[ct, pet]` | `image_paths={"ct": ..., "pet": ...}` |
+| `nnunet-brats2021` | `t1_path`, `t1ce_path`, `t2_path`, `flair_path` | `image_paths={"t1": ..., "t1ce": ..., "t2": ..., "flair": ...}` |
+| `segresnet-renal-cect` | `arterial_path`, `venous_path`, `excretory_path` | `image_paths={"arterial": ..., "venous": ..., "excretory": ...}` |
+| `sam3` | `text_prompt` | `prompt` |
+| `fdg-pet-ct` | `labels_path` | `mask_path` |
+| `totalsegmentator` | `prompt` | `classes` |
+| `mlx-segment-ct`, `mlx-segment-ctmr` | `prompt`, `label_prompt`, `checkpoint` | `classes`; the model ID selects the checkpoint |
+| `segresnet-renal-cect`, `synthseg` | `arithmetic_profile` | `precision` |
+| `mlx-generate-ctmr-*`, `nnunet_mlx.segment`, `nnunet_mlx.load_model` | `arithmetic` | `precision` |
+| `mlxradiomics` | `temporary_dir`, `max_temporary_mib` | `scratch_dir`, `max_scratch_mib` |
+| `radimagenet-*` | `backbone` | removed; the model ID selects the backbone |
+| `biomedparse-v2` | `tokenizer_path` | removed; the tokenizer is read from `weights_path` |
+
+**`weights_path` is always a folder.** Passing the weights file itself is refused;
+pass the folder that holds it. MedSAM2 picks another checkpoint in that folder with
+`checkpoint="MedSAM2_latest.safetensors"`.
+
+**Output roles name their content.**
+
+| Model | Before | Now |
+| --- | --- | --- |
+| `lesiondiffusion` | `synthetic_image`, `raw_synthetic_image`, `target_mask` | `image`, `raw_image`, `mask` |
+| `medsam2` | `overlay` | `preview` |
+| `mlx-generate-ctmr-*` | `synthetic_image` | `image` |
+| `fdg-pet-ct` | `pet` | `image` |
+| `sam3` | `masks`, `prediction` | `mask`, `detections` |
+| `flexray` | `display_source`, `prediction` | `preview`, `metadata` |
+| `radimagenet-*` | `features_npy`, `spatial_features_npy`, `predictions_npy`, `features_json` | `features`, `spatial_features`, `predictions`, `metadata` |
+| `mlxradiomics` | `features_json`, `features_csv` | `features`, `features_table` |
+| `mlx-reason-ct` | `run` | `metadata` |
+| `biomedparse-v2` | `receipt` | `metadata` |
+
+**Single-mask runtimes write `mask` files directly in `output_dir`.** Other output
+file names are unchanged.
+
+| Model | Before | Now |
+| --- | --- | --- |
+| `swin-unetr` | `<image>/<image>_trans.nii.gz` | `mask.nii.gz` |
+| `flexible-unet` | `<image>/<image>_trans.png` | `mask.png` |
+| `segresnet-renal-cect` | `<bundle>_mask.nii.gz` | `mask.nii.gz` |
+| `medsam2` | `medsam2_mask.nii.gz`, `medsam2_overlay.png` | `mask.nii.gz`, `preview.png` |
+| `mlx-segment-ct`, `mlx-segment-ctmr` | `mlx_segment_ct_mask.nii.gz` | `mask.nii.gz` |
+
+**Loaded-model reuse uses `load_model`.** Cohorts of `nnunet-liver`,
+`totalsegmentator`, `flexible-unet` and the RadImageNet models load the model once
+through the runtime's `load_model`; `prepare`, `PreparedModel`, `FeatureSession`
+and `prepare_liver` are removed. `mlx_reason_ct.load_model(image_path=...)` keeps
+one CT encoded for follow-up questions, which are now passed explicitly as
+`history`. LesionDiffusion's repeated draws on one CT and lesion mask use
+`lesiondiffusion_mlx.load_model()` in place of `generate(prepared=PreparedGeneration())`.
+
 ## 0.9.1
 
 Adds MuscleMap v1.4 to the `segment` and `all` extras. `musclemap` segments

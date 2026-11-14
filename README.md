@@ -180,8 +180,8 @@ result.artifacts["mask"]  # kind, coordinate space and labels of that file
 
 `result.job` holds the full job record, including `log_tail`.
 
-For a model declaring a `cohort` adapter, queue up to 256 cases with one prepared
-model. The liver adapter supports this explicitly:
+For a model whose package exports `load_model`, queue up to 256 cases with one
+loaded model:
 
 ```python
 with medmlx.start_cohort(

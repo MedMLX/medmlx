@@ -59,7 +59,7 @@ CHECKPOINTS = (
         "https://zenodo.org/records/8362371", "Dataset221_AutoPETII_2023",
         ("CT (HU)", "FDG PET (SUV)"), "named_adapter",
         "Omit weights_path to download the named AutoPET model automatically. Supply "
-        "co-registered image_paths in CT then SUV PET order. The runner selects bs80 plans; "
+        "co-registered image_paths as ct and pet. The model selects bs80 plans; "
         "no checkpoint qualification is implied.",
     ),
 )

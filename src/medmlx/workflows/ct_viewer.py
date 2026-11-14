@@ -89,7 +89,7 @@ def write_review(
     for measurement in measurements:
         candidate = next(c for c in candidates if c.candidate_id == measurement.candidate_id)
         identifier = candidate.candidate_id
-        mask = read_nifti(output / identifier / "medsam2/medsam2_mask.nii.gz").get_fdata(
+        mask = read_nifti(output / identifier / "medsam2/mask.nii.gz").get_fdata(
             dtype=np.float32,
         )
         x0, y0, x1, y1 = candidate.box_xyxy

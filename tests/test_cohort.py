@@ -14,7 +14,7 @@ from medmlx.payloads import JsonValue
 _PROVIDER = '''
 import weakref
 
-THRESHOLD["cohort"] = "fakemlx:prepare"
+THRESHOLD["cohort"] = "fakemlx:load_model"
 
 class Prepared:
     def __init__(self, level, close_path, weights_path):
@@ -24,7 +24,7 @@ class Prepared:
         self.closed = False
         self.failed_case = None
 
-    def run(self, *, image_path, output_path, seconds=0):
+    def segment(self, *, image_path, output_path, seconds=0):
         if self.failed_case is not None and self.failed_case() is not None:
             raise RuntimeError("Failed case is still retained")
         if image_path == "invalid-result":
@@ -36,13 +36,13 @@ class Prepared:
         time.sleep(seconds)
         if Path(image_path).resolve() == Path(output_path).resolve():
             raise ValueError("Input/output alias")
-        return threshold(image_path, output_path, level=self.level + self.weights)
+        return segment(image_path, output_path, level=self.level + self.weights)
 
     def close(self):
         self.closed = True
         self.close_path.touch()
 
-def prepare(*, level=0.5, close_path, weights_path):
+def load_model(*, level=0.5, close_path, weights_path):
     return Prepared(level, close_path, weights_path)
 '''
 

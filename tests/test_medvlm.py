@@ -203,7 +203,7 @@ def test_older_selected_runtime_is_rejected_before_importing_mlx_or_writing(
     metadata.write_text(metadata.read_text().replace("Version: 0.3.3", "Version: 0.2.3"))
     assert medvlm.readiness()["ready"] is False
     with pytest.raises(MissingDependencyError, match=r"targets med-vlm-mlx==0\.3\.3"):
-        medvlm.medgemma(**inputs)
+        medvlm.generate_report(**inputs)
     assert not _mlx_imported(isolated_python)
     assert not Path(inputs["output_dir"]).exists()
 
@@ -327,15 +327,15 @@ def test_managed_runtime_installs_privately_reuses_and_repairs_interrupted_setup
     assert medvlm.readiness()["ready"] is False
     assert commands == [] and not cache.exists()
     with pytest.raises(MissingDependencyError):
-        medvlm.medgemma(**inputs)
+        medvlm.generate_report(**inputs)
     assert len(commands) == 2
     assert not (prefix / ".ready").exists()
     fail = False
-    medvlm.medgemma(**inputs)
+    medvlm.generate_report(**inputs)
     assert len(commands) == 3
     assert (prefix / ".ready").read_text() == "0.3.3\n"
     assert medvlm.readiness()["ready"] is True
-    medvlm.medgemma(**inputs, overwrite=True)
+    medvlm.generate_report(**inputs, overwrite=True)
     assert len(commands) == 3
 
 
@@ -357,7 +357,7 @@ def test_medgemma_omitted_weights_download_and_record_the_revision(
 
     monkeypatch.setattr(medvlm, "weights_dir", cached)
     monkeypatch.setattr(medvlm, "_invoke", invoke)
-    result = medvlm.medgemma(
+    result = medvlm.generate_report(
         image_path=inputs["image_path"], prompt=inputs["prompt"], output_dir=inputs["output_dir"],
     )
     assert downloads == ["medgemma"]

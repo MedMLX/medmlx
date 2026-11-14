@@ -158,7 +158,7 @@ def test_run_result_contract_reports_invalid_output(
     model_site: Path, tmp_path: Path, result: str, error_type: str,
 ) -> None:
     (model_site / "invalid_result.py").write_text(
-        'MODEL = {"id": "invalid-result", "label": "Invalid result", "task": "testing", '
+        'MODEL = {"id": "invalid-result", "label": "Invalid result", "task": "workflow", '
         '"run": "invalid_result:run"}\n'
         f"def run():\n    return {result}\n"
     )
@@ -366,7 +366,7 @@ def test_list_packages_shows_families_sub_packages_and_their_models(
     add_distribution(model_site, "loose-mlx", "[medmlx.models]\nloose = fakemlx:LOOSE\n")
     module = model_site / "fakemlx" / "__init__.py"
     module.write_text(module.read_text() + '\nLOOSE = {"id": "loose", "label": "Loose", '
-                      '"task": "testing", "run": "fakemlx:sleep"}\n')
+                      '"task": "workflow", "run": "fakemlx:sleep"}\n')
 
     async def body(client: Client) -> None:
         tree = await _call(client, "list_packages", {}, PackageListPayload)

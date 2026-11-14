@@ -14,14 +14,14 @@ from medmlx import memory
 from tests.conftest import add_distribution
 
 _HUGE = '''
-HUGE = {"id": "huge", "label": "Huge", "task": "testing", "run": "fakemlx:sleep",
+HUGE = {"id": "huge", "label": "Huge", "task": "workflow", "run": "fakemlx:sleep",
         "requires_weights": False, "peak_memory_gb": 1000000}
 '''
 
 _MEASURED = '''
-MEASURED = {"id": "measured", "label": "Measured", "task": "testing", "run": "fakemlx:measure",
+MEASURED = {"id": "measured", "label": "Measured", "task": "workflow", "run": "fakemlx:measure",
             "requires_weights": False, "peak_memory_gb": 8}
-RESIDENT = {"id": "resident", "label": "Resident", "task": "testing", "run": "fakemlx:resident",
+RESIDENT = {"id": "resident", "label": "Resident", "task": "workflow", "run": "fakemlx:resident",
             "requires_weights": False}
 
 

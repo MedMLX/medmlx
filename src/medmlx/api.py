@@ -433,7 +433,10 @@ def model_readiness(
             reasons.append(f"MLX is not usable: {mlx.get('reason')}")
         if arguments is not None:
             try:
-                bound = inspect.signature(registry.resolve(spec.run)).bind(**arguments)
+                runner = registry.resolve(spec.run)
+                bound = inspect.signature(runner).bind(
+                    **registry.bound_arguments(spec, runner, arguments)
+                )
                 bound.apply_defaults()
                 values = dict(bound.arguments)
                 row["path_checks"] = _check_paths(values, directory)
@@ -459,9 +462,9 @@ def _check_paths(arguments: dict[str, object], root: Path) -> list[PathCheck]:
         if not plural and not name.endswith(("_path", "_dir")):
             continue
         if plural:
-            if not isinstance(value, list | tuple):
-                raise ValueError(f"{name} must be a list of paths")
-            values = list(cast(Sequence[object], value))
+            if not isinstance(value, list | tuple | dict):
+                raise ValueError(f"{name} must be a list of paths or map names to paths")
+            values = _path_values(cast(object, value))
         else:
             values = [value]
         for item in values:
@@ -598,19 +601,31 @@ def nifti_shape(path: str | Path) -> list[int]:
     return [int(size) for size in dims[1:rank + 1]]
 
 
+def _path_values(value: object) -> list[object]:
+    """The paths a path argument holds: one value, a list, or a name-to-path map.
+
+    ``image_paths`` maps a model's channel names to files, so its values are paths.
+    """
+    if isinstance(value, dict):
+        return list(cast(dict[object, object], value).values())
+    if isinstance(value, list | tuple):
+        return list(cast(Sequence[object], value))
+    return [value]
+
+
 def paths_outside(arguments: dict[str, JsonValue], root: Path) -> list[str]:
     """Return argument paths, outputs included, that resolve outside ``root``.
 
     Path arguments are the same conventionally named parameters readiness checks
-    (``*_path``, ``*_paths``, ``*_dir``, ``*_dirs``). Symlinks are resolved first.
+    (``*_path``, ``*_paths``, ``*_dir``, ``*_dirs``); a ``*_paths`` value may be a
+    list or a map from channel names to paths. Symlinks are resolved first.
     """
     root = root.resolve()
     outside: list[str] = []
     for name, value in arguments.items():
         if not name.endswith(("_path", "_paths", "_dir", "_dirs")) or value is None:
             continue
-        items = cast(Sequence[object], value) if isinstance(value, list | tuple) else [value]
-        for item in items:
+        for item in _path_values(value):
             if not isinstance(item, str) or not item.strip():
                 continue
             path = Path(item).expanduser()
@@ -656,6 +671,7 @@ def start_model(jobs: Jobs, model_id: str, arguments: dict[str, JsonValue]) -> J
     """
     spec = registry.get_model(model_id)
     runner = registry.resolve(spec.run)
+    arguments = registry.bound_arguments(spec, runner, arguments)
     try:
         inspect.signature(runner).bind(**arguments)
     except TypeError as error:
@@ -882,8 +898,9 @@ def start_cohort(
 ) -> ModelRun:
     """Start a finite cohort with one prepared model in one supervised worker.
 
-    The provider must declare a ``cohort`` factory with ``run(**case)`` and
-    ``close()`` hooks. ``preparation`` fixes weights and model configuration;
+    The provider must declare its ``load_model`` as ``cohort``; the loaded model
+    runs each case with its operation method (``segment(**case)``), then
+    ``close()``. ``preparation`` fixes weights and model configuration;
     ``cases`` contains 1..256 case argument objects, processed in input order.
     ``wait()`` returns a ``RunResult`` whose ``cases`` are ``CaseResult`` entries
     in input order, each with ``ok``, its ``outputs`` and ``artifacts`` or its
@@ -902,8 +919,10 @@ def start_cohort(
     spec = registry.get_model(model_id)
     if spec.cohort is None:
         raise ValueError(f"{model_id} does not declare a prepared cohort adapter")
+    loader = registry.resolve(spec.cohort)
+    preparation = registry.bound_arguments(spec, loader, preparation)
     try:
-        inspect.signature(registry.resolve(spec.cohort)).bind(**preparation)
+        inspect.signature(loader).bind(**preparation)
     except TypeError as error:
         raise ValueError(f"Invalid preparation for {model_id}: {error}") from error
     mlx = runtime_info()["mlx"]
@@ -912,7 +931,8 @@ def start_cohort(
     jobs = Jobs(directory)
     try:
         job = jobs.start(model_id, "medmlx.cohort:run",
-                         {"prepare": spec.cohort, "preparation": preparation, "cases": list(cases)},
+                         {"prepare": spec.cohort, "operation": registry.operation(spec),
+                          "preparation": preparation, "cases": list(cases)},
                          peak_memory_gb=spec.peak_memory_gb, version=spec.version)
     except BaseException:
         jobs.close()

@@ -196,7 +196,8 @@ def test_worker_exit_or_session_close_stops_children(
     try:
         case: dict[str, JsonValue] = {"pid_path": str(pid_path), "outcome": outcome}
         job = (jobs.start("child-test", "medmlx.cohort:run",
-                          {"prepare": "child_runner:prepare", "preparation": {}, "cases": [case]})
+                          {"prepare": "child_runner:prepare", "operation": "run",
+                               "preparation": {}, "cases": [case]})
                if cohort else jobs.start("child-test", "child_runner:run", case))
         assert _wait(pid_path.exists), job.to_payload()
         child_pid = int(pid_path.read_text())

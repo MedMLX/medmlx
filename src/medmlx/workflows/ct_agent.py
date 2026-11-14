@@ -141,12 +141,10 @@ def execute(
     image_path, reason_weights_path, detector_weights_path, medsam_weights_path = paths
     if not image_path.is_file():
         raise FileNotFoundError(image_path)
-    # The detector and MedSAM2 runners accept their model folder or checkpoint file.
-    for path in (detector_weights_path, medsam_weights_path):
-        if not path.exists():
-            raise FileNotFoundError(path)
-    if not reason_weights_path.is_dir():
-        raise NotADirectoryError(reason_weights_path)
+    # Every provider takes its published model folder.
+    for path in (reason_weights_path, detector_weights_path, medsam_weights_path):
+        if not path.is_dir():
+            raise NotADirectoryError(path)
     providers = {
         name: registry.get_model(name)
         for name in (
@@ -321,7 +319,7 @@ def execute(
                 measurement = restore_mask(
                     scan,
                     selected,
-                    directory / "medsam2/medsam2_mask.nii.gz",
+                    directory / "medsam2/mask.nii.gz",
                     directory / "mask.nii.gz",
                 )
                 measurements.append(measurement)
