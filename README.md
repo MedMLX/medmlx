@@ -174,7 +174,11 @@ result = medmlx.run(
     arguments={"image_path": "ct.nii.gz", "output_dir": "segment-ct"},
     root="/path/to/medmlx-work",
 )
+result.outputs["mask"]    # path by role
+result.artifacts["mask"]  # kind, coordinate space and labels of that file
 ```
+
+`result.job` holds the full job record, including `log_tail`.
 
 For a model declaring a `cohort` adapter, queue up to 256 cases with one prepared
 model. The liver adapter supports this explicitly:
@@ -188,7 +192,8 @@ with medmlx.start_cohort(
         {"image_path": "ct-b.nii.gz", "output_dir": "out-b"},
     ],
 ) as cohort:
-    cases = cohort.wait()["result"]["cases"]
+    for case in cohort.wait().cases:
+        print(case.index, case.outputs if case.ok else case.error)
 ```
 
 Cases run in order and report individual results or errors. Weights and model

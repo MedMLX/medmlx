@@ -94,7 +94,7 @@ def test_successful_workers_record_the_highest_mlx_peak(
     for peak_bytes, measured, highest in [
         (2_500_000_000, 2.5, 2.5), (1_000_000_000, 1.0, 2.5), (3_000_000_000, 3.0, 3.0),
     ]:
-        job = medmlx.run("measured", arguments={"peak_bytes": peak_bytes}, root=tmp_path)
+        job = medmlx.run("measured", arguments={"peak_bytes": peak_bytes}, root=tmp_path).job
         assert job.get("measured_peak_memory_gb") == measured
         metrics = job.get("memory_metrics")
         assert metrics is not None
@@ -114,7 +114,7 @@ def test_worker_reports_host_and_exited_bridge_allocations_separately_from_mlx(
 ) -> None:
     allocation_bytes = 64 * 1024**2
     job = medmlx.run("resident", arguments={"owner": owner, "allocation_bytes": allocation_bytes},
-                     root=tmp_path)
+                     root=tmp_path).job
     metrics = job.get("memory_metrics")
     assert metrics is not None
     assert job.get("result") == {"done": True}
@@ -197,7 +197,7 @@ def test_guard_uses_measurements_only_for_the_current_package_version(
     assert "Needs about 9.0 GB at peak" in str(row["reason"])
     # Memory is reported, not enforced: the run is neither marked blocked nor refused.
     assert row["run_ready"] is True
-    assert medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path)["state"] == (
+    assert medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path).job["state"] == (
         "completed")
 
     measured_model.write_text(
@@ -207,7 +207,7 @@ def test_guard_uses_measurements_only_for_the_current_package_version(
     assert description["measured_peak_memory_gb"] is None
     assert description["effective_peak_memory_gb"] == 8.0
     assert description["peak_memory_source"] == "declared"
-    job = medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path)
+    job = medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path).job
     assert job["state"] == "completed"
     assert medmlx.describe_model("measured")["measured_peak_memory_gb"] == 0.0
 
@@ -243,13 +243,13 @@ def test_one_model_holds_memory_per_machine(
     (run_registry / "dead.json").write_text('{"model_id": "dead"}')
     assert medmlx.memory_status()["active_runs"] == []
     assert not (run_registry / "dead.json").exists()
-    assert medmlx.start("sleeper", arguments={"seconds": 0}, root=tmp_path).wait()["state"] == (
+    assert medmlx.start("sleeper", arguments={"seconds": 0}, root=tmp_path).wait().job["state"] == (
         "completed")
 
     row = medmlx.model_readiness(["huge"], arguments={"seconds": 0}, root=tmp_path)["models"][0]
     assert row["memory"]["fits"] is False and "GB at peak" in str(row["reason"])
     assert row["run_ready"] is not False
-    assert medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path).wait()["state"] == (
+    assert medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path).wait().job["state"] == (
         "completed")
 
 

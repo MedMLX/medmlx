@@ -72,14 +72,22 @@ def test_cohort_reuses_preparation_reports_case_errors_and_closes(
     result = medmlx.start_cohort("threshold", preparation={
         "close_path": str(closed), "weights_path": str(weights),
     }, cases=cases, root=tmp_path).wait(timeout=10)
-    assert result.get("result") == {"cases": [
+    assert result.result == {"cases": [
         {"index": 0, "ok": True, "result": {"output_path": "a.json", "foreground": 2}},
         {"index": 1, "ok": False, "error": {"type": "ValueError", "message": "Input/output alias"}},
         {"index": 2, "ok": False, "error": {
             "type": "TypeError", "message": "Object of type TensorOwner is not JSON serializable"}},
         {"index": 3, "ok": True, "result": {"output_path": "b.json", "foreground": 2}},
     ]}
-    assert reference["state"] == "completed"
+    assert reference.job["state"] == "completed"
+    assert reference.cases == []
+    assert [(case.index, case.ok) for case in result.cases] == [
+        (0, True), (1, False), (2, False), (3, True)]
+    assert result.cases[0].result == {"output_path": "a.json", "foreground": 2}
+    assert result.cases[0].error is None
+    assert result.cases[1].error == {"type": "ValueError", "message": "Input/output alias"}
+    assert result.cases[1].outputs == {} and result.cases[1].artifacts == {}
+    assert result.cases[2].error is not None and result.cases[2].error["type"] == "TypeError"
     assert json.loads((tmp_path / "a.json").read_text()) == json.loads(
         (tmp_path / "reference.json").read_text()) == json.loads((tmp_path / "b.json").read_text())
     assert json.loads(source.read_text()) == [0.1, 0.7, 0.8]
@@ -111,7 +119,7 @@ def test_cohort_admission_is_held_until_cancel_and_new_weights_are_prepared(
     result = medmlx.start_cohort("threshold", preparation=preparation, cases=[{
         "image_path": "image.json", "output_path": "changed.json",
     }], root=tmp_path).wait(timeout=10)
-    assert result["state"] == "completed"
+    assert result.job["state"] == "completed"
     assert json.loads((tmp_path / "changed.json").read_text()) == [False, False, False]
 
 

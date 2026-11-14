@@ -3,9 +3,11 @@
 from importlib.metadata import version
 
 from medmlx.api import (
+    CaseResult,
     DownloadProgress,
     ModelRun,
     ModelRunError,
+    RunResult,
     describe_model,
     list_checkpoints,
     list_models,
@@ -28,9 +30,11 @@ from medmlx.probe import runtime_info
 
 __version__ = version("medmlx")
 __all__ = [
+    "CaseResult",
     "DownloadProgress",
     "ModelRun",
     "ModelRunError",
+    "RunResult",
     "convert_dicom",
     "describe_model",
     "list_checkpoints",

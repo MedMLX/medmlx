@@ -26,7 +26,8 @@ def test_python_and_cli_execute_the_same_runner_and_report_failures(
     (tmp_path / "image.json").write_text("[0.1, 0.7, 0.8]")
     arguments: dict[str, JsonValue] = {"image_path": "image.json", "output_path": "mask.json"}
     result = medmlx.run("threshold", arguments=arguments, root=tmp_path)
-    assert result["state"] == "completed"
+    assert result.job["state"] == "completed"
+    assert result.result == {"output_path": "mask.json", "foreground": 2}
     assert json.loads((tmp_path / "mask.json").read_text()) == [False, True, True]
     (tmp_path / "arguments.json").write_text(json.dumps({**arguments, "level": 0.75}))
     command = [sys.executable, "-m", "medmlx", "run", "threshold",

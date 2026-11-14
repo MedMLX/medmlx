@@ -257,7 +257,7 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
             ), 0
         case "run":
             arguments = _arguments(options.model_id, options.arguments, options.pairs)
-            return api.run(options.model_id, arguments=arguments or {}, root=options.root), 0
+            return api.run(options.model_id, arguments=arguments or {}, root=options.root).job, 0
         case "serve":
             return None, _serve(options.root, restrict=options.restrict_root)
         case "convert":

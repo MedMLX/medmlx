@@ -180,7 +180,7 @@ def test_python_start_returns_at_once_and_can_wait_or_cancel(
     (tmp_path / "image.json").write_text("[0.1, 0.9]")
     arguments: dict[str, JsonValue] = {"image_path": "image.json", "output_path": "mask.json"}
     finished = medmlx.start("threshold", arguments=arguments, root=tmp_path).wait()
-    assert finished["state"] == "completed"
+    assert finished.job["state"] == "completed"
     with medmlx.start("sleeper", arguments={"seconds": 30}, root=tmp_path) as run:
         assert run.status()["state"] == "running"
         with pytest.raises(TimeoutError):

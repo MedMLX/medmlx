@@ -158,7 +158,7 @@ def test_isolated_worker_uses_local_runtime_and_publishes_report(
     ready = api.model_readiness(["medgemma"], arguments=_arguments(inputs))
     assert ready["models"][0]["ready"] is True
     assert not _mlx_imported(isolated_python)
-    assert api.run("medgemma", arguments=_arguments(inputs))["state"] == "completed"
+    assert api.run("medgemma", arguments=_arguments(inputs)).job["state"] == "completed"
     destination = Path(inputs["output_dir"]) / "report.json"
     report = json.loads(destination.read_text())
     assert report["text"] == "gemma3:rendered:describe"
@@ -216,7 +216,7 @@ def test_stale_index_beside_single_weights_file_runs(
     (Path(inputs["weights_path"]) / "model.safetensors.index.json").write_text(
         '{"weight_map": {"a": "model-00001-of-00002.safetensors",'
         ' "b": "model-00002-of-00002.safetensors"}}')
-    assert api.run("medgemma", arguments=_arguments(inputs))["state"] == "completed"
+    assert api.run("medgemma", arguments=_arguments(inputs)).job["state"] == "completed"
 
 
 @pytest.mark.parametrize("case", ["missing", "architecture", "shard", "tokens"])

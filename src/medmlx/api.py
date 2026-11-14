@@ -13,11 +13,12 @@ import math
 import struct
 import time
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from types import NoneType, TracebackType, UnionType
 from typing import Literal, Self, TypeAliasType, Union, cast, get_args, get_origin
 
-from medmlx_core.outputs import validate_outputs
+from medmlx_core.outputs import Artifact, validate_outputs
 from medmlx_core.weights import cached_weights, weights_repo
 from packaging.utils import canonicalize_name
 
@@ -40,6 +41,7 @@ from medmlx.payloads import (
     PathCheck,
     ReadinessPayload,
     WeightsCheck,
+    WorkerError,
 )
 from medmlx.probe import runtime_info
 from medmlx.setup import DownloadProgress as DownloadProgress
@@ -692,12 +694,103 @@ class ModelRunError(RuntimeError):
         super().__init__(f"{self.model_id}: {message}")
 
 
+@dataclass(frozen=True)
+class CaseResult:
+    """One case of a cohort run, in input order.
+
+    ``index`` is the case's position in the submitted ``cases``. ``ok`` is False
+    when the case raised; ``error`` then holds the worker's error packet (type,
+    message and, when known, category and hint) and ``outputs``, ``artifacts`` and
+    ``details`` are empty. For a successful case ``outputs`` and ``artifacts`` are
+    checked with ``validate_outputs`` exactly as for a single run, and ``result``
+    is the provider's raw case result. A case whose provider reported invalid
+    output metadata stays ``ok`` with ``outputs`` and ``artifacts`` empty, as
+    for a single run's ``outputs_error``: ``outputs_error`` gives the reason and
+    the unchecked values stay in ``result``.
+    """
+
+    index: int
+    ok: bool
+    outputs: dict[str, str]
+    artifacts: dict[str, Artifact]
+    details: JsonValue
+    error: WorkerError | None
+    outputs_error: str | None
+    result: JsonValue
+
+    @classmethod
+    def from_entry(cls, entry: Mapping[str, JsonValue]) -> Self:
+        """Build a case from one ``cases`` entry of a cohort result.
+
+        The cohort worker already validated each successful case and recorded an
+        invalid one as ``outputs_error``, so validation here never raises for a
+        job that ``Jobs`` accepted; such cases keep empty outputs and artifacts.
+        """
+        index = cast(int, entry["index"])
+        error = cast("WorkerError | None", entry.get("error"))
+        outputs_error = cast("str | None", entry.get("outputs_error"))
+        result = entry.get("result")
+        paths: dict[str, str] = {}
+        artifacts: dict[str, Artifact] = {}
+        details: JsonValue = None
+        if isinstance(result, dict):
+            details = result.get("details")
+            if entry["ok"] is True and outputs_error is None:
+                paths, artifacts = validate_outputs(result)
+        return cls(
+            index, entry["ok"] is True, paths, artifacts, details, error, outputs_error, result
+        )
+
+
+@dataclass(frozen=True)
+class RunResult:
+    """A completed model run: its output files by role and the full job record.
+
+    ``outputs`` maps each role to the path the provider wrote and ``artifacts``
+    maps the same roles to what each file holds (kind, coordinate space, labels).
+    ``details`` is the provider result's ``details`` value, or None when absent.
+    ``cases`` holds a cohort's per-case ``CaseResult`` entries in input order and
+    is empty for an ordinary run; a cohort has no top-level ``outputs``.
+    ``result`` is the whole provider result, for fields beyond those. ``job`` is
+    the final job payload with ``log_tail``, memory metrics and ``outputs_error``.
+
+    A run whose provider reported invalid output metadata still completes: the job
+    carries ``outputs_error``, ``outputs`` and ``artifacts`` are empty, and the
+    unchecked values stay in ``result`` and ``job``.
+    """
+
+    outputs: dict[str, str]
+    artifacts: dict[str, Artifact]
+    details: JsonValue
+    cases: list[CaseResult]
+    result: JsonValue
+    job: JobPayload
+
+    @classmethod
+    def from_job(cls, job: JobPayload) -> Self:
+        """Build the result of a completed job, checking outputs with ``validate_outputs``."""
+        result = job.get("result")
+        paths: dict[str, str] = {}
+        artifacts: dict[str, Artifact] = {}
+        details: JsonValue = None
+        cases: list[CaseResult] = []
+        if isinstance(result, dict):
+            details = result.get("details")
+            entries = result.get("cases")
+            if isinstance(entries, list):
+                cases = [CaseResult.from_entry(cast(dict[str, JsonValue], entry))
+                         for entry in entries]
+            elif "outputs_error" not in job:
+                paths, artifacts = validate_outputs(result)
+        return cls(paths, artifacts, details, cases, result, job)
+
+
 class ModelRun:
     """A model run started in the background by ``start``.
 
-    The run owns its worker session. ``wait`` returns the completed job, or
-    raises with the provider's error, and releases the session; so do ``cancel``
-    and ``close``. Use it as a context manager to cancel an unfinished run on exit.
+    The run owns its worker session. ``wait`` returns the completed
+    ``RunResult``, or raises with the provider's error, and releases the session;
+    so do ``cancel`` and ``close``. Use it as a context manager to cancel an unfinished run on exit.
     """
 
     def __init__(self, jobs: Jobs, job_id: str) -> None:
@@ -709,8 +802,12 @@ class ModelRun:
         """Return the job's current state, log tail and, once finished, result or error."""
         return self._jobs.get(self.job_id).to_payload()
 
-    def wait(self, timeout: float | None = None) -> JobPayload:
-        """Block until the run finishes and return it; the run keeps going after a timeout.
+    def wait(self, timeout: float | None = None) -> RunResult:
+        """Block until the run finishes and return its ``RunResult``.
+
+        A cohort's ``RunResult`` carries one ``CaseResult`` per case in ``cases``.
+
+        The run keeps going after a timeout.
 
         Raises:
             TimeoutError: The run is still going after ``timeout`` seconds.
@@ -726,7 +823,7 @@ class ModelRun:
         self.close()
         if payload["state"] != "completed":
             raise ModelRunError(payload)
-        return payload
+        return RunResult.from_job(payload)
 
     def cancel(self) -> JobPayload:
         """Stop the worker and its child processes, then release the session."""
@@ -759,7 +856,7 @@ def start(
     """Start a model in a supervised worker and return without waiting.
 
     Relative model paths resolve against ``root`` (the current directory by
-    default). Call ``wait`` on the result for the completed job, or ``cancel``.
+    default). Call ``wait`` on the result for the ``RunResult``, or ``cancel``.
 
     Raises:
         NotADirectoryError: ``root`` is not an existing directory.
@@ -788,8 +885,9 @@ def start_cohort(
     The provider must declare a ``cohort`` factory with ``run(**case)`` and
     ``close()`` hooks. ``preparation`` fixes weights and model configuration;
     ``cases`` contains 1..256 case argument objects, processed in input order.
-    ``wait()`` returns ``result.cases`` entries with ``index``, ``ok`` and a
-    ``result`` or ``error``; ordinary case failures do not stop later cases.
+    ``wait()`` returns a ``RunResult`` whose ``cases`` are ``CaseResult`` entries
+    in input order, each with ``ok``, its ``outputs`` and ``artifacts`` or its
+    ``error``; ordinary case failures do not stop later cases.
     The worker closes automatically after the last case. Its admission claim
     covers loading through close; cancellation stops its entire process group.
     Start another cohort to select different weights or configuration.
@@ -827,11 +925,12 @@ def run(
     *,
     arguments: dict[str, JsonValue],
     root: str | Path | None = None,
-) -> JobPayload:
+) -> RunResult:
     """Run a model synchronously in a worker; cancel its process group on interruption.
 
     Relative model paths resolve against ``root`` (the current directory by
-    default). Return the completed job and its provider result. A failed worker
+    default). Return the ``RunResult`` with the outputs and artifacts by role, the
+    provider's details and the completed job. A failed worker
     raises with its reported error instead of returning an apparent success.
 
     Raises:
