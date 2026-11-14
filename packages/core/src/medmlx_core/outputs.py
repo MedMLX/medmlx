@@ -1,9 +1,15 @@
-"""Build and validate the file descriptions returned by model runtimes."""
+"""Check the files a model run reports and the metadata that describes them.
+
+A runner result names its files in ``outputs``, a map from role to path, so
+callers read ``result["outputs"]["mask"]``. Optional ``artifacts`` describe
+the same roles: what each file holds, its coordinate space, label names, grid
+and units. Every artifact role must also appear in ``outputs``.
+"""
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import NotRequired, TypedDict, cast
+from collections.abc import Mapping
+from typing import NamedTuple, NotRequired, TypedDict, cast
 
 # RadNN's OutputKind and CoordinateSpace vocabulary.
 _OUTPUT_KINDS = frozenset({
@@ -24,10 +30,9 @@ class OutputLabel(TypedDict):
     name: str
 
 
-class OutputEntry(TypedDict):
-    """One output file and its runtime-declared meaning."""
+class Artifact(TypedDict):
+    """What one output file holds, keyed by the same role as its path."""
 
-    path: str
     kind: str
     coordinate_space: str
     labels: NotRequired[list[OutputLabel] | None]
@@ -35,47 +40,63 @@ class OutputEntry(TypedDict):
     units: NotRequired[str | None]
 
 
-def output_entry(
-    path: str | Path, *, kind: str, coordinate_space: str,
-    labels: list[OutputLabel] | None = None, grid_of: str | None = None,
-    units: str | None = None,
-) -> OutputEntry:
-    """Build one JSON output entry, raising ValueError for invalid metadata.
+class CheckedOutputs(NamedTuple):
+    """A result's role-to-path map and its artifact metadata by role."""
 
-    Paths retain their relative or absolute form. No files are read. Mask kinds
-    require a label list; an empty list describes a run with no named labels.
-    ``grid_of`` names an input argument, and ``units`` states the value units.
+    paths: dict[str, str]
+    artifacts: dict[str, Artifact]
+
+
+def artifact(
+    *, kind: str, coordinate_space: str, labels: list[OutputLabel] | None = None,
+    grid_of: str | None = None, units: str | None = None,
+) -> Artifact:
+    """Build one artifact description, raising ValueError for invalid metadata.
+
+    Mask kinds require a label list; an empty list describes a run with no
+    named labels. ``grid_of`` names the input argument whose grid the file
+    shares, and ``units`` states its value units. No files are read.
     """
-    entry: OutputEntry = {
-        "path": path.as_posix() if isinstance(path, Path) else path,
+    entry: Artifact = {
         "kind": kind,
         "coordinate_space": coordinate_space,
         "labels": labels,
         "grid_of": grid_of,
         "units": units,
     }
-    _validate_entry(entry, "output")
+    _validate_artifact(entry, "artifact")
     return entry
 
 
-def validate_outputs(value: object) -> list[OutputEntry]:
-    """Return a checked outputs list, or raise ValueError with the failing field.
+def validate_outputs(result: Mapping[str, object]) -> CheckedOutputs:
+    """Return a result's checked ``outputs`` and ``artifacts``, or raise ValueError.
 
-    The list and its entries are left unchanged. Unknown fields are ignored.
+    A missing field reads as an empty map. Paths stay as given, relative or
+    absolute, and no files are read. The returned maps are the result's own
+    objects, not copies. Unknown fields inside an artifact are ignored.
     """
-    if not isinstance(value, list):
-        raise ValueError("outputs must be a list")
-    entries = cast(list[object], value)
-    for index, entry in enumerate(entries):
-        _validate_entry(entry, f"outputs[{index}]")
-    return cast(list[OutputEntry], value)
+    paths = _mapping(result.get("outputs", {}), "outputs")
+    for role, path in paths.items():
+        _text(role, "outputs role")
+        _text(path, f"outputs.{role}")
+    artifacts = _mapping(result.get("artifacts", {}), "artifacts")
+    for role, entry in artifacts.items():
+        if role not in paths:
+            raise ValueError(f"artifacts.{role} has no matching outputs.{role}")
+        _validate_artifact(entry, f"artifacts.{role}")
+    return CheckedOutputs(cast(dict[str, str], paths), cast(dict[str, Artifact], artifacts))
 
 
-def _validate_entry(value: object, field: str) -> None:
+def _mapping(value: object, field: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be an object keyed by output role")
+    return cast(dict[str, object], value)
+
+
+def _validate_artifact(value: object, field: str) -> None:
     if not isinstance(value, dict):
         raise ValueError(f"{field} must be an object")
     entry = cast(dict[str, object], value)
-    _text(entry.get("path"), f"{field}.path")
     kind = entry.get("kind")
     if not isinstance(kind, str) or kind not in _OUTPUT_KINDS:
         raise ValueError(f"{field}.kind must be one of: {', '.join(sorted(_OUTPUT_KINDS))}")
@@ -114,4 +135,4 @@ def _text(value: object, field: str) -> None:
         raise ValueError(f"{field} must be non-empty text")
 
 
-__all__ = ["OutputEntry", "OutputLabel", "output_entry", "validate_outputs"]
+__all__ = ["Artifact", "CheckedOutputs", "OutputLabel", "artifact", "validate_outputs"]

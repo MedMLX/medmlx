@@ -7,13 +7,22 @@ from typing import Literal, NotRequired, TypedDict
 type JsonValue = bool | int | float | str | list[JsonValue] | dict[str, JsonValue] | None
 type JobState = Literal["running", "completed", "failed", "cancelled"]
 type OutputNamesFrom = Literal["outputs", "declaration"] | None
+type ErrorCategory = Literal[
+    "InvalidInputError", "AssetNotReadyError", "MissingDependencyError", "ModelExecutionError",
+]
 
 
 class WorkerError(TypedDict):
-    """A run's exception class name and message, as reported by the worker."""
+    """A run's exception class name and message, as reported by the worker.
+
+    ``category`` names the shared ``medmlx_core`` error the exception derives
+    from, when it does; ``hint`` is the provider's setup hint, when given.
+    """
 
     type: str
     message: str
+    category: NotRequired[ErrorCategory]
+    hint: NotRequired[str]
 
 
 class RunMemory(TypedDict):

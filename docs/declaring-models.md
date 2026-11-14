@@ -47,24 +47,30 @@ a compatible MedMLX version.
 
 ## Reporting outputs
 
-Return an `outputs` list describing every file the run wrote. Build each entry
-with `medmlx_core.outputs.output_entry`.
+Return `outputs` as a map from role to the path of every file the run wrote, so
+callers read `result["outputs"]["mask"]`. Describe a role in `artifacts` with
+`medmlx_core.outputs.artifact`; every artifact role must also be an `outputs`
+role.
 
 ```python
-from medmlx_core.outputs import output_entry
+from medmlx_core.outputs import artifact
 
-return {"outputs": [output_entry(
-    mask_path, kind="label_map", coordinate_space="image_voxel",
-    labels=[{"value": 1, "name": "spleen"}], grid_of="image_path",
-)]}
+return {
+    "outputs": {"mask": mask_path.as_posix(), "record": record_path.as_posix()},
+    "artifacts": {"mask": artifact(
+        kind="label_map", coordinate_space="image_voxel",
+        labels=[{"value": 1, "name": "spleen"}], grid_of="image_path",
+    )},
+}
 ```
 
 Use RadNN's output kinds and coordinate spaces. Name every nonzero label this
 call can write. Mask kinds require `labels`. For prompted runs, use the names
 from that call's prompts. `grid_of` names the input argument whose grid the
 output shares. It and `units` default to `null`. Paths may be absolute or relative
-to the run's working directory. Invalid metadata adds `outputs_error` to the job.
-The run still completes and its result stays unchanged.
+to the run's working directory. Invalid `outputs` or `artifacts` add
+`outputs_error` to the job. The run still completes and its result stays
+unchanged.
 
 ## Conventions for registered MedMLX runners
 
@@ -84,8 +90,8 @@ a model tool.
   Record `weights_revision(folder)` in result details. Use explicit paths as
   given without resolving links before suffix checks. Runners that write files should take `output_dir` and `overwrite: bool = False`, and refuse to replace existing outputs unless `overwrite` is true.
 - For NIfTI volume workflows, document shape, affine and orientation changes. Segmentation masks and label maps should keep the input grid unless the model natively produces another grid. Other providers accept or produce raster images, arrays, video, or reports; state their formats explicitly.
-- Return the `outputs` list described above. Extra result fields such as `details` must contain only JSON values.
-- Failures raise `medmlx_core` errors with an actionable message: `InvalidInputError` for bad inputs, `AssetNotReadyError` for missing or mismatched weights, `MissingDependencyError` for a missing optional package.
+- Return the `outputs` map, and `artifacts` for files whose meaning a caller needs, as described above. Extra result fields such as `details` must contain only JSON values.
+- Failures raise `medmlx_core` errors with an actionable message: `InvalidInputError` for bad inputs, `AssetNotReadyError` for missing or mismatched weights, `MissingDependencyError` for a missing optional package. `medmlx.run` and `ModelRun.wait` raise `medmlx.ModelRunError`, whose `category` names that shared error and whose `hint` carries the error's setup hint.
 - Native runners should use `medmlx_core.import_mlx()` and avoid source-framework imports in inference. Document any provider-specific dependency or isolated bridge instead of assuming a fallback device.
 - Keep model declarations and package imports lightweight so discovery can report a model even when its runtime is unavailable. Runner imports and provider readiness checks can still fail; those failures are reported by discovery or readiness as applicable.
 

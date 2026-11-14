@@ -130,7 +130,10 @@ def test_worker_failures_are_reported_and_the_server_keeps_serving(
     async def body(client: Client) -> None:
         failed = await _finish(client, "failing", {"message": "bad input"})
         assert failed["state"] == "failed"
-        assert failed.get("error") == {"type": "ValueError", "message": "bad input"}
+        assert failed.get("error") == {
+            "type": "AssetNotReadyError", "message": "bad input",
+            "category": "AssetNotReadyError", "hint": "Run medmlx setup failing",
+        }
         crashed = await _finish(client, "crashing", {})
         assert crashed["state"] == "failed" and crashed["exit_code"] == 3
         error = crashed.get("error")

@@ -39,8 +39,10 @@ def test_python_and_cli_execute_the_same_runner_and_report_failures(
     completed = subprocess.run(inline, cwd=tmp_path, capture_output=True, text=True, check=False)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["result"]["foreground"] == 1
-    with pytest.raises(RuntimeError):
+    with pytest.raises(medmlx.ModelRunError, match="failing: provider failure") as failure:
         medmlx.run("failing", arguments={"message": "provider failure"}, root=tmp_path)
+    assert (failure.value.category, failure.value.hint, failure.value.state) == (
+        "AssetNotReadyError", "Run medmlx setup failing", "failed")
     (tmp_path / "arguments.json").write_text('{"level": NaN}')
     failed = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, check=False)
     assert failed.returncode == 1

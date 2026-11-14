@@ -303,10 +303,10 @@ def _output_names(
         job = jobs.get(job_id).to_payload()
         result = job.get("result")
         if job["state"] == "completed" and "outputs_error" not in job and isinstance(result, dict):
-            entries = validate_outputs(result["outputs"]) if "outputs" in result else []
+            paths, artifacts = validate_outputs(result)
             file = (Path(directory or Path.cwd()) / Path(path).expanduser()).resolve()
-            for entry in entries:
-                candidate = (jobs.root / Path(entry["path"]).expanduser()).resolve()
+            for role, entry in artifacts.items():
+                candidate = (jobs.root / Path(paths[role]).expanduser()).resolve()
                 assigned = entry.get("labels")
                 if candidate == file and assigned is not None:
                     return {row["value"]: row["name"] for row in assigned}, "outputs", directory
@@ -325,7 +325,9 @@ def summarize_output(
 
     ``job_id`` requires its owning ``jobs`` session. Output paths resolve against
     that session's root. ``root`` overrides the root for the requested ``path``.
-    A missing matching entry or invalid outputs list falls back to ``model_id``.
+    Run labels come from the ``artifacts`` entry whose ``outputs`` path resolves
+    to ``path``. A file without labelled artifacts, or a result with invalid
+    outputs, falls back to ``model_id``.
     ``names_from`` is ``outputs``, ``declaration`` or None. The existing ``labels``
     mapping can supply names without either ID; its provenance is None.
 
@@ -665,6 +667,31 @@ def start_model(jobs: Jobs, model_id: str, arguments: dict[str, JsonValue]) -> J
     return job.to_payload()
 
 
+class ModelRunError(RuntimeError):
+    """A model run that failed or was cancelled, with the worker's reported error.
+
+    ``category`` names the shared ``medmlx_core`` error the provider raised
+    (``InvalidInputError``, ``AssetNotReadyError``, ``MissingDependencyError``
+    or ``ModelExecutionError``), or is None for other exceptions, crashes and
+    cancellations. ``error_type`` is the raised class name and ``hint`` the
+    provider's setup hint, when reported. ``job`` is the final job payload,
+    including its log tail.
+    """
+
+    def __init__(self, job: JobPayload) -> None:
+        """Keep the job's identity and reported error; the message names the model."""
+        error = job.get("error")
+        self.job = job
+        self.job_id = job["job_id"]
+        self.model_id = job["model_id"]
+        self.state = job["state"]
+        self.error_type = error["type"] if error else None
+        self.category = error.get("category") if error else None
+        self.hint = error.get("hint") if error else None
+        message = error["message"] if error else f"Worker exited with {job['exit_code']}"
+        super().__init__(f"{self.model_id}: {message}")
+
+
 class ModelRun:
     """A model run started in the background by ``start``.
 
@@ -687,8 +714,8 @@ class ModelRun:
 
         Raises:
             TimeoutError: The run is still going after ``timeout`` seconds.
-            RuntimeError: The worker failed or was cancelled; the message carries
-                the provider's reported error or the worker's exit code.
+            ModelRunError: The worker failed or was cancelled; it carries the
+                provider's reported error, category and hint, or the exit code.
         """
         deadline = None if timeout is None else time.monotonic() + timeout
         while (job := self._jobs.get(self.job_id)).state == "running":
@@ -698,9 +725,7 @@ class ModelRun:
         payload = job.to_payload()
         self.close()
         if payload["state"] != "completed":
-            error = payload.get("error")
-            message = error["message"] if error else f"Worker exited with {payload['exit_code']}"
-            raise RuntimeError(f"{payload['model_id']}: {message}")
+            raise ModelRunError(payload)
         return payload
 
     def cancel(self) -> JobPayload:
@@ -813,9 +838,8 @@ def run(
         NotADirectoryError: ``root`` is not an existing directory.
         LookupError: ``model_id`` is not a discovered model.
         ValueError: ``arguments`` do not match the runner's signature.
-        RuntimeError: MLX Metal is unusable, or the worker failed or was
-            cancelled; the message carries the provider's reported error or
-            the worker's exit code.
+        RuntimeError: MLX Metal is unusable on this host.
+        ModelRunError: The worker failed or was cancelled; see ``ModelRun.wait``.
     """
     with start(model_id, arguments=arguments, root=root) as model_run:
         return model_run.wait()

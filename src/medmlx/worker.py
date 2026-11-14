@@ -9,9 +9,45 @@ import traceback
 from pathlib import Path
 from typing import cast
 
+from medmlx_core.errors import (
+    AssetNotReadyError,
+    InvalidInputError,
+    MissingDependencyError,
+    ModelExecutionError,
+)
+
 from medmlx._json import require_string_keys
 from medmlx._worker_memory import WorkerMemory
+from medmlx.payloads import ErrorCategory, WorkerError
 from medmlx.registry import resolve
+
+# Providers may subclass these; the category names the shared base so callers
+# can branch on it without knowing each provider's exception classes.
+_CATEGORIES: tuple[tuple[type[Exception], ErrorCategory], ...] = (
+    (AssetNotReadyError, "AssetNotReadyError"),
+    (MissingDependencyError, "MissingDependencyError"),
+    (InvalidInputError, "InvalidInputError"),
+    (ModelExecutionError, "ModelExecutionError"),
+)
+
+
+def worker_error(error: Exception) -> WorkerError:
+    """Describe a runner exception for the response packet.
+
+    ``type`` is the raised class name. ``category`` is added when the class
+    derives from a shared ``medmlx_core`` error, and ``hint`` when the
+    exception carries a non-empty ``hint`` string.
+    """
+    name = type(error).__name__
+    packet: WorkerError = {"type": name, "message": str(error) or name}
+    for base, category in _CATEGORIES:
+        if isinstance(error, base):
+            packet["category"] = category
+            break
+    hint = cast(object, getattr(error, "hint", None))
+    if isinstance(hint, str) and hint.strip():
+        packet["hint"] = hint
+    return packet
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -55,8 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         exit_code = 0
     except Exception as error:
         traceback.print_exc()
-        name = type(error).__name__
-        text = json.dumps({"ok": False, "error": {"type": name, "message": str(error) or name}})
+        text = json.dumps({"ok": False, "error": worker_error(error)})
         exit_code = 1
     # Replace atomically so the supervisor never reads a partially written response.
     temporary = response_path.with_name(f".{response_path.name}.tmp")

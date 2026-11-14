@@ -341,9 +341,9 @@ class Jobs:
                 job.state = "cancelled"
             elif code == 0 and job.response is not None and job.response.get("ok"):
                 result = job.response.get("result")
-                if isinstance(result, dict) and "outputs" in result:
+                if isinstance(result, dict):
                     try:
-                        validate_outputs(result["outputs"])
+                        validate_outputs(result)
                     except ValueError as error:
                         job.outputs_error = str(error)
                 measured = job.response.get("measured_peak_memory_gb")

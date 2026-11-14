@@ -264,9 +264,15 @@ the server session: disconnecting cancels active workers and removes their
 temporary control files. A later session cannot retrieve those job IDs. Do not
 assume cancellation removes output files a provider has already written.
 
-A successful result with invalid `outputs` metadata carries `outputs_error` on
-the job. Its result stays unchanged and its state remains `completed`. Output
-tools ignore that list and use an explicit `model_id` for names when given.
+A successful result with invalid `outputs` or `artifacts` carries
+`outputs_error` on the job. Its result stays unchanged and its state remains
+`completed`. Output tools then ignore the run's labels and use an explicit
+`model_id` for names when given.
+
+A failed job's `error` has the exception's `type` and `message`. It adds
+`category` when the provider raised a shared MedMLX error (`InvalidInputError`,
+`AssetNotReadyError`, `MissingDependencyError` or `ModelExecutionError`) and
+`hint` when that error carries a setup hint.
 
 ## Tool reference
 

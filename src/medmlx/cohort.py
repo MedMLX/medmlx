@@ -12,6 +12,7 @@ from medmlx_core.outputs import validate_outputs
 from medmlx._json import require_string_keys
 from medmlx.payloads import JsonValue
 from medmlx.registry import resolve
+from medmlx.worker import worker_error
 
 MAX_CASES = 256
 
@@ -65,12 +66,10 @@ def _run_case(
         # Detach provider-owned mutable data and reject nonfinite values.
         value = cast(dict[str, JsonValue], json.loads(json.dumps(result, allow_nan=False)))
         item: dict[str, JsonValue] = {"index": index, "ok": True, "result": value}
-        if "outputs" in value:
-            try:
-                validate_outputs(value["outputs"])
-            except ValueError as error:
-                item["outputs_error"] = str(error)
+        try:
+            validate_outputs(value)
+        except ValueError as error:
+            item["outputs_error"] = str(error)
         return item
     except Exception as error:
-        return {"index": index, "ok": False,
-                        "error": {"type": type(error).__name__, "message": str(error)}}
+        return {"index": index, "ok": False, "error": cast(JsonValue, worker_error(error))}

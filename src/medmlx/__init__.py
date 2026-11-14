@@ -5,6 +5,7 @@ from importlib.metadata import version
 from medmlx.api import (
     DownloadProgress,
     ModelRun,
+    ModelRunError,
     describe_model,
     list_checkpoints,
     list_models,
@@ -29,6 +30,7 @@ __version__ = version("medmlx")
 __all__ = [
     "DownloadProgress",
     "ModelRun",
+    "ModelRunError",
     "convert_dicom",
     "describe_model",
     "list_checkpoints",

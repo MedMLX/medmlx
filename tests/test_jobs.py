@@ -165,7 +165,7 @@ def test_invalid_outputs_are_reported_without_changing_a_successful_result(
 ) -> None:
     _install(tmp_path, monkeypatch, "outputs_runner", '''
 def run():
-    return {"outputs": {"mask": "mask.nii.gz"}, "details": {"voxels": 42}}
+    return {"outputs": [{"path": "mask.nii.gz"}], "details": {"voxels": 42}}
 ''')
     jobs = Jobs(tmp_path)
     try:
@@ -173,9 +173,9 @@ def run():
         job.process.wait(timeout=5)
         payload = jobs.get(job.job_id).to_payload()
         assert payload["state"] == "completed", payload["log_tail"]
-        assert payload.get("outputs_error") == "outputs must be a list"
+        assert payload.get("outputs_error") == "outputs must be an object keyed by output role"
         assert payload.get("result") == {
-            "outputs": {"mask": "mask.nii.gz"}, "details": {"voxels": 42},
+            "outputs": [{"path": "mask.nii.gz"}], "details": {"voxels": 42},
         }
     finally:
         jobs.close()

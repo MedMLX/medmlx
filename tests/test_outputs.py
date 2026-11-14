@@ -29,8 +29,8 @@ LABELLED = {"id": "labelled", "label": "Labelled", "task": "segmentation",
             "requires_weights": False, "labels": {"1": "liver", "2": "spleen"},
             "example_arguments": {"seconds": 0}}
 
-def report_outputs(*, seconds=0, outputs=None):
-    return {} if outputs is None else {"outputs": outputs}
+def report_outputs(*, seconds=0, outputs=None, artifacts=None):
+    return {} if outputs is None else {"outputs": outputs, "artifacts": artifacts or {}}
 '''
 
 
@@ -91,14 +91,14 @@ def test_output_tools_use_run_names_for_the_resolved_file(
     async def run() -> None:
         async with Client(build_server(tmp_path)) as client:
             started = await client.call_tool("run_model", {"model_id": "labelled", "arguments": {
-                "outputs": [
-                    {"path": "other/mask.nii.gz", "kind": "binary_mask",
-                     "coordinate_space": "image_voxel", "labels": [{"value": 1, "name": "wrong"}]},
-                    {"path": "./mask.nii.gz", "kind": "label_map",
-                     "coordinate_space": "image_voxel",
-                     "labels": [{"value": 1, "name": "prompt one"},
-                                {"value": 2, "name": "prompt two"}]},
-                ],
+                "outputs": {"other": "other/mask.nii.gz", "mask": "./mask.nii.gz"},
+                "artifacts": {
+                    "other": {"kind": "binary_mask", "coordinate_space": "image_voxel",
+                              "labels": [{"value": 1, "name": "wrong"}]},
+                    "mask": {"kind": "label_map", "coordinate_space": "image_voxel",
+                             "labels": [{"value": 1, "name": "prompt one"},
+                                        {"value": 2, "name": "prompt two"}]},
+                },
             }})
             job_id = cast(JobPayload, started.structured_content)["job_id"]
             finished = await client.call_tool("get_job", {"job_id": job_id, "wait_seconds": 5})
@@ -128,10 +128,11 @@ def test_python_output_names_ignore_a_different_file_and_allow_declared_fallback
 ) -> None:
     path = tmp_path / "mask.nii.gz"
     nib.save(nib.Nifti1Image(np.ones((1, 1, 1), dtype=np.uint8), np.eye(4)), path)
-    arguments: dict[str, JsonValue] = {"outputs": [{
-        "path": "other/mask.nii.gz", "kind": "binary_mask", "coordinate_space": "image_voxel",
-        "labels": [{"value": 1, "name": "prompt name"}],
-    }]}
+    arguments: dict[str, JsonValue] = {
+        "outputs": {"mask": "other/mask.nii.gz"},
+        "artifacts": {"mask": {"kind": "binary_mask", "coordinate_space": "image_voxel",
+                               "labels": [{"value": 1, "name": "prompt name"}]}},
+    }
     jobs = Jobs(tmp_path)
     try:
         job = jobs.start("labelled", "fakemlx:report_outputs", arguments, holds_memory=False)

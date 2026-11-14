@@ -57,7 +57,8 @@ def sleep(seconds: float) -> dict[str, object]:
 
 
 def fail(message: str) -> dict[str, object]:
-    raise ValueError(message)
+    from medmlx_core.errors import AssetNotReadyError
+    raise AssetNotReadyError(message, hint="Run medmlx setup failing")
 
 
 def crash() -> None:

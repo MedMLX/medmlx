@@ -227,7 +227,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
     ) -> OutputSummary:
         """Report a NIfTI output's geometry and, for a mask, each label's voxels and mL.
 
-        job_id supplies names from the matching outputs entry. Otherwise model_id
+        job_id supplies names from the run's artifacts for that file. Otherwise model_id
         supplies declared names. names_from reports outputs, declaration or null.
         Images report their value range. Nothing is interpreted.
         """
