@@ -8,7 +8,7 @@ import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
 import numpy as np
 
@@ -104,6 +104,14 @@ def parse_action(text: str) -> Action:
     raise ValueError("Unsupported tool or arguments; use detection, a candidate ID, or finish")
 
 
+class _ReasonSession(Protocol):
+    """The Reason-CT ``load_model`` session: reports about one CT, then ``close``."""
+
+    def generate_report(self, **arguments: object) -> object: ...
+
+    def close(self) -> None: ...
+
+
 def _write_record(path: Path, record: dict[str, JsonValue]) -> None:
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(record, indent=2, allow_nan=False), encoding="utf-8")
@@ -153,15 +161,19 @@ def execute(
             "medsam2",
         )
     }
-    runners = {name: registry.resolve(spec.run) for name, spec in providers.items()}
-    # An older Reason-CT provider must fail before creating a partial workflow.
-    inspect.signature(runners["mlx-reason-ct"]).bind(
-        image_path=image_path,
-        weights_path=reason_weights_path,
-        output_dir=output_dir,
-        tools=TOOLS,
-        tool_history=[],
-        response_choices=[tool_choice("detect_nodules")],
+    runners = {
+        name: registry.resolve(providers[name].run) for name in ("lung-nodule", "medsam2")
+    }
+    # Every decision is about the same working CT, so one Reason-CT session per run
+    # loads the model and encodes the CT once; the one-shot operation repeats both
+    # at each step. MedMLX runtimes define load_model next to their operation. A
+    # provider without it, or with an older signature, fails here, before a partial
+    # workflow is created.
+    load_reason = registry.resolve(
+        providers["mlx-reason-ct"].run.partition(":")[0] + ":load_model"
+    )
+    inspect.signature(load_reason).bind(
+        image_path=image_path, weights_path=reason_weights_path, anatomy_region="chest"
     )
     stamp = image_path.stat()
     output_dir = output_dir.expanduser().resolve()
@@ -191,9 +203,18 @@ def execute(
     }
     journal = output_dir / "run.json"
     _write_record(journal, record)
+    reason: _ReasonSession | None = None
     try:
         scan = prepare_scan(
             image_path, output_dir / "working_ct.nii.gz", assume_mm=limits.assume_mm
+        )
+        reason = cast(
+            _ReasonSession,
+            load_reason(
+                image_path=scan.working_path,
+                weights_path=reason_weights_path,
+                anatomy_region="chest",
+            ),
         )
         assert scan.original.affine is not None and scan.working.affine is not None
         record["geometry"] = {
@@ -239,15 +260,12 @@ def execute(
                 {"step": step + 1, "event": "reason_requested", "allowed_calls": list(choices)}
             )
             _write_record(journal, record)
-            runners["mlx-reason-ct"](
-                image_path=scan.working_path,
-                weights_path=reason_weights_path,
+            reason.generate_report(
                 output_dir=step_dir,
                 prompt=request,
                 tools=TOOLS,
                 tool_history=history,
                 response_choices=choices,
-                anatomy_region="chest",
                 max_new_tokens=limits.max_new_tokens,
             )
             response = (step_dir / "report.txt").read_text().strip()
@@ -333,11 +351,8 @@ def execute(
                     "measurements": [m.model_dump(exclude={"mask_path"}) for m in measurements],
                     "score_threshold": limits.score_threshold,
                 }
-                runners["mlx-reason-ct"](
-                    image_path=scan.working_path,
-                    weights_path=reason_weights_path,
+                reason.generate_report(
                     output_dir=output_dir / "interpretation",
-                    anatomy_region="chest",
                     max_new_tokens=limits.max_new_tokens,
                     prompt=(
                         f"{limits.prompt}\nThe following tools have now completed on this CT. "
@@ -390,6 +405,8 @@ def execute(
             f"Reason-CT did not complete within {limits.max_steps} decisions; see {journal}"
         )
     finally:
+        if reason is not None:
+            reason.close()
         if record["status"] != "completed":
             record["status"] = "incomplete"
         record["finished_at"] = datetime.now(UTC).isoformat()

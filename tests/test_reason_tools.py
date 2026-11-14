@@ -242,8 +242,23 @@ def test_invalid_segmentations_cannot_be_measured(tmp_path: Path, fault: str) ->
     assert not (tmp_path / "native.nii.gz").exists()
 
 
-def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> None:
-    """Replace external inference only; geometry, dispatch policy and artifacts stay real."""
+class ReasonSession:
+    """Stand-in for one Reason-CT ``load_model`` session; records whether it closed."""
+
+    def __init__(self, generate: Callable[..., object]) -> None:
+        self.generate_report = generate
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> list[ReasonSession]:
+    """Replace external inference only; geometry, dispatch policy and artifacts stay real.
+
+    Returns the Reason-CT sessions the workflow opens, in order.
+    """
+    sessions: list[ReasonSession] = []
 
     def reason(*, output_dir: Path, response_choices: object = None, **arguments: object) -> object:
         output_dir.mkdir(parents=True)
@@ -277,13 +292,18 @@ def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> None:
     def spec(name: str) -> registry.ModelSpec:
         return registry.ModelSpec(name, name, "test", name, None, None, None, None, name)
 
+    def load_reason(**_arguments: object) -> ReasonSession:
+        sessions.append(ReasonSession(reason))
+        return sessions[-1]
+
     implementations: dict[str, Callable[..., object]] = {
-        "mlx-reason-ct": reason,
+        "mlx-reason-ct:load_model": load_reason,
         "lung-nodule": detect,
         "medsam2": segment,
     }
     monkeypatch.setattr(registry, "get_model", spec)
     monkeypatch.setattr(registry, "resolve", implementations.__getitem__)
+    return sessions
 
 
 def run_fixture(tmp_path: Path, *, max_steps: int = 8) -> dict[str, object]:
@@ -303,7 +323,7 @@ def test_workflow_rejects_bad_actions_and_persists_grounded_results(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    providers(
+    sessions = providers(
         monkeypatch,
         [
             tool_choice("detect_nodules"),
@@ -327,6 +347,8 @@ def test_workflow_rejects_bad_actions_and_persists_grounded_results(
     assert "&lt;script&gt;alert" in page and "<script>alert" not in page
     assert (tmp_path / "out/candidate-001/mask.nii.gz").is_file()
     assert not (tmp_path / "escape").exists()
+    # Every decision and the interpretation share one session, released at the end.
+    assert [session.closed for session in sessions] == [True]
 
 
 def test_omitted_weights_use_each_models_automatic_download(
@@ -377,12 +399,13 @@ def test_exhausted_decisions_leave_an_incomplete_trace(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    providers(monkeypatch, [tool_choice("finish")] * 3)
+    sessions = providers(monkeypatch, [tool_choice("finish")] * 3)
     with pytest.raises(RuntimeError):
         run_fixture(tmp_path, max_steps=3)
     record = json.loads((tmp_path / "out/run.json").read_text())
     assert record["status"] == "incomplete"
     assert not (tmp_path / "out/review.html").exists()
+    assert [session.closed for session in sessions] == [True]
 
 
 def test_workflow_dispatches_to_released_lung_detector(
