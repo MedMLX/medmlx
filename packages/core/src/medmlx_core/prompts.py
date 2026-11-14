@@ -38,13 +38,13 @@ def medsam2_prompt_payload(prompt: _MedSAM2Prompt) -> dict[str, object]:
     """Serialize prompt metadata, preserving provider mode names and omitting mask voxels."""
 
     return {
-        "frame_idx": prompt.frame_idx,
+        "frame_index": prompt.frame_idx,
         "obj_id": prompt.obj_id,
         "prompt_mode": prompt.mode,
-        "box_xyxy": [float(value) for value in prompt.box_xyxy]
+        "box_xyxy_pixels": [float(value) for value in prompt.box_xyxy]
         if prompt.box_xyxy is not None
         else None,
-        "points_xy": [[float(x), float(y)] for x, y in prompt.points_xy],
+        "points_xy_pixels": [[float(x), float(y)] for x, y in prompt.points_xy],
         "point_labels": [int(value) for value in prompt.point_labels],
         "mask_supplied": prompt.mask is not None,
         "clear_old_points": prompt.clear_old_points,
