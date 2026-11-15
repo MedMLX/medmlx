@@ -3,9 +3,8 @@
 from collections.abc import Sequence
 
 import numpy as np
-from numpy.typing import NDArray
-
 from nibabel import Nifti1Image
+from numpy.typing import NDArray
 
 def resample_from_to(
     from_img: Nifti1Image,

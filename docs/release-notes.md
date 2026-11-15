@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.10.0
+
 ### Breaking changes
 
 **Every model runs through one function named `run`, and runtimes that use
@@ -75,6 +77,24 @@ and `prepare_liver` are removed. `mlx_reason_ct.load_model(image_path=...)` keep
 one CT encoded for follow-up questions, which are now passed explicitly as
 `history`. LesionDiffusion's repeated draws on one CT and lesion mask use
 `lesiondiffusion_mlx.load_model()` in place of `generate(prepared=PreparedGeneration())`.
+
+**`medmlx.run()` and `ModelRun.wait()` return a `RunResult`.** It holds the
+checked `outputs` and `artifacts` by role, the runtime's `details`, the raw
+`result` and the final `job`, so callers no longer read `job["result"]["outputs"]`.
+A cohort's cases come back as `RunResult.cases`, one `CaseResult` per case.
+
+```diff
+ result = medmlx.run("nnunet-liver", arguments={"image_path": "ct.nii.gz", "output_dir": "out"})
+-mask = result["result"]["outputs"]["mask"]
++mask = result.outputs["mask"]
+```
+
+### Requirements
+
+Requires `medmlx-core` 0.3.1. The extras install the runtime releases built on it:
+`nnunet-mlx` 0.9, `totalsegmentator-mlx` 0.3, `segresnet-mlx` 0.5,
+`mlx-reason-ct` and `mlx-generate-ctmr` 0.7, `mlxradiomics` 1.1, and the matching
+minor releases of every other runtime.
 
 ## 0.9.1
 
