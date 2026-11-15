@@ -106,33 +106,36 @@ MedMLX runs one model at a time by default. It never refuses a run for memory:
 readiness reports a model's peak next to the memory available, and the run starts
 either way, so a Mac with too little memory may swap or fail. Declared peaks:
 
+<!-- memory-table:start -->
 | Model | Peak MLX memory |
 | :--- | ---: |
-| `siam` | 16 GB |
+| `siam` | 16.0 GB |
 | `nnunet-pancreas` | 14.5 GB |
 | `mlx-reason-ct` | 12.5 GB |
 | `synthseg` | 11.6 GB |
 | `mlx-generate-ctmr-ct` | 11.1 GB |
 | `mlx-segment-ctmr` | 11.0 GB |
-| `lung-nodule` | 10.8 GB |
 | `mlx-generate-ctmr-mr`, `mlx-generate-ctmr-mr-brain` | 10.2 GB |
-| `nnunet-liver` | 9.0 GB |
-| `swin-unetr`, `nnunet-brats2021` | 7.5 GB |
+| `nnunet-brats2021`, `swin-unetr` | 7.5 GB |
 | `unest` | 7.3 GB |
-| `mlx-segment-ct` | 6.0 GB |
+| `lung-nodule`, `mlx-segment-ct` | 6.0 GB |
+| `nnunet-liver` | 5.6 GB |
 | `sam3` | 5.4 GB |
+| `lesiondiffusion` | 5.2 GB |
 | `totalsegmentator` | 5.0 GB |
 | `nnunet-autopet` | 4.8 GB |
 | `segresnet-renal-cect` | 4.1 GB |
 | `biomedparse-v2` | 3.9 GB |
-| `lesiondiffusion` | 3.5 GB |
 | `fdg-pet-ct` | 2.8 GB |
 | `medsam2` | 1.3 GB |
 | `flexray` | 1.2 GB |
-| `radimagenet-*`, `flexible-unet` | 0.5 GB or less |
+| `radimagenet-inceptionresnetv2` | 0.5 GB |
+| `flexible-unet` | 0.3 GB |
+| `radimagenet-densenet121`, `radimagenet-inceptionv3`, `radimagenet-resnet50` | 0.2 GB |
+| `mlxradiomics` | 0.1 GB |
 
-Models without a declared peak, such as `mrsegmentator`, record their measured peak
-after each run, and `medmlx describe` reports it.
+Models without a declared peak (`medgemma`, `mrsegmentator`, `musclemap`, `reason-ct-tools`) record their measured peak after each run, and `medmlx describe` reports it.
+<!-- memory-table:end -->
 
 `medgemma` runs in its own interpreter, outside this check. Describing a chest
 radiograph peaks at 4.4 GB with MedGemma 1.5 4B and 17.9 GB with MedGemma 27B.

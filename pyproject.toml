@@ -134,7 +134,7 @@ ban-relative-imports = "all"
 "typing_extensions.Any" = { msg = "Use a precise type and parse untyped values at the boundary." }
 
 [tool.pyright]
-include = ["src", "tests", "typings", "tools/extraction/tests"]
+include = ["src", "tests", "typings", "tools/readme_memory.py", "tools/extraction/tests"]
 extraPaths = ["src", "packages/core/src"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"

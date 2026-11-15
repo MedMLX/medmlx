@@ -3,11 +3,11 @@
 TESTS ?= tests
 CORE_TESTS ?= packages/core/tests
 PYTEST_ARGS ?=
-SOURCE_DIRS ?= src tests tools/extraction/tests
+SOURCE_DIRS ?= src tests tools/readme_memory.py tools/extraction/tests
 export PYTHONNOUSERSITE := 1
 PYTHON ?= .venv/bin/python
 
-.PHONY: env lint typecheck test qa qa-core test-core test-extract env-convert qa-convert test-convert qualify-convert
+.PHONY: readme-memory env lint typecheck test qa qa-core test-core test-extract env-convert qa-convert test-convert qualify-convert
 
 RUN := $(PYTHON)
 
@@ -19,12 +19,12 @@ check-env:
 	@command -v "$(PYTHON)" >/dev/null || { echo "Missing project Python: run make env explicitly, or set PYTHON to its existing interpreter" >&2; exit 1; }
 
 lint: check-env
-	$(RUN) -m ruff check src tests tools/extraction/tests
+	$(RUN) -m ruff check src tests tools/readme_memory.py tools/extraction/tests
 
 typecheck: check-env
 	@command -v node >/dev/null || { echo "Maintained host Node is required for Pyright" >&2; exit 1; }
 	PYRIGHT_PYTHON_NODEJS_WHEEL=0 PYRIGHT_PYTHON_GLOBAL_NODE=1 $(PYTHON) -m pyright --project . --warnings --pythonpath "$(PYTHON)"
-	$(RUN) -m ruff check --select TID251,ANN401 --ignore-noqa src tests typings tools/extraction/tests
+	$(RUN) -m ruff check --select TID251,ANN401 --ignore-noqa src tests typings tools/readme_memory.py tools/extraction/tests
 
 test: check-env
 	$(RUN) -m pytest $(TESTS) $(PYTEST_ARGS)
@@ -61,3 +61,7 @@ loc:
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
 	find . -name .venv -prune -o -type d -name __pycache__ -prune -exec rm -rf {} +
+
+# Rebuild the README memory table from the model versions uv.lock resolves.
+readme-memory:
+	uv run --locked --isolated --extra all --extra mcp python tools/readme_memory.py
