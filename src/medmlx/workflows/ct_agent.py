@@ -107,7 +107,7 @@ def parse_action(text: str) -> Action:
 class _ReasonSession(Protocol):
     """The Reason-CT ``load_model`` session: reports about one CT, then ``close``."""
 
-    def generate_report(self, **arguments: object) -> object: ...
+    def run(self, **arguments: object) -> object: ...
 
     def close(self) -> None: ...
 
@@ -260,7 +260,7 @@ def execute(
                 {"step": step + 1, "event": "reason_requested", "allowed_calls": list(choices)}
             )
             _write_record(journal, record)
-            reason.generate_report(
+            reason.run(
                 output_dir=step_dir,
                 prompt=request,
                 tools=TOOLS,
@@ -351,7 +351,7 @@ def execute(
                     "measurements": [m.model_dump(exclude={"mask_path"}) for m in measurements],
                     "score_threshold": limits.score_threshold,
                 }
-                reason.generate_report(
+                reason.run(
                     output_dir=output_dir / "interpretation",
                     max_new_tokens=limits.max_new_tokens,
                     prompt=(

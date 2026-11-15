@@ -16,9 +16,9 @@ import types
 def _segment(*, model, image_path, overwrite=False):
     return {"model": model, "image_path": image_path}
 
-shared = types.SimpleNamespace(segment=_segment)
+shared = types.SimpleNamespace(run=_segment)
 FIRST = {"id": "shared-first", "label": "First", "task": "segmentation",
-         "run": "fakemlx:shared.segment", "requires_weights": False}
+         "run": "fakemlx:shared.run", "requires_weights": False}
 SECOND = dict(FIRST, id="shared-second", label="Second")
 MISNAMED = {"id": "misnamed", "label": "Misnamed", "task": "segmentation",
             "run": "fakemlx:sleep", "requires_weights": False}
@@ -52,5 +52,5 @@ def test_shared_runner_gets_each_declarations_id_and_hides_model(
 def test_a_runner_not_named_for_its_task_is_a_discovery_error(shared_site: Path) -> None:
     listed = api.list_models()
     assert "misnamed" not in {model["id"] for model in listed["models"]}
-    assert any("must name segment, not sleep" in error["error"]
+    assert any("must name the package's run function, not sleep" in error["error"]
                for error in listed["discovery_errors"])

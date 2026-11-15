@@ -899,7 +899,7 @@ def start_cohort(
     """Start a finite cohort with one prepared model in one supervised worker.
 
     The provider must declare its ``load_model`` as ``cohort``; the loaded model
-    runs each case with its operation method (``segment(**case)``), then
+    runs each case with its ``run(**case)`` method, then
     ``close()``. ``preparation`` fixes weights and model configuration;
     ``cases`` contains 1..256 case argument objects, processed in input order.
     ``wait()`` returns a ``RunResult`` whose ``cases`` are ``CaseResult`` entries

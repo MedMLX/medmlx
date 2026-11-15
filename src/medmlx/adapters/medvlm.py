@@ -30,7 +30,7 @@ from medmlx_core.weights import weights_dir, weights_revision
 
 MEDGEMMA = {
     "id": "medgemma", "label": "MedGemma (provisional bridge)", "task": "report-generation",
-    "run": "medmlx.adapters.medvlm:generate_report",
+    "run": "medmlx.adapters.medvlm:run",
     "readiness": "medmlx.adapters.medvlm:readiness",
     "summary": "Provisional local MedGemma/Gemma3 image-to-text bridge; checkpoint inference "
                "and numerical accuracy are not yet qualified by MedMLX.",
@@ -256,7 +256,7 @@ def _run(
                         "weights_revision": weights_revision(model)}}
 
 
-def generate_report(
+def run(
     *, image_path: str, prompt: str, output_dir: str, weights_path: str | None = None,
     max_new_tokens: int = 2000, timeout_seconds: float = 300, overwrite: bool = False,
 ) -> dict[str, object]:

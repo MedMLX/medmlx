@@ -10,17 +10,16 @@ group. The entry point names a mapping, or a callable returning one::
         "id": "totalsegmentator",
         "label": "TotalSegmentator",
         "task": "segmentation",
-        "run": "totalsegmentator_mlx.medmlx:segment",
+        "run": "totalsegmentator_mlx.medmlx:run",
         "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional
         "summary": "Whole-body CT segmentation.",  # optional
     }
 
 ``id``, ``label``, ``task`` and ``run`` are required non-empty strings.
-``task`` is one of ``OPERATIONS`` or ``workflow``, and ``run`` names the
-task's operation: a segmentation model's ``run`` is a ``segment`` function, a
-detection model's is ``detect``, and so on. A runner with a ``model`` keyword
-serves several declarations; MedMLX passes the declaration's ``id`` as
-``model`` and hides that argument from callers.
+``task`` is one of ``TASKS`` or ``workflow``, and ``run`` names the package's
+``run`` function, whatever the task: the model ID already says what it does.
+A runner with a ``model`` keyword serves several declarations; MedMLX passes
+the declaration's ``id`` as ``model`` and hides that argument from callers.
 ``readiness`` and ``summary`` are optional. ``requires_weights`` and
 ``setup_supported`` are optional booleans defaulting to true. ``labels``
 optionally maps each integer output label to its name (``{"1": "spleen"}``), and
@@ -35,7 +34,7 @@ that runs other models sets ``weights_from`` to a mapping from each weight
 argument to the model ID whose automatic weights it uses, such as
 ``{"detector_weights_path": "lung-nodule"}``; setup then prepares those models.
 An optional ``cohort`` reference names the package's ``load_model`` factory, whose
-returned object provides the operation as a method (``segment(**case)``) and
+returned object provides ``run(**case)`` as a method and
 ``close()`` in one supervised worker.
 Weights and configuration belong to preparation, not per-case arguments.
 Other fields are ignored and reported as discovery warnings, so a declaration
@@ -75,14 +74,10 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _REFERENCE = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_][\w.]*$")
 _REQUIRED = ("id", "label", "task", "run")
 
-#: The operation function each declared task's ``run`` reference must name.
-OPERATIONS = {
-    "segmentation": "segment",
-    "detection": "detect",
-    "generation": "generate",
-    "feature-extraction": "extract",
-    "report-generation": "generate_report",
-}
+#: Tasks a model declaration may name; ``task`` describes the outputs, not the runner.
+TASKS = ("segmentation", "detection", "generation", "feature-extraction", "report-generation")
+#: The function name every model's ``run`` reference and cohort method must use.
+RUNNER = "run"
 #: Orchestration declarations, whose runner name is free.
 WORKFLOW_TASK = "workflow"
 #: A runner keyword MedMLX fills with the declaration's model ID.
@@ -404,23 +399,22 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
 
 
 def _check_operation(task: str, run: str, cohort: str | None) -> None:
-    """Require the canonical operation name for the task, and ``load_model`` cohorts."""
+    """Require a known task, a runner named ``run``, and ``load_model`` cohorts."""
     if task == WORKFLOW_TASK:
         return
-    operation = OPERATIONS.get(task)
-    if operation is None:
-        tasks = ", ".join((*OPERATIONS, WORKFLOW_TASK))
+    if task not in TASKS:
+        tasks = ", ".join((*TASKS, WORKFLOW_TASK))
         raise ValueError(f"task {task!r} must be one of: {tasks}")
     name = run.rpartition(":")[2].rpartition(".")[2]
-    if name != operation:
-        raise ValueError(f"field 'run' of a {task} model must name {operation}, not {name}")
+    if name != RUNNER:
+        raise ValueError(f"field 'run' must name the package's {RUNNER} function, not {name}")
     if cohort is not None and cohort.rpartition(":")[2].rpartition(".")[2] != "load_model":
         raise ValueError("field 'cohort' must name the package's load_model")
 
 
 def operation(spec: ModelSpec) -> str:
     """Return the method a prepared cohort model runs for each case."""
-    return OPERATIONS.get(spec.task) or spec.run.rpartition(":")[2].rpartition(".")[2]
+    return RUNNER if spec.task in TASKS else spec.run.rpartition(":")[2].rpartition(".")[2]
 
 
 def binds_model(function: Callable[..., object]) -> bool:

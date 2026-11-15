@@ -24,7 +24,7 @@ def run(
     """Prepare once, run up to 256 cases in order, and close before returning.
 
     ``prepare`` names the package's ``load_model``; the model it returns runs
-    each case with its ``operation`` method (``segment(**case)``) and is
+    each case with its ``operation`` method (``run(**case)``) and is
     released with ``close()``.
     Preparation fixes the model's weights/configuration for this cohort. All
     cases are queued before launch, so no idle worker waits for more work.

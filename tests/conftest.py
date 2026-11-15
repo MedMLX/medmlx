@@ -21,7 +21,7 @@ THRESHOLD = {
     "id": "threshold",
     "label": "Threshold",
     "task": "segmentation",
-    "run": "fakemlx:segment",
+    "run": "fakemlx:run",
     "readiness": "fakemlx:weights_missing",
     "summary": "Marks values above a level.",
 }
@@ -33,7 +33,7 @@ FUTURE = {"id": "future", "label": "Future", "task": "workflow", "run": "fakemlx
           "future_field": True}
 
 
-def segment(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
+def run(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
     """Threshold a JSON array.
 
     Args:

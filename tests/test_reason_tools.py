@@ -246,7 +246,7 @@ class ReasonSession:
     """Stand-in for one Reason-CT ``load_model`` session; records whether it closed."""
 
     def __init__(self, generate: Callable[..., object]) -> None:
-        self.generate_report = generate
+        self.run = generate
         self.closed = False
 
     def close(self) -> None:

@@ -12,7 +12,7 @@ MODEL = {
     "id": "totalsegmentator",                            # lowercase letters, digits, ".", "_", "-"
     "label": "TotalSegmentator",
     "task": "segmentation",
-    "run": "totalsegmentator_mlx.medmlx:segment",        # module:function named for the task
+    "run": "totalsegmentator_mlx.medmlx:run",            # module:function, always named run
     "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional, module:function
     "summary": "Whole-body CT segmentation.",  # optional
 }
@@ -78,27 +78,31 @@ unchanged.
 Every runtime exposes the same small API, so code written for one model works
 for the next. `describe_model` shows an installed runner's actual signature.
 
-### One operation per package
+### One `run` per package
 
-| `task` | Operation | Usual output roles |
-| --- | --- | --- |
-| `segmentation` | `segment()` | `mask` |
-| `detection` | `detect()` | `detections` |
-| `generation` | `generate()` | `image`, `mask` |
-| `feature-extraction` | `extract()` | `features` |
-| `report-generation` | `generate_report()` | `report` |
+Every runtime's entry point is a function named `run`, whatever the task; the
+model ID already says what it does. `task` describes the outputs:
 
-- The operation is exported from the package root (`from unest_mlx import segment`)
-  and is the function the declaration's `run` names; discovery rejects any other
-  name. Keep the root import free of MLX by exporting lazily.
+| `task` | Usual output roles |
+| --- | --- |
+| `segmentation` | `mask` |
+| `detection` | `detections` |
+| `generation` | `image`, `mask` |
+| `feature-extraction` | `features` |
+| `report-generation` | `report` |
+
+- `run` is exported from the package root (`from unest_mlx import run`) and is
+  the function the declaration's `run` names; discovery rejects any other name.
+  Keep the root import free of MLX by exporting lazily.
 - `workflow` declarations orchestrate other models and may name any runner.
-- A package whose models share one set of arguments has one operation with a
+- A package whose models share one set of arguments has one `run` with a
   required `model` keyword holding the model ID:
-  `segment(model="radimagenet-resnet50", ...)`. MedMLX passes the declaration's ID
+  `run(model="radimagenet-resnet50", ...)`. MedMLX passes the declaration's ID
   and hides `model` from callers.
-- Models whose inputs or options differ each get a module with its own operation,
-  so `describe` lists exactly their arguments: `nnunet_mlx.named_models.liver.segment`.
-- Don't add aliases: the operation is the only one-shot entry point.
+- Models whose inputs or options differ each get a module with its own `run`,
+  so `describe` lists exactly their arguments: `nnunet_mlx.named_models.liver.run`.
+- Don't add aliases such as `segment()` or `detect()`: `run` is the only one-shot
+  entry point.
 
 ### Arguments
 
@@ -148,7 +152,7 @@ error and whose `hint` carries its setup hint.
 
 A package whose model is worth keeping loaded across cases exports
 `load_model(*, weights_path=None, ...)`, taking `model` too when it declares
-several. It returns an object with the operation as a method and `close()`, and
+several. It returns an object with a `run` method and `close()`, and
 works as a context manager:
 
 ```python
@@ -156,13 +160,13 @@ from nnunet_mlx.named_models.liver import load_model
 
 with load_model() as model:
     for case in ("a.nii.gz", "b.nii.gz"):
-        model.segment(image_path=case, output_dir=f"out/{case[:-7]}")
+        model.run(image_path=case, output_dir=f"out/{case[:-7]}")
 ```
 
 Arguments that change the loaded weights or compiled graph belong to `load_model`;
 per-case arguments belong to the method. Declare it as `cohort` so
 `medmlx.start_cohort` reuses one loaded model for a list of cases. The one-shot
-operation releases its memory before returning; don't keep hidden global caches.
+`run` releases its memory before returning; don't keep hidden global caches.
 
 ### Platform
 

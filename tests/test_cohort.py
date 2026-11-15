@@ -24,7 +24,7 @@ class Prepared:
         self.closed = False
         self.failed_case = None
 
-    def segment(self, *, image_path, output_path, seconds=0):
+    def run(self, *, image_path, output_path, seconds=0):
         if self.failed_case is not None and self.failed_case() is not None:
             raise RuntimeError("Failed case is still retained")
         if image_path == "invalid-result":
@@ -36,7 +36,7 @@ class Prepared:
         time.sleep(seconds)
         if Path(image_path).resolve() == Path(output_path).resolve():
             raise ValueError("Input/output alias")
-        return segment(image_path, output_path, level=self.level + self.weights)
+        return run(image_path, output_path, level=self.level + self.weights)
 
     def close(self):
         self.closed = True

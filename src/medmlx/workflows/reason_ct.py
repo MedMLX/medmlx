@@ -47,7 +47,7 @@ def readiness() -> dict[str, object]:
             "reason": f"Missing {', '.join(missing)}",
             "setup_hint": "Install this source checkout with its reason-tools extra.",
         }
-    from mlx_reason_ct.medmlx import generate_report
+    from mlx_reason_ct.medmlx import run as generate_report
 
     supported = {"tools", "tool_history", "response_choices"} <= set(
         signature(generate_report).parameters

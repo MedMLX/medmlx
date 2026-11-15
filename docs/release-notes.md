@@ -4,21 +4,19 @@
 
 ### Breaking changes
 
-**Every model runs through one operation named for its task, and runtimes that
-still use the old names are not discovered.** Segmentation runs `segment`,
-detection `detect`, generation `generate`, feature extraction `extract` and report
-generation `generate_report`; `run`, `run_ct`, `renal_cect` and the per-backbone
-RadImageNet functions are gone. Each runtime exports its operation from the package
-root and lists the same arguments in `medmlx describe`. This needs `medmlx-core` 0.3
+**Every model runs through one function named `run`, and runtimes that use
+other names are not discovered.** `run_ct`, `renal_cect` and the per-backbone
+RadImageNet functions are gone. Each runtime exports `run` from the package root
+and lists the same arguments in `medmlx describe`. This needs `medmlx-core` 0.3
 and the runtime releases built on it.
 
 ```diff
 -from totalsegmentator_mlx.medmlx import run
-+from totalsegmentator_mlx import segment
++from totalsegmentator_mlx import run
 -from radimagenet_mlx.medmlx import resnet50
-+from radimagenet_mlx import extract   # extract(model="radimagenet-resnet50", ...)
++from radimagenet_mlx import run   # run(model="radimagenet-resnet50", ...)
 -from nnunet_mlx.named_models import liver
-+from nnunet_mlx.named_models.liver import segment
++from nnunet_mlx.named_models.liver import run
 ```
 
 **Several arguments are renamed to the shared names.** Multi-image models take
@@ -35,7 +33,7 @@ be swapped by mistake.
 | `totalsegmentator` | `prompt` | `classes` |
 | `mlx-segment-ct`, `mlx-segment-ctmr` | `prompt`, `label_prompt`, `checkpoint` | `classes`; the model ID selects the checkpoint |
 | `segresnet-renal-cect`, `synthseg` | `arithmetic_profile` | `precision` |
-| `mlx-generate-ctmr-*`, `nnunet_mlx.segment`, `nnunet_mlx.load_model` | `arithmetic` | `precision` |
+| `mlx-generate-ctmr-*`, `nnunet_mlx.run`, `nnunet_mlx.load_model` | `arithmetic` | `precision` |
 | `mlxradiomics` | `temporary_dir`, `max_temporary_mib` | `scratch_dir`, `max_scratch_mib` |
 | `radimagenet-*` | `backbone` | removed; the model ID selects the backbone |
 | `biomedparse-v2` | `tokenizer_path` | removed; the tokenizer is read from `weights_path` |
