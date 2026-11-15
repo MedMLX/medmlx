@@ -45,6 +45,9 @@ class RejectedOptions(TypedDict, total=False):
     process_fn: Callable[..., object]
     progress: bool
     sw_device: mx.Device | mx.DeviceType | str
+    accumulation: Literal["numpy", "mlx"]
+    predictor_input: Literal["numpy", "mlx"]
+    overlap_prediction: bool
 
 
 class WindowOptions(TypedDict, total=False):
@@ -138,26 +141,34 @@ def assert_parity(actual: HostArray, expected: HostArray, *, exact: bool = False
         ((11, 9, 7), (8, 6, 4), 0.5, "gaussian", 3),
         ((3, 5, 2), (8, 8, 6), 0.5, "constant", 3),
         ((3, 5, 2), (8, 8, 6), 0.25, "gaussian", 1),
+        ((13,), (5,), 0.5, "gaussian", 3),
+        ((11, 7), (5, 4), 0.25, "constant", 1),
     ],
 )
+@pytest.mark.parametrize("accumulation", ["numpy", "mlx"])
 def test_patch_dependent_blending_matches_monai(
     shape: tuple[int, ...],
     roi: tuple[int, ...],
     overlap: float,
     mode: Mode,
     sw_batch_size: int,
+    accumulation: Literal["numpy", "mlx"],
 ) -> None:
     # Two images expose batch-crossing window groups; two channels expose channel placement.
-    inputs = real_image((2, 2, *shape))
+    inputs = (real_image((2, 2, shape[0], 1))[..., 0] if len(shape) == 1
+              else real_image((2, 2, *shape)))
     original = inputs.copy()
     options = WindowOptions(overlap=overlap, mode=mode, padding_mode="constant", cval=-0.25)
     expected = monai_inference(from_numpy(inputs), roi, sw_batch_size, torch_predict, **options)
     assert isinstance(expected, torch.Tensor)
-    actual = sliding_window_inference(inputs, roi, sw_batch_size, mlx_predict, **options)
+    actual = sliding_window_inference(
+        inputs, roi, sw_batch_size, mlx_predict, **options, accumulation=accumulation
+    )
     assert_parity(actual, expected.numpy(), exact=mode == "constant")
     with VolumeWorkspace() as workspace:
         streamed = sliding_window_inference(
-            inputs, roi, sw_batch_size, mlx_predict, **options, workspace=workspace
+            inputs, roi, sw_batch_size, mlx_predict, **options, workspace=workspace,
+            accumulation=accumulation,
         )
         np.testing.assert_array_equal(streamed, actual)
     assert np.array_equal(inputs, original)
@@ -233,7 +244,10 @@ def test_full_roi_window_settings_match_monai(
     assert_parity(actual, expected.numpy(), exact=True)
 
 
-def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal() -> None:
+@pytest.mark.parametrize("accumulation", ["numpy", "mlx"])
+def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal(
+    accumulation: Literal["numpy", "mlx"],
+) -> None:
     inputs = real_image((2, 1, 9, 7))
     weight = monai_importance((6, 4), "gaussian", (0.2, 0.15)).numpy()
     expected_coords: Coordinates = []
@@ -266,7 +280,7 @@ def test_cached_gaussian_map_and_coordinate_predictor_are_bitwise_equal() -> Non
     assert isinstance(expected, torch.Tensor)
     actual = sliding_window_inference(mx.array(inputs), (6, 4), 4, predict_mlx, overlap=(0.5, 0.25),
                                       roi_weight_map=weight, with_coord=True, scale=0.5,
-                                      bias=0.125, device="cpu")
+                                      bias=0.125, device="cpu", accumulation=accumulation)
     assert actual_coords == expected_coords
     assert_parity(actual, expected.numpy(), exact=True)
 
@@ -362,6 +376,8 @@ def test_gpu_device_forms_are_explicitly_admitted(
         ({"buffer_steps": 2}, NotImplementedError),
         ({"device": "gpu"}, ValueError),
         ({"sw_device": mx.cpu}, ValueError),
+        ({"accumulation": "mlx", "predictor_input": "numpy"}, ValueError),
+        ({"accumulation": "mlx", "overlap_prediction": True}, ValueError),
     ],
 )
 def test_invalid_or_unimplemented_options_fail_before_prediction(

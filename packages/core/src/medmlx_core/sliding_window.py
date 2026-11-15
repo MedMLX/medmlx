@@ -2,11 +2,11 @@
 # Portions derived from MONAI, licensed under the Apache License, Version 2.0.
 # See the project-root THIRD_PARTY_NOTICES.md for attribution and full license terms.
 
-"""MONAI 1.6.0 window placement and host stitching for MLX predictors.
+"""MONAI 1.6.0 window placement with host or FP32 Metal slab stitching.
 
 Only NumPy and MLX are required. Inputs and outputs are channel first with a
 batch dimension. Stitching uses the input dtype and MONAI's sequential patch
-order on the host. The default predictor receives MLX arrays; NumPy predictors
+order. The default predictor receives MLX arrays; NumPy predictors
 receive host arrays. Both paths require an available MLX Metal runtime.
 """
 
@@ -21,6 +21,7 @@ import mlx.core as mx
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 
+from medmlx_core._mlx_slab import MlxSlabAccumulator
 from medmlx_core.runtime import import_mlx
 from medmlx_core.typing import ArrayFactory, HostArray, MlxRuntime
 from medmlx_core.volume_workspace import SlabAccumulator, VolumeWorkspace
@@ -227,6 +228,7 @@ def sliding_window_inference(
     preserve_window_strides: bool = False,
     workspace: VolumeWorkspace | None = None,
     overlap_prediction: bool = False,
+    accumulation: Literal["numpy", "mlx"] = "numpy",
     **kwargs: object,
 ) -> FloatArray:
     """Predict and blend 1D/2D/3D windows, returning host NumPy logits.
@@ -238,8 +240,9 @@ def sliding_window_inference(
     allowing float64 stitching around a predictor that exports paired Metal words.
 
     ``sw_device`` is None, 'gpu', mx.gpu or an MLX GPU device; both predictor modes require Metal.
-    ``device`` is None or 'cpu' because stitching is on the host. Active buffering, process_fn,
-    progress bars, multiple outputs, and scaled outputs are unsupported.
+    ``device`` is None or 'cpu' for the returned host storage; ``accumulation``
+    selects where blending runs. Active buffering, process_fn, progress bars,
+    multiple outputs, and scaled outputs are unsupported.
     None/nonpositive ROI components use the corresponding input size.
 
     Args:
@@ -281,6 +284,11 @@ def sliding_window_inference(
             Keeps window order and rounding, at the cost of another live batch.
             Requires an MLX predictor; predictors must leave outputs immutable
             after returning, including when the next call starts.
+        accumulation: ``'mlx'`` keeps the padded input, patches, weights and an
+            ROI-depth FP32 score/count slab on Metal, exporting completed slabs
+            into host or workspace output. Requires FP32 inputs and predictions
+            and ``predictor_input='mlx'``; cannot combine with overlap_prediction.
+            The default NumPy route retains float64 host blending support.
         *args, **kwargs: Passed through to ``predictor``.
 
     Returns:
@@ -318,6 +326,12 @@ def sliding_window_inference(
         raise ValueError("predictor_input must be 'mlx' or 'numpy'")
     if overlap_prediction and predictor_input != "mlx":
         raise ValueError("overlap_prediction requires an MLX predictor")
+    if accumulation not in {"numpy", "mlx"}:
+        raise ValueError("accumulation must be 'numpy' or 'mlx'")
+    if accumulation == "mlx" and (
+        predictor_input != "mlx" or raw_host.dtype != np.float32 or overlap_prediction
+    ):
+        raise ValueError("MLX accumulation requires FP32 MLX prediction without overlap_prediction")
     allowed_dtypes = (np.dtype(np.float16), np.dtype(np.float32))
     if predictor_input == "numpy":
         allowed_dtypes = (*allowed_dtypes, np.dtype(np.float64))
@@ -352,6 +366,12 @@ def sliding_window_inference(
     # Admit Metal explicitly before invoking the predictor.
     runtime = cast(MlxRuntime, import_mlx())
     make_array = cast(ArrayFactory, runtime.array)
+    if accumulation == "mlx":
+        with mx.stream(sw_device if sw_device is not None else mx.default_device()):
+            return _mlx_sliding_window(
+                padded, crop, roi, windows, importance, sw_batch_size,
+                predictor, with_coord, preserve_window_strides, workspace, args, kwargs,
+            )
     output = None
     counts = np.zeros((1, 1, *image_size), dtype=host.dtype) if workspace is None else None
     accumulator: SlabAccumulator | None = None
@@ -478,3 +498,74 @@ def sliding_window_inference(
     assert counts is not None
     output /= counts
     return output[(slice(None), slice(None), *crop)]
+
+
+def _mlx_sliding_window(
+    padded: FloatArray,
+    crop: tuple[slice, ...],
+    roi: tuple[int, ...],
+    windows: list[tuple[slice, ...]],
+    importance: HostArray,
+    sw_batch_size: int,
+    predictor: Callable[..., object],
+    with_coord: bool,
+    preserve_window_strides: bool,
+    workspace: VolumeWorkspace | None,
+    args: tuple[object, ...],
+    kwargs: dict[str, object],
+) -> FloatArray:
+    """Use device patches and ordered FP32 slabs after shared argument validation."""
+    make_array = cast(ArrayFactory, mx.array)
+    device_input = make_array(padded)
+    # Reuse the standard NumPy importance map to preserve Gaussian exp rounding.
+    weights = make_array(importance)
+    runtime = cast(MlxRuntime, mx)
+    output: FloatArray | None = None
+    accumulator: MlxSlabAccumulator | None = None
+    num_windows = len(windows)
+    spatial = tuple(section.stop - section.start for section in crop)
+    for start in range(0, num_windows * padded.shape[0], sw_batch_size):
+        coordinates = [
+            [slice(index // num_windows, index // num_windows + 1), slice(None),
+             *windows[index % num_windows]]
+            for index in range(start, min(start + sw_batch_size, num_windows * padded.shape[0]))
+        ]
+        patches = [device_input[tuple(coord)] for coord in coordinates]
+        batch = (patches[0] if preserve_window_strides and sw_batch_size == 1
+                 else mx.concatenate(patches, axis=0))
+        prediction = (
+            predictor(batch, coordinates, *args, **kwargs) if with_coord
+            else predictor(batch, *args, **kwargs)
+        )
+        if not isinstance(prediction, mx.array):
+            raise TypeError("predictor must return one MLX array")
+        if prediction.dtype != mx.float32:
+            raise TypeError("MLX accumulation requires float32 predictor output")
+        if (prediction.ndim != padded.ndim or prediction.shape[0] != len(coordinates)
+            or prediction.shape[2:] != roi or prediction.shape[1] < 1):
+            raise ValueError("predictor output must match the window batch and ROI spatial shape")
+        if output is None:
+            shape = (padded.shape[0], prediction.shape[1], *spatial)
+            output = (np.empty(shape, dtype=np.float32) if workspace is None
+                      else workspace.empty(shape, np.float32))
+            destination = output
+
+            def store(
+                image: int, first: int, values: FloatArray,
+                destination: FloatArray = destination,
+            ) -> None:
+                destination[image, :, first : first + values.shape[1]] = values
+
+            accumulator = MlxSlabAccumulator(
+                padded.shape[2:], roi, crop, prediction.shape[1], weights[0, 0], store
+            )
+        elif prediction.shape[1] != output.shape[1]:
+            raise ValueError("predictor output channels must stay constant across windows")
+        weighted = prediction * weights
+        runtime.eval(weighted)
+        assert accumulator is not None
+        for coord, patch in zip(coordinates, weighted, strict=True):
+            accumulator.add(coord[0].start, coord[2:], patch)
+    assert output is not None and accumulator is not None
+    accumulator.finish()
+    return output
