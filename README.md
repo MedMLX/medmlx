@@ -63,7 +63,7 @@ medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
 - `readiness` checks Metal and the input paths without downloading anything.
 - The first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
   cache.
-- The mask is written to `segment-ct/mlx_segment_ct_mask.nii.gz`.
+- The mask is written to `segment-ct/mask.nii.gz`.
 - `medmlx setup --all --progress` downloads every model's weights for offline use. See
   [automatic weights and readiness](https://github.com/MedMLX/medmlx/blob/main/docs/setup.md).
 
