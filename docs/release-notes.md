@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Fixes
+
+**`medmlx run` no longer fails for runtimes whose signatures name type-only imports.**
+The CLI evaluated every annotation of the runner, including ones a runtime imports
+only for type checking, so `medmlx run biomedparse-v2` stopped with
+`NameError: name 'PathLike' is not defined`. It now evaluates only the annotations
+of the arguments given with `--arg`.
+
+**`mlx-generate-ctmr-ct` downloads the files learned paired CT needs.** The pinned
+weights revision predated `ct/configs/label_dict_124_to_132.json` and
+`ct/datasets/all_anatomy_size_conditions.json`, so `anatomy` runs stopped asking for
+`mask_label_dict_path`. The new revision has the same model weights; existing caches
+keep them and fetch only the two files.
+
+**The MCP smoke walkthrough runs as written.** It passed `labels_path` instead of
+`mask_path` and read the PET from `outputs["pet"]` instead of `outputs["image"]`.
+
 ## 0.10.0
 
 ### Breaking changes

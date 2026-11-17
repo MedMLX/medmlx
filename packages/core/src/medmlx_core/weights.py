@@ -115,10 +115,11 @@ _SOURCES = {
         "MedMLX/medsam2-ct-lesion-mlx",
         revision="22f5e6dc4850a71abf92ef1a8fea0db14c34d460",
     ),
-    # mlx-generate-ctmr/README.md@v0.5.2.post2.
+    # Includes ct/configs and ct/datasets (added in fa7fbef) for learned paired CT;
+    # ct/ and mask/ model.safetensors are unchanged from 63018cd.
     "mlx-generate-ctmr-ct": _HubSource(
         "MedMLX/mlx-generate-ctmr", "ct", "model.safetensors",
-        revision="63018cdac46394b3c12619bc9fd1cbe096c23b20", companion_subfolder="mask",
+        revision="080ba618be71f268927962bd911384942072fcb0", companion_subfolder="mask",
     ),
     # mlx-generate-ctmr/README.md@v0.5.2.post2.
     "mlx-generate-ctmr-mr": _HubSource(

@@ -57,7 +57,7 @@ async def exercise(root):
     }
     (root / "profile.json").write_text(json.dumps(profile))
     arguments = {
-        "image_path": "ct.nii.gz", "labels_path": "labels.nii.gz",
+        "image_path": "ct.nii.gz", "mask_path": "labels.nii.gz",
         "profile_path": "profile.json", "output_dir": "output"
     }
     server = StdioServerParameters(
@@ -86,7 +86,7 @@ async def exercise(root):
             })
         if job["state"] != "completed":
             raise RuntimeError(f"Job {job['state']}: {job.get('error')}\n{job['log_tail']}")
-        output = nib.load(job["result"]["outputs"]["pet"])
+        output = nib.load(job["result"]["outputs"]["image"])
         assert output.shape == (4, 5, 6)
         assert output.get_data_dtype() == np.dtype(np.float32)
         assert output.header.get_xyzt_units()[0] == "mm"

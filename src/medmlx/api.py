@@ -12,7 +12,7 @@ import inspect
 import math
 import struct
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import NoneType, TracebackType, UnionType
@@ -207,7 +207,12 @@ def text_arguments(model_id: str, text: Mapping[str, str]) -> dict[str, JsonValu
             as plain text.
     """
     spec = registry.get_model(model_id)
-    declared = inspect.signature(registry.resolve(spec.run), eval_str=True).parameters
+    runner = registry.resolve(spec.run)
+    # Only the named parameters' annotations are evaluated. Adapters keep types
+    # from their MLX modules (often the return type) behind TYPE_CHECKING so the
+    # declaration stays importable on any host; evaluating the whole signature
+    # would raise NameError for those.
+    declared = inspect.signature(runner).parameters
     converted: dict[str, JsonValue] = {}
     for name, value in text.items():
         parameter = declared.get(name)
@@ -217,8 +222,16 @@ def text_arguments(model_id: str, text: Mapping[str, str]) -> dict[str, JsonValu
             raise ValueError(
                 f"{model_id} has no argument {name!r}; choose: {', '.join(declared)}"
             )
-        converted[name] = _text_value(name, value, parameter.annotation)
+        converted[name] = _text_value(name, value, _evaluated(runner, parameter.annotation))
     return converted
+
+
+def _evaluated(runner: Callable[..., object], annotation: object) -> object:
+    """Evaluate one string annotation in the runner's module, as ``eval_str`` does."""
+    if not isinstance(annotation, str):
+        return annotation
+    namespace = cast(dict[str, object], getattr(inspect.unwrap(runner), "__globals__", {}))
+    return eval(annotation, namespace)
 
 
 def _annotation_members(annotation: object) -> list[object]:

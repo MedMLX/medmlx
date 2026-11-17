@@ -12,10 +12,17 @@ from pathlib import Path
 import pytest
 
 _MODULE = '''
+from __future__ import annotations
+
 import json
 import os
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Real adapters keep types from their MLX modules lazy; --arg must not need them.
+    from fakemlx_runtime import RunResult
 
 THRESHOLD = {
     "id": "threshold",
@@ -33,7 +40,7 @@ FUTURE = {"id": "future", "label": "Future", "task": "workflow", "run": "fakemlx
           "future_field": True}
 
 
-def run(image_path: str, output_path: str, *, level: float = 0.5) -> dict[str, object]:
+def run(image_path: str, output_path: str, *, level: float = 0.5) -> RunResult:
     """Threshold a JSON array.
 
     Args:

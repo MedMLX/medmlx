@@ -29,6 +29,7 @@ from medmlx_core.weights import (
 
 REVISION = "a" * 40
 CTMR_REVISION = "63018cdac46394b3c12619bc9fd1cbe096c23b20"
+CT_REVISION = "080ba618be71f268927962bd911384942072fcb0"
 FLEXIBLE_UNET_REVISION = "ccbbc596f2a9da8477e25cba0d7548cbb2191feb"
 
 # Expected commits from the runtime release documents and their linked model cards.
@@ -48,7 +49,7 @@ PINNED_BUNDLES = [
     ("medsam2", "MedMLX/medsam2-ct-lesion-mlx",
      "22f5e6dc4850a71abf92ef1a8fea0db14c34d460"),
     ("mlx-generate-ctmr-ct", "MedMLX/mlx-generate-ctmr",
-     CTMR_REVISION),
+     CT_REVISION),
     ("mlx-generate-ctmr-mr", "MedMLX/mlx-generate-ctmr",
      CTMR_REVISION),
     ("mlx-generate-ctmr-mr-brain", "MedMLX/mlx-generate-ctmr",
@@ -278,11 +279,11 @@ def test_cache_verification_selects_the_same_files_and_companions_as_downloads(
                 cache_files("mr/model.safetensors")[0]]
     calls: list[bool] = []
     hub(monkeypatch, files("ct/model.safetensors", "mask/model.safetensors", calls=calls,
-                           expected_revision=CTMR_REVISION),
-        "MedMLX/mlx-generate-ctmr", siblings=siblings, revision=CTMR_REVISION)
+                           expected_revision=CT_REVISION),
+        "MedMLX/mlx-generate-ctmr", siblings=siblings, revision=CT_REVISION)
     assert weights_dir("mlx-generate-ctmr-ct") == target / "ct"
     assert calls == ([] if with_companion else [False])
-    assert weights_revision(target / "ct") == CTMR_REVISION
+    assert weights_revision(target / "ct") == CT_REVISION
     assert not (target / "mr").exists()
 
 
@@ -366,11 +367,14 @@ def test_nested_generation_bundle_returns_its_variant_folder(
 def test_ct_download_includes_separate_mask_bundle_for_offline_setup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    names = ("ct/model.safetensors", "mask/model.safetensors", "mr/model.safetensors")
-    hub(monkeypatch, files(*names, expected_revision=CTMR_REVISION),
-        "MedMLX/mlx-generate-ctmr", revision=CTMR_REVISION)
+    names = ("ct/model.safetensors", "ct/configs/label_dict_124_to_132.json",
+             "mask/model.safetensors", "mr/model.safetensors")
+    hub(monkeypatch, files(*names, expected_revision=CT_REVISION),
+        "MedMLX/mlx-generate-ctmr", revision=CT_REVISION)
     ct = weights_dir("mlx-generate-ctmr-ct")
     assert (ct / "model.safetensors").is_file()
+    # Learned paired CT reads its label remap from the managed download.
+    assert (ct / "configs" / "label_dict_124_to_132.json").is_file()
     assert (ct.parent / "mask" / "model.safetensors").is_file()
     assert not (ct.parent / "mr" / "model.safetensors").exists()
     # Older caches may contain a completion marker for CT alone.
@@ -658,7 +662,7 @@ def test_cached_weights_requires_the_companion_file(cache: Path) -> None:
     target = cache / "mlx-generate-ctmr-ct" / "MedMLX--mlx-generate-ctmr"
     folder = target / "ct"
     folder.mkdir(parents=True)
-    (folder / ".medmlx-revision").write_text(CTMR_REVISION)
+    (folder / ".medmlx-revision").write_text(CT_REVISION)
     (folder / "model.safetensors").touch()
     assert cached_weights("mlx-generate-ctmr-ct") is None
 
