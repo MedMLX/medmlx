@@ -16,6 +16,11 @@ weights revision predated `ct/configs/label_dict_124_to_132.json` and
 `mask_label_dict_path`. The new revision has the same model weights; existing caches
 keep them and fetch only the two files.
 
+**`flexray` downloads all five ensemble members.** The pinned weights revision held
+only the `flux0375` flagship, so `ensemble=True` needed a separate upstream snapshot.
+The new revision adds the other four members (2.0 GB in total). The flagship is
+unchanged; existing caches keep it and fetch the four new members on the next run.
+
 **The MCP smoke walkthrough runs as written.** It passed `labels_path` instead of
 `mask_path` and read the PET from `outputs["pet"]` instead of `outputs["image"]`.
 

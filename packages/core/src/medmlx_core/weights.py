@@ -95,10 +95,11 @@ _SOURCES = {
         "MedMLX/flexible-unet-effnetb2-mlx",
         revision="ccbbc596f2a9da8477e25cba0d7548cbb2191feb",
     ),
-    # flexray-mlx/README.md@v0.2.6.
+    # Holds all five ensemble members; members/flux0375 and ensemble.json are
+    # unchanged from 722d834, which held only that flagship.
     "flexray": _HubSource(
         "MedMLX/flexray-mlx",
-        revision="722d8341570e8b9e1196cf50e57892da84974fcc",
+        revision="7023348e0c0e004d54bae3bac6c02d775a3aff23",
     ),
     # Model card linked by lesiondiffusion-mlx/README.md@v0.2.6.post2.
     "lesiondiffusion": _HubSource(

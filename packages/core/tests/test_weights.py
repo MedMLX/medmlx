@@ -41,7 +41,7 @@ PINNED_BUNDLES = [
     ("flexible-unet", "MedMLX/flexible-unet-effnetb2-mlx",
      FLEXIBLE_UNET_REVISION),
     ("flexray", "MedMLX/flexray-mlx",
-     "722d8341570e8b9e1196cf50e57892da84974fcc"),
+     "7023348e0c0e004d54bae3bac6c02d775a3aff23"),
     ("lesiondiffusion", "MedMLX/lesiondiffusion-mlx",
      "d00bbb8ad1c7170062f60b4386a38c3a4178f7ce"),
     ("lung-nodule", "MedMLX/retinanet-lung-nodule-mlx",
