@@ -170,7 +170,9 @@ def _prepare(
     if spec.weights_from:
         # Each argument gets the same folder its model's own runner would use.
         arguments: dict[str, JsonValue] = {
-            argument: str(weights_dir(model_id, progress=progress, refresh=refresh))
+            argument: str(weights_dir(
+                model_id, progress=progress, refresh=refresh, download_progress=download_progress,
+            ))
             for argument, model_id in spec.weights_from
         }
         return {"model_id": spec.id, "arguments": arguments, "source_url": None, "revision": None}
