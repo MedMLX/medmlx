@@ -52,9 +52,10 @@ _NOT_IMAGES = frozenset(
 
 
 def _resolve(path: str | Path, root: str | Path | None) -> Path:
+    """Resolve ``path`` against ``root``, expanding ``~`` in both as readiness does."""
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and root is not None:
-        candidate = Path(root) / candidate
+        candidate = Path(root).expanduser() / candidate
     return candidate.resolve()
 
 

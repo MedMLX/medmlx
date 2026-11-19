@@ -319,7 +319,7 @@ def _output_names(
         result = job.get("result")
         if job["state"] == "completed" and "outputs_error" not in job and isinstance(result, dict):
             paths, artifacts = validate_outputs(result)
-            file = (Path(directory or Path.cwd()) / Path(path).expanduser()).resolve()
+            file = (Path(directory or Path.cwd()).expanduser() / Path(path).expanduser()).resolve()
             for role, entry in artifacts.items():
                 candidate = (jobs.root / Path(paths[role]).expanduser()).resolve()
                 assigned = entry.get("labels")
@@ -909,7 +909,8 @@ def start(
     """Start a model in a supervised worker and return without waiting.
 
     Relative model paths resolve against ``root`` (the current directory by
-    default). Call ``wait`` on the result for the ``RunResult``, or ``cancel``.
+    default; ``~`` is expanded, as in ``model_readiness``). Call ``wait`` on the
+    result for the ``RunResult``, or ``cancel``.
 
     Raises:
         NotADirectoryError: ``root`` is not an existing directory.
@@ -917,7 +918,7 @@ def start(
         ValueError: ``arguments`` do not match the runner's signature.
         RuntimeError: MLX Metal is unusable on this host.
     """
-    directory = Path.cwd() if root is None else Path(root).resolve()
+    directory = Path.cwd() if root is None else Path(root).expanduser().resolve()
     if not directory.is_dir():
         raise NotADirectoryError(directory)
     jobs = Jobs(directory)
@@ -948,7 +949,7 @@ def start_cohort(
     """
     from medmlx.cohort import MAX_CASES
 
-    directory = Path.cwd() if root is None else Path(root).resolve()
+    directory = Path.cwd() if root is None else Path(root).expanduser().resolve()
     if not directory.is_dir():
         raise NotADirectoryError(directory)
     if not 1 <= len(cases) <= MAX_CASES:
