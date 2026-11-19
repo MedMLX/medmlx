@@ -26,6 +26,8 @@ SHAPE = {"id": "shape", "label": "Shape", "task": "workflow", "run": "fakemlx:sh
 WEIGHTED = {"id": "weighted", "label": "Weighted", "task": "workflow", "run": "fakemlx:weighted"}
 MANUAL = {"id": "manual", "label": "Manual", "task": "workflow", "run": "fakemlx:weighted",
           "setup_supported": False}
+PAIRED = {"id": "paired", "label": "Paired", "task": "workflow", "run": "fakemlx:paired",
+          "weights_from": {"first_weights_path": "weighted", "second_weights_path": "other"}}
 
 
 def shape(image_path: str) -> dict[str, object]:
@@ -34,9 +36,16 @@ def shape(image_path: str) -> dict[str, object]:
 
 def weighted(image_path: str, weights_path: str | None = None) -> dict[str, object]:
     return {"weights_path": weights_path}
+
+
+def paired(
+    image_path: str, first_weights_path: str | None = None, second_weights_path: str | None = None,
+) -> dict[str, object]:
+    return {}
 '''
 _AGENT_ENTRY_POINTS = (
     "[medmlx.models]\nshape = fakemlx:SHAPE\nweighted = fakemlx:WEIGHTED\nmanual = fakemlx:MANUAL\n"
+    "paired = fakemlx:PAIRED\n"
 )
 REVISION = "a" * 40
 
@@ -129,6 +138,20 @@ def test_readiness_is_true_only_when_every_check_passes(agent_site: Path, tmp_pa
 
     manual = _row("manual", {"image_path": str(ct)}, tmp_path)
     assert manual["run_ready"] is False and "needs a local weights_path" in str(manual["reason"])
+
+    # A workflow reads the cache of each model it names, and its weight folders
+    # are weights rather than unchecked inputs.
+    pending = _row("paired", {"image_path": str(ct)}, tmp_path)
+    assert (pending["run_ready"], pending["weights"]["source"]) == (None, "download")
+    other = tmp_path / "cache" / "other"
+    other.mkdir()
+    (other / ".medmlx-revision").write_text(REVISION)
+    both_cached = _row("paired", {"image_path": str(ct)}, tmp_path)
+    assert (both_cached["run_ready"], both_cached["weights"]) == (
+        True, {"required": True, "source": "cache", "path": None})
+    folders = {"first_weights_path": "weights", "second_weights_path": "weights"}
+    both_given = _row("paired", {"image_path": str(ct), **folders}, tmp_path)
+    assert (both_given["run_ready"], both_given["weights"]["source"]) == (True, "argument")
 
 
 def test_prepare_model_downloads_as_a_job_and_rejects_manual_assets(

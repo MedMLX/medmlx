@@ -456,7 +456,7 @@ def model_readiness(
                 row["weights"] = _weights(spec, values, directory)
                 row["image_checks"] = _check_images(row["path_checks"])
                 row["arguments_valid"] = True
-                _judge(row, reasons)
+                _judge(row, reasons, {"weights_path", *(name for name, _ in spec.weights_from)})
             except (TypeError, ValueError, ImportError, AttributeError) as error:
                 row.update(run_ready=False, arguments_valid=False)
                 reasons.append(f"Invalid arguments: {error}")
@@ -507,10 +507,12 @@ def _memory(spec: registry.ModelSpec) -> MemoryCheck:
     }
 
 
-def _judge(row: ModelReadiness, reasons: list[str]) -> None:
+def _judge(row: ModelReadiness, reasons: list[str], weight_arguments: set[str]) -> None:
     """Set ``run_ready`` from the run, path, weight and image checks of one bound run.
 
     Memory only adds a reason: a peak above the available memory does not block the run.
+    ``weight_arguments`` names the parameters that hold weight folders; they are
+    checked as weights, not reported as unchecked inputs.
     """
     blockers: list[str] = []
     running = row["memory"]["other_runs"]
@@ -545,7 +547,7 @@ def _judge(row: ModelReadiness, reasons: list[str]) -> None:
     checked = {item["path"] for item in row["image_checks"]}
     unchecked = [
         item["path"] for item in row["path_checks"]
-        if item["parameter"] != "weights_path" and item["path"] not in checked
+        if item["parameter"] not in weight_arguments and item["path"] not in checked
     ]
     if unchecked:
         reasons.append("Inputs that are not NIfTI files were not checked: " + ", ".join(unchecked))
@@ -555,9 +557,31 @@ def _judge(row: ModelReadiness, reasons: list[str]) -> None:
 def _weights(
     spec: registry.ModelSpec, arguments: dict[str, object] | None, root: Path,
 ) -> WeightsCheck:
-    """Report where a run's weights would come from, without downloading anything."""
+    """Report where a run's weights would come from, without downloading anything.
+
+    A workflow that declares ``weights_from`` takes one folder per weight argument,
+    each defaulting to the named model's automatic download, so it has no single
+    ``path``. Its ``source`` is ``"argument"`` when every folder is supplied, and
+    otherwise the least ready omitted folder: ``"manual"``, ``"download"``, then
+    ``"cache"``.
+    """
     if not spec.requires_weights:
         return {"required": False, "source": None, "path": None}
+    if spec.weights_from:
+        values = arguments or {}
+        omitted = [
+            model_id for name, model_id in spec.weights_from
+            if not (isinstance(value := values.get(name), str | Path) and str(value).strip())
+        ]
+        if omitted and (
+            not spec.setup_supported or any(weights_repo(item) is None for item in omitted)
+        ):
+            source = "manual"
+        elif any(cached_weights(item) is None for item in omitted):
+            source = "download"
+        else:
+            source = "cache" if omitted else "argument"
+        return {"required": True, "source": source, "path": None}
     supplied = (arguments or {}).get("weights_path")
     if isinstance(supplied, str | Path) and str(supplied).strip():
         path = Path(supplied).expanduser()
