@@ -24,6 +24,21 @@ unchanged; existing caches keep it and fetch the four new members on the next ru
 **The MCP smoke walkthrough runs as written.** It passed `labels_path` instead of
 `mask_path` and read the PET from `outputs["pet"]` instead of `outputs["image"]`.
 
+**Readiness sees the weights `reason-ct-tools` uses.** It looked for a cache under the
+workflow's own ID, so it always said the weights would be downloaded and never
+returned `run_ready=true`, even when `medmlx setup reason-ct-tools` had cached all
+three models. It now checks each model in `weights_from`, and weight folders passed
+as arguments are no longer listed as unchecked inputs.
+
+**Setting up `reason-ct-tools` reports download bytes.** `medmlx setup --progress`,
+`setup_model(download_progress=...)` and the `prepare_model` MCP job printed only
+status lines for workflows; byte events now arrive for each model they download.
+
+**Python calls that take `root` expand `~` in it, as readiness does.**
+`medmlx.run`, `start` and `start_cohort` refused `root="~/medmlx-work"` as a missing
+directory, and `summarize_output`, `preview_output`, `list_dicom_series` and
+`convert_dicom` looked for a folder literally named `~` in the current directory.
+
 ## 0.10.0
 
 ### Breaking changes

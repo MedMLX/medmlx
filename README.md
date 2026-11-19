@@ -209,7 +209,7 @@ case. Leaving the context early cancels the worker and its child processes.
   detect and segment nodules, then browse masks and measurements in a local CT viewer.
 - [MedGemma bridge](https://github.com/MedMLX/medmlx/blob/main/docs/medvlm-bridge.md):
   run MedGemma in a managed environment with local weights.
-- This README describes the 0.4.7 release on [PyPI](https://pypi.org/project/medmlx/).
+- This README describes the 0.10.0 release on [PyPI](https://pypi.org/project/medmlx/).
   Unreleased changes are in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md);
   to use them, install from the locked source workspace described in the
   [MCP guide](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md).
