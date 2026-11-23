@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 if TYPE_CHECKING:
     from mlx.core import array as Array
 
-    from medmlx_core.typing import ArrayFactory, MlxRuntime
+    from medmlx_core.typing import MlxRuntime
 
 type HostArray = NDArray[np.number]
 type CaseValue = int | float | str | list[int] | tuple[int, ...]
@@ -305,7 +305,7 @@ def run_array_case(
     Precision cases go through ``Float32Operators`` (groups=1, eps=1e-5); other
     cases receive ``mx`` as a keyword, except ``require_ncdhw``.
     """
-    make_array = cast("ArrayFactory", mx.array)
+    make_array = mx.array
     args = [None if key is None else make_array(arrays[key]) for key in case.args]
     kwargs: dict[str, CaseValue | MlxRuntime] = dict(case.kwargs)
     if "spatial" in kwargs:

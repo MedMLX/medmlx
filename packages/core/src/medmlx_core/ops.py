@@ -23,15 +23,14 @@ from medmlx_core.layout import (
     to_ncdhw,
     to_ndhwc,
 )
-from medmlx_core.typing import ArrayFactory, HostArray, MlxRuntime
+from medmlx_core.typing import HostArray, MlxRuntime
 from medmlx_core.upsample import deconv2x_ncdhw
 
 
 def as_fp32(array: Array | HostArray, mx: MlxRuntime) -> Array:
     """Create an MLX float32 array from a host or device array."""
 
-    make_array = cast(ArrayFactory, mx.array)
-    return make_array(array, dtype=mx.float32)
+    return mx.array(array, dtype=mx.float32)
 
 
 def silu(array: Array, mx: MlxRuntime) -> Array:

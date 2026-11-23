@@ -63,6 +63,8 @@ from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint, entry_points
 from typing import cast
 
+from medmlx_core.cli import argument_descriptions
+
 from medmlx.payloads import (
     DiscoveryError,
     DiscoveryWarning,
@@ -232,7 +234,7 @@ def parameters(spec: ModelSpec) -> list[ParameterPayload]:
     """
 
     runner = resolve(spec.run)
-    descriptions = _argument_descriptions(inspect.getdoc(runner) or "")
+    descriptions = argument_descriptions(inspect.getdoc(runner) or "")
     rows: list[ParameterPayload] = []
     for parameter in inspect.signature(runner).parameters.values():
         if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
@@ -252,62 +254,6 @@ def parameters(spec: ModelSpec) -> list[ParameterPayload]:
             }
         )
     return rows
-
-
-def _argument_descriptions(docstring: str) -> dict[str, str]:
-    """Extract literal argument references and Args prose without inferring constraints.
-
-    Introductory paragraphs are copied with whitespace normalized, stopping at the
-    first section heading. Args entries replace this fallback, including grouped
-    names wrapped across lines. Undocumented arguments retain no description.
-    """
-    descriptions: dict[str, str] = {}
-    introduction: list[str] = []
-    for line in docstring.splitlines():
-        if re.fullmatch(r"[A-Za-z][\w ]*:", line):
-            break
-        introduction.append(line)
-    for paragraph in re.split(r"\n\s*\n", "\n".join(introduction)):
-        prose = " ".join(paragraph.split())
-        referenced_names = {
-            match.group("name") for match in re.finditer(
-                r"(?<!`)(?P<ticks>`{1,2})(?P<name>[A-Za-z_]\w*)(?P=ticks)(?!`)", prose
-            )
-        }
-        for name in referenced_names:
-            previous = descriptions.get(name)
-            descriptions[name] = f"{previous}\n\n{prose}" if previous else prose
-
-    names: list[str] = []
-    pending = ""
-    in_args = False
-    for line in docstring.splitlines():
-        if line.strip() in {"Args:", "Arguments:", "Parameters:"}:
-            in_args = True
-            names = []
-            continue
-        if not in_args:
-            continue
-        if line and not line[0].isspace():
-            break
-        if pending or re.match(r"^    \S", line):
-            text = pending + line.strip()
-            match = re.fullmatch(r"([\w, ]+)(?: \([^)]*\))?:\s*(.*)", text)
-            if match:
-                names = [name.strip() for name in match.group(1).split(",")]
-                for name in names:
-                    descriptions[name] = match.group(2).strip()
-                pending = ""
-                continue
-            if re.fullmatch(r"(?:[A-Za-z_]\w*\s*,\s*)+", text):
-                pending = text + " "
-                names = []
-                continue
-            pending = ""
-        if line.strip():
-            for name in names:
-                descriptions[name] += " " + line.strip()
-    return descriptions
 
 
 def readiness(spec: ModelSpec) -> Readiness:

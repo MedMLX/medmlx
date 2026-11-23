@@ -365,7 +365,7 @@ def sliding_window_inference(
     importance = importance.reshape(1, 1, *roi)
     # Admit Metal explicitly before invoking the predictor.
     runtime = cast(MlxRuntime, import_mlx())
-    make_array = cast(ArrayFactory, runtime.array)
+    make_array = runtime.array
     if accumulation == "mlx":
         with mx.stream(sw_device if sw_device is not None else mx.default_device()):
             return _mlx_sliding_window(

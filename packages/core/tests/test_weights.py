@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from typing import Protocol
 
 import huggingface_hub
+import mlx.core as mx
 import pytest
 from httpx import TimeoutException
 from huggingface_hub.hf_api import BlobLfsInfo, RepoFile, RepoSibling
@@ -19,10 +20,13 @@ from tqdm.auto import tqdm
 
 from medmlx_core import _download_progress
 from medmlx_core.errors import AssetNotReadyError
+from medmlx_core.graph._mlx import invoke
 from medmlx_core.weights import (
     DownloadProgress,
     cached_weights,
+    load_tensors,
     weights_dir,
+    weights_file,
     weights_repo,
     weights_revision,
 )
@@ -840,3 +844,101 @@ def test_real_hub_snapshot_hook_aggregates_concurrent_files_without_rendering_ba
     ]
     assert capsys.readouterr() == ("", "")
 
+
+
+def _write(path: Path, tensors: dict[str, tuple[tuple[int, ...], float]]) -> Path:
+    invoke(
+        mx, "save_safetensors", path,
+        {name: mx.full(shape, value) for name, (shape, value) in tensors.items()},
+    )
+    return path
+
+
+def _model_dir(tmp_path: Path) -> Path:
+    folder = tmp_path / "model"
+    folder.mkdir()
+    return folder
+
+
+def test_weights_file_keeps_symlink_name_and_names_the_hub_repository(tmp_path: Path) -> None:
+    folder = _model_dir(tmp_path)
+    blob = _write(tmp_path / "blob.safetensors", {"w": ((2,), 1.0)}).rename(tmp_path / "blob")
+    (folder / "net.safetensors").symlink_to(blob)
+
+    assert weights_file("unest", folder, "net.safetensors") == folder / "net.safetensors"
+
+    with pytest.raises(AssetNotReadyError) as missing:
+        weights_file("unest", folder, "other.safetensors")
+    assert (missing.value.reason or "").startswith("missing ")
+    assert "MedMLX/unest" in (missing.value.hint or "")
+
+    (folder / "net.bin").write_bytes(b"x")
+    with pytest.raises(AssetNotReadyError) as unconverted:
+        weights_file("unest", folder, "net.bin")
+    assert unconverted.value.reason == "unconverted net.bin"
+
+
+def test_load_tensors_returns_validated_tensors(tmp_path: Path) -> None:
+    path = _write(tmp_path / "net.safetensors", {"a": ((2, 3), 1.0), "b": ((4,), 2.0)})
+
+    tensors = load_tensors(
+        path, model_id="unest", label="UNesT", shapes={"a": (2, 3), "b": (4,)},
+    )
+
+    assert {name: tuple(value.shape) for name, value in tensors.items()} == {
+        "a": (2, 3), "b": (4,),
+    }
+
+
+def test_load_tensors_accepts_a_declared_non_float32_dtype(tmp_path: Path) -> None:
+    path = tmp_path / "net.safetensors"
+    invoke(mx, "save_safetensors", path, {"a": mx.zeros((2,), dtype=mx.float16)})
+
+    tensors = load_tensors(
+        path, model_id="unest", label="UNesT", shapes={"a": (2,)}, dtypes={"a": mx.float16},
+    )
+
+    assert tensors["a"].dtype == mx.float16
+
+
+@pytest.mark.parametrize(
+    ("saved", "reason"),
+    [
+        ({"a": ((2,), 1.0)}, "mismatched"),
+        ({"a": ((2,), 1.0), "b": ((1,), 1.0), "c": ((1,), 1.0)}, "mismatched"),
+        ({"a": ((3,), 1.0), "b": ((1,), 1.0)}, "mismatched"),
+        ({"a": ((2,), float("nan")), "b": ((1,), 1.0)}, "mismatched"),
+    ],
+)
+def test_load_tensors_rejects_wrong_inventory_shape_or_values(
+    tmp_path: Path, saved: dict[str, tuple[tuple[int, ...], float]], reason: str,
+) -> None:
+    path = _write(tmp_path / "net.safetensors", saved)
+
+    with pytest.raises(AssetNotReadyError) as error:
+        load_tensors(
+            path, model_id="unest", label="UNesT", shapes={"a": (2,), "b": (1,)},
+        )
+
+    assert error.value.reason == f"{reason} net.safetensors"
+    assert "MedMLX/unest" in (error.value.hint or "")
+
+
+def test_load_tensors_rejects_wrong_dtype(tmp_path: Path) -> None:
+    path = tmp_path / "net.safetensors"
+    invoke(mx, "save_safetensors", path, {"a": mx.zeros((2,), dtype=mx.float16)})
+
+    with pytest.raises(AssetNotReadyError) as error:
+        load_tensors(path, model_id="unest", label="UNesT", shapes={"a": (2,)})
+
+    assert error.value.reason == "mismatched net.safetensors"
+
+
+def test_load_tensors_rejects_unreadable_file(tmp_path: Path) -> None:
+    path = tmp_path / "net.safetensors"
+    path.write_bytes(b"not safetensors")
+
+    with pytest.raises(AssetNotReadyError) as error:
+        load_tensors(path, model_id="unest", label="UNesT", shapes={"a": (2,)})
+
+    assert error.value.reason == "unreadable net.safetensors"

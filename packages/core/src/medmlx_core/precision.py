@@ -6,14 +6,14 @@ import math
 import struct
 from collections.abc import Sequence
 from itertools import count
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mlx.core import array as Array
 
 import numpy as np
 
-from medmlx_core.typing import MetalKernel, MlxRuntime
+from medmlx_core.typing import MlxRuntime
 
 _KERNEL_NAMESPACES = count()
 
@@ -280,29 +280,23 @@ class Float32Operators:
         high = struct.unpack("f", struct.pack("f", eps))[0]
         self.eps = mx.array([high, eps - high], dtype=mx.float32)
         self.kernels = {
-            name: cast(
-                MetalKernel,
-                mx.fast.metal_kernel(
-                    name=f"medmlx_float32_packed_{namespace}_{name}",
-                    input_names=inputs,
-                    output_names=outputs,
-                    source=source,
-                    header="#include <metal_simdgroup_matrix>\n#pragma clang fp contract(off)\n",
-                ),
+            name: mx.fast.metal_kernel(
+                name=f"medmlx_float32_packed_{namespace}_{name}",
+                input_names=inputs,
+                output_names=outputs,
+                source=source,
+                header="#include <metal_simdgroup_matrix>\n#pragma clang fp contract(off)\n",
             )
             for name, (inputs, outputs, source) in _SOURCES.items()
         }
-        self.kernels["conv"] = cast(
-            MetalKernel,
-            mx.fast.metal_kernel(
-                name=f"medmlx_float32_packed_{namespace}_conv",
-                input_names=["X", "W", "BIAS"],
-                output_names=["Y"],
-                source=_CONV_SOURCE,
-                header="#include <metal_simdgroup_matrix>\n#pragma clang fp contract(off)\n",
-                # Safe math keeps bias + 0 from dropping to bias for a negative-zero bias.
-                compile_options={"math_mode": "safe"},
-            ),
+        self.kernels["conv"] = mx.fast.metal_kernel(
+            name=f"medmlx_float32_packed_{namespace}_conv",
+            input_names=["X", "W", "BIAS"],
+            output_names=["Y"],
+            source=_CONV_SOURCE,
+            header="#include <metal_simdgroup_matrix>\n#pragma clang fp contract(off)\n",
+            # Safe math keeps bias + 0 from dropping to bias for a negative-zero bias.
+            compile_options={"math_mode": "safe"},
         )
 
     def _run(

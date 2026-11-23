@@ -40,6 +40,11 @@ version or source revision. Reference frameworks are absent from runtime imports
 | --- | --- |
 | `runtime.py` | Host readiness and Metal admission; direct platform/API contract tests |
 | `errors.py` | Exception identity, messages and metadata; direct public contract tests |
+| `weights.py` | Managed model folders, `weights_file` and `load_tensors` (safetensors names, shapes, dtypes and finite values); direct contract tests |
+| `volumes.py` | `read_volume`, `write_volume` and `write_like`: 3D NIfTI admission, millimeter geometry and output on a reference grid; nibabel round trips |
+| `transforms.py` | NumPy ports of the MONAI 1.6.1 transforms the model bundles share: header correction, Orientation, Spacing and SpatialResample (bilinear and nearest, forward and inverse), ScaleIntensityRange, the CropForeground box and channel argmax; compared bit for bit with MONAI 1.6.1 when it is installed |
+| `cli.py` | Command generated from a runner's signature and docstring; direct contract tests |
+| `typing.py` | MLX protocols for an injected runtime; `tests/typing_contract.py` checks them against the installed MLX stubs |
 | `checkpoints.py`, `conversion.py` | Duplicate-safe host mappings and optional Torch deserialization; original seeded arrays and Torch save/load round trips |
 | `layout.py` | NCDHW/NDHWC, convolution-weight and token permutations; plain NumPy float64 reference |
 | `ops.py` | SiLU, linear, conv3d, conv_transpose3d, GroupNorm, pooling, interpolation, padding and concatenation; PyTorch functional operations |

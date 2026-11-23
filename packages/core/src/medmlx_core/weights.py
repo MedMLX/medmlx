@@ -10,18 +10,23 @@ from __future__ import annotations
 import os
 import re
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from hashlib import file_digest, sha1, sha256
 from importlib import import_module
 from pathlib import Path
 from shutil import copyfile
-from typing import Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Protocol, TypedDict, cast
 
 from httpx import HTTPError
 
 from medmlx_core.errors import AssetNotReadyError, MissingDependencyError
+
+if TYPE_CHECKING:
+    import mlx.core as mx
+
+    from medmlx_core.typing import MlxRuntime
 
 _MODEL_ID = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
 _REVISION = re.compile(r"[0-9a-f]{40}\Z")
@@ -508,11 +513,125 @@ def weights_revision(directory: str | Path) -> str | None:
     return revision if _REVISION.fullmatch(revision) else None
 
 
+def _weights_hint(model_id: str, filename: str) -> str:
+    repo = weights_repo(model_id)
+    if repo is None:
+        return f"Pass weights_path with a model folder containing {filename}."
+    return (
+        f"Download {filename} from {repo} on Hugging Face, or omit weights_path "
+        f"to download it."
+    )
+
+
+def weights_file(model_id: str, weights_path: str | os.PathLike[str] | None, filename: str) -> Path:
+    """Return the absolute path of ``filename`` in the model folder.
+
+    The folder comes from ``model_folder`` (the caller's, or the managed
+    download). Symlinks are kept: a Hub-cache link carries the ``.safetensors``
+    name that MLX needs, while the blob behind it has no extension.
+
+    Raises:
+        AssetNotReadyError: The folder is not ready (see ``model_folder``); the
+            file is missing (reason ``missing <path>``); or it is not a
+            ``.safetensors`` file (reason ``unconverted <name>``). The hint names
+            the model's Hub repository when it has one.
+    """
+    path = (model_folder(model_id, weights_path) / filename).absolute()
+    hint = _weights_hint(model_id, filename)
+    if not path.is_file():
+        raise AssetNotReadyError(
+            f"{filename} not found: {path}", reason=f"missing {path}", hint=hint,
+        )
+    if path.suffix != ".safetensors":
+        raise AssetNotReadyError(
+            f"{filename} must be a .safetensors file, got {path.name}",
+            reason=f"unconverted {path.name}",
+            hint=hint,
+        )
+    return path
+
+
+def load_tensors(
+    path: Path,
+    *,
+    model_id: str,
+    label: str,
+    shapes: Mapping[str, tuple[int, ...]],
+    dtypes: Mapping[str, mx.Dtype] | None = None,
+) -> dict[str, mx.array]:
+    """Load a safetensors file with MLX and check it against the expected inventory.
+
+    The tensor names must equal the keys of ``shapes`` and each tensor must have
+    its shape. Each dtype is float32 unless ``dtypes`` names another for that
+    tensor. Every floating tensor must be finite; all checks run in one
+    ``mx.eval``. MLX is imported here, not at module import.
+
+    Args:
+        path: The ``.safetensors`` file, normally from ``weights_file``.
+        model_id: Registered model ID, used for the setup hint.
+        label: Model name used in error messages.
+        shapes: Expected shape of every tensor, by name.
+        dtypes: Expected dtype for tensors that are not float32.
+
+    Raises:
+        AssetNotReadyError: The file cannot be read or is not a tensor mapping
+            (reason ``unreadable <name>``), or its names, shapes, dtypes or
+            values differ from the expectation (reason ``mismatched <name>``).
+    """
+    from medmlx_core.runtime import import_mlx
+
+    runtime = cast("MlxRuntime", import_mlx())
+    import mlx.core as mx
+
+    hint = _weights_hint(model_id, path.name)
+
+    def fail(kind: str, message: str) -> AssetNotReadyError:
+        return AssetNotReadyError(
+            f"{label} weights {path}: {message}", reason=f"{kind} {path.name}", hint=hint,
+        )
+
+    try:
+        loaded = mx.load(str(path), format="safetensors")
+    except (OSError, RuntimeError, ValueError) as error:
+        raise fail("unreadable", f"cannot read: {error}") from error
+    if not isinstance(loaded, dict):
+        raise fail("unreadable", "not a tensor mapping")
+    tensors = {str(name): value for name, value in loaded.items()}
+    missing = sorted(shapes.keys() - tensors.keys())
+    unexpected = sorted(tensors.keys() - shapes.keys())
+    if missing or unexpected:
+        raise fail(
+            "mismatched",
+            f"tensor names differ; missing {missing[:4]}, unexpected {unexpected[:4]} "
+            f"({len(missing)} missing, {len(unexpected)} unexpected)",
+        )
+    overrides = dtypes or {}
+    for name, value in tensors.items():
+        if tuple(value.shape) != tuple(shapes[name]):
+            raise fail(
+                "mismatched",
+                f"tensor {name} has shape {tuple(value.shape)}, expected {tuple(shapes[name])}",
+            )
+        expected = overrides.get(name, mx.float32)
+        if value.dtype != expected:
+            raise fail("mismatched", f"tensor {name} has dtype {value.dtype}, expected {expected}")
+    floating = [name for name, value in tensors.items() if mx.issubdtype(value.dtype, mx.floating)]
+    if floating:
+        checks = [mx.all(mx.isfinite(tensors[name])) for name in floating]
+        runtime.eval(checks)
+        for name, check in zip(floating, checks, strict=True):
+            if not bool(check.item()):
+                raise fail("mismatched", f"tensor {name} has non-finite values")
+    return tensors
+
+
 __all__ = [
     "DownloadProgress",
     "cached_weights",
+    "load_tensors",
     "model_folder",
     "weights_dir",
+    "weights_file",
     "weights_repo",
     "weights_revision",
 ]

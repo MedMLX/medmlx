@@ -779,6 +779,9 @@ dev = [
     { name = "ruff" },
     { name = "torch" },
 ]
+nifti = [
+    { name = "nibabel" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -788,6 +791,7 @@ requires-dist = [
     { name = "mlx", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.32.4,<0.33" },
     { name = "monai", marker = "extra == 'dev'", specifier = "==1.6.1" },
     { name = "nibabel", marker = "extra == 'dev'", specifier = ">=5.4.2,<6" },
+    { name = "nibabel", marker = "extra == 'nifti'", specifier = ">=5.4.2,<6" },
     { name = "numpy", specifier = ">=2.0,<3" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=2.2,<3" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=13,<14" },
@@ -797,7 +801,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'conversion'", specifier = ">=2.6,<3" },
     { name = "torch", marker = "extra == 'dev'", specifier = "==2.14.1" },
 ]
-provides-extras = ["conversion", "dev"]
+provides-extras = ["conversion", "nifti", "dev"]
 
 [[package]]
 name = "medsam2-mlx"

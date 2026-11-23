@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import math
 from functools import lru_cache
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING
 
 from medmlx_core.typing import MetalKernel, MlxRuntime
 
@@ -30,12 +30,6 @@ if TYPE_CHECKING:
 
 _CHUNK = 16384
 _THREADS = 256
-
-
-class _GroupNormRuntime(MlxRuntime, Protocol):
-    """The shared runtime plus the contiguous operation used by normalization."""
-
-    def contiguous(self, a: array, /) -> array: ...
 
 
 _PARTIAL = r"""
@@ -106,32 +100,23 @@ if (SILU) y = y / (1.0f + metal::precise::exp(-y));
 @lru_cache(maxsize=1)
 def _kernels(mx: MlxRuntime) -> tuple[MetalKernel, MetalKernel, MetalKernel]:
     return (
-        cast(
-            MetalKernel,
-            mx.fast.metal_kernel(
-                name="medmlx_group_norm_partial",
-                input_names=["x"],
-                output_names=["partials"],
-                source=_PARTIAL,
-            ),
+        mx.fast.metal_kernel(
+            name="medmlx_group_norm_partial",
+            input_names=["x"],
+            output_names=["partials"],
+            source=_PARTIAL,
         ),
-        cast(
-            MetalKernel,
-            mx.fast.metal_kernel(
-                name="medmlx_group_norm_affine",
-                input_names=["x", "partials", "weight", "bias", "epsilon"],
-                output_names=["affine"],
-                source=_AFFINE,
-            ),
+        mx.fast.metal_kernel(
+            name="medmlx_group_norm_affine",
+            input_names=["x", "partials", "weight", "bias", "epsilon"],
+            output_names=["affine"],
+            source=_AFFINE,
         ),
-        cast(
-            MetalKernel,
-            mx.fast.metal_kernel(
-                name="medmlx_group_norm_apply",
-                input_names=["x", "affine"],
-                output_names=["out"],
-                source=_APPLY,
-            ),
+        mx.fast.metal_kernel(
+            name="medmlx_group_norm_apply",
+            input_names=["x", "affine"],
+            output_names=["out"],
+            source=_APPLY,
         ),
     )
 
@@ -203,7 +188,7 @@ def group_norm_affine(
 
 def native_group_norm(
     x: array, weight: array, bias: array, *, groups: int, eps: float, silu: bool,
-    mx: _GroupNormRuntime,
+    mx: MlxRuntime,
 ) -> array:
     """Group-normalize NCDHW ``x`` with per-channel affine, then optionally SiLU.
 

@@ -11,7 +11,7 @@ from numerical import assert_reference, helper_budget
 from medmlx_core.runtime import import_mlx
 from medmlx_core.typing import MlxRuntime
 
-mx: MlxRuntime = import_mlx()
+mx = cast(MlxRuntime, import_mlx())
 
 _, CASES = array_cases()
 ARRAY_CASES = [

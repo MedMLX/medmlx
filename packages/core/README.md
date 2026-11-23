@@ -47,7 +47,8 @@ session = Session.load(Path("my-model"))
 logits, = session(mx.zeros((1, 4, 64, 64, 64), dtype=mx.float32))
 ```
 
-Graph inference needs no PyTorch. The `conversion` extra supplies PyTorch for checkpoint conversion.
+Graph inference needs no PyTorch. The `conversion` extra supplies PyTorch for checkpoint conversion,
+and the `nifti` extra supplies nibabel for `medmlx_core.volumes`.
 
 ## Automatic model folders
 

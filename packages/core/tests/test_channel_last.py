@@ -10,10 +10,10 @@ from numerical import assert_reference
 
 from medmlx_core.channel_last import ChannelLastGraph
 from medmlx_core.runtime import import_mlx
-from medmlx_core.typing import ArrayFactory, MlxRuntime
+from medmlx_core.typing import MlxRuntime
 
-mx: MlxRuntime = import_mlx()
-make_array = cast(ArrayFactory, mx.array)
+mx = cast(MlxRuntime, import_mlx())
+make_array = mx.array
 
 
 @pytest.fixture

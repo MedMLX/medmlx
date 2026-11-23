@@ -13,10 +13,10 @@ import math
 import struct
 from collections.abc import Sequence
 from itertools import count
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from medmlx_core.layout import require_ncdhw
-from medmlx_core.typing import MetalKernel, MlxRuntime
+from medmlx_core.typing import MlxRuntime
 
 if TYPE_CHECKING:
     from mlx.core import array as Array
@@ -282,15 +282,12 @@ class CompensatedFloat32Operators:
         self.eps = mx.array([high, eps - high], dtype=mx.float32)
         namespace = next(_NAMESPACES)
         self.kernels = {
-            name: cast(
-                MetalKernel,
-                mx.fast.metal_kernel(
-                    name=f"medmlx_compensated_{namespace}_{name}",
-                    input_names=inputs,
-                    output_names=["Y"],
-                    source=source,
-                    header=_HEADER,
-                ),
+            name: mx.fast.metal_kernel(
+                name=f"medmlx_compensated_{namespace}_{name}",
+                input_names=inputs,
+                output_names=["Y"],
+                source=source,
+                header=_HEADER,
             )
             for name, inputs, source in [
                 ("conv", ["X", "W", "BIAS"], _CONV),
@@ -505,15 +502,12 @@ class CompensatedFloat48Operators(CompensatedFloat32Operators):
             ("add", ["X", "OTHER"], _PAIRED_ADD),
             ("relu", ["X"], _PAIRED_RELU),
         ]:
-            self.kernels[name] = cast(
-                MetalKernel,
-                mx.fast.metal_kernel(
-                    name=f"medmlx_paired_{namespace}_{name}",
-                    input_names=inputs,
-                    output_names=["Y"],
-                    source=source,
-                    header=_HEADER,
-                ),
+            self.kernels[name] = mx.fast.metal_kernel(
+                name=f"medmlx_paired_{namespace}_{name}",
+                input_names=inputs,
+                output_names=["Y"],
+                source=source,
+                header=_HEADER,
             )
 
     def pack(self, values: Array) -> Array:
