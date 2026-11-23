@@ -215,6 +215,15 @@ def test_output_summary_treats_many_uint16_values_as_an_image(tmp_path: Path) ->
     assert summary["value_range"] == [float(data.min()), float(data.max())]
 
 
+def test_output_summary_rejects_a_mask_that_is_not_nifti(tmp_path: Path) -> None:
+    # flexray writes its mask as a PNG; nibabel cannot identify that file type.
+    mask = tmp_path / "mask.png"
+    Image.fromarray(np.zeros((4, 4), dtype=np.uint8)).save(mask)
+
+    with pytest.raises(ValueError, match="is not a NIfTI image"):
+        medmlx.summarize_output(mask)
+
+
 @pytest.mark.parametrize("difference", ["origin", "spacing", "shear", "units"])
 def test_preview_rejects_same_shape_on_different_physical_grids(
     tmp_path: Path, difference: str,

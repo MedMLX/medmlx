@@ -1,0 +1,3 @@
+"""Nibabel 5.4 file-type errors used by MedMLX."""
+
+class ImageFileError(Exception): ...

@@ -63,11 +63,16 @@ def _nifti(path: Path) -> nibabel.Nifti1Image:
     """Load a NIfTI file reoriented to RAS, or raise a client-readable error."""
     try:
         import nibabel as nib
+        from nibabel.filebasedimages import ImageFileError
     except ImportError as error:
         raise ImportError(_MISSING.format(name="nibabel", extra="all")) from error
     if not path.is_file():
         raise FileNotFoundError(path)
-    image = nib.load(path)
+    try:
+        image = nib.load(path)
+    except ImageFileError as error:
+        # nibabel cannot identify the file type, as for a PNG or .npy mask.
+        raise ValueError(f"{path} is not a NIfTI image") from error
     if not isinstance(image, nib.Nifti1Image):
         raise ValueError(f"{path} is not a NIfTI image")
     return nib.as_closest_canonical(image)
