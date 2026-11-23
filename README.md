@@ -131,8 +131,7 @@ either way, so a Mac with too little memory may swap or fail. Declared peaks:
 | `flexray` | 1.2 GB |
 | `radimagenet-inceptionresnetv2` | 0.5 GB |
 | `flexible-unet` | 0.3 GB |
-| `radimagenet-densenet121`, `radimagenet-inceptionv3`, `radimagenet-resnet50` | 0.2 GB |
-| `mlxradiomics` | 0.1 GB |
+| `mlxradiomics`, `radimagenet-densenet121`, `radimagenet-inceptionv3`, `radimagenet-resnet50` | 0.2 GB |
 
 Models without a declared peak (`medgemma`, `mrsegmentator`, `musclemap`, `reason-ct-tools`) record their measured peak after each run, and `medmlx describe` reports it.
 <!-- memory-table:end -->
@@ -211,12 +210,6 @@ case. Leaving the context early cancels the worker and its child processes.
   detect and segment nodules, then browse masks and measurements in a local CT viewer.
 - [MedGemma bridge](https://github.com/MedMLX/medmlx/blob/main/docs/medvlm-bridge.md):
   run MedGemma in a managed environment with local weights.
-- This README follows `main`, which is ahead of the 0.10.0 release on
-  [PyPI](https://pypi.org/project/medmlx/): `medmlx check` and `KEY=VALUE` arguments
-  without `--arg` arrive in the next release. The
-  [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md) list
-  the differences; to use them now, install from the locked source workspace described
-  in the [MCP guide](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md).
 - Development: [declaring models](https://github.com/MedMLX/medmlx/blob/main/docs/declaring-models.md),
   [checkpoint conversion](https://github.com/MedMLX/medmlx/blob/main/conversion/README.md)
   and the [shared core runtime](https://github.com/MedMLX/medmlx/blob/main/packages/core/docs/technical.md).

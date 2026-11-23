@@ -1,10 +1,10 @@
 # Release notes
 
-## Unreleased
+## 0.11.0
 
 ### Breaking changes
 
-**Requires [`mlx-reason-ct` 0.8](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.8.0).**
+**Requires [`mlx-reason-ct` 0.9](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.9.0).**
 `mlx-reason-ct` answers run to 1,024 tokens by default instead of 512, and
 `mlx_reason_ct.load_model` takes `prefill_reuse` in place of `reuse_prefix`.
 
@@ -120,6 +120,10 @@ directory, and `summarize_output`, `preview_output`, `list_dicom_series` and
 `max_new_tokens` default is now 1024. On a LUNA16 chest CT the interpretation needed 813
 tokens, so the run stopped as incomplete after detection and segmentation had finished.
 
+**`summarize_output` and `preview_output` raise `ValueError` for a file that is not
+NIfTI.** A PNG or `.npy` mask, such as the ones `flexray` and `sam3` write, raised
+nibabel's `ImageFileError` instead of the documented error.
+
 ### New
 
 **Model declarations can omit `run`.** It defaults to the `run` function of the
@@ -133,6 +137,10 @@ from that run's `artifacts` and resolve relative paths against the run's `root`.
 `MODEL: ModelDeclaration` lets a type checker catch a misspelled or mistyped field
 that discovery would only report at runtime.
 
+**`segresnet-renal-cect`, `totalsegmentator`, `musclemap` and `fdg-pet-ct` read NIfTI
+headers in meters or microns.** They convert them to millimeters; the previous
+releases rejected them.
+
 ### Faster
 
 **`reason-ct-tools` decisions take about 2 s instead of 12 s.** Measured on an M5 Max
@@ -140,6 +148,15 @@ for the decisions after the first, on a LUNA16 chest CT with two segmented candi
 The workflow keeps the CT's decoder state between decisions with `mlx-reason-ct` 0.8's
 `prefill_reuse="fast"`, and reads the tool calls that release parses instead of
 parsing `report.txt` itself.
+
+### Requirements
+
+Requires `medmlx-core` 0.3.2. The extras install the runtime releases built on it:
+[`nnunet-mlx` 0.10](https://github.com/MedMLX/nnunet-mlx/releases/tag/v0.10.0),
+[`totalsegmentator-mlx` 0.4](https://github.com/MedMLX/totalsegmentator-mlx/releases/tag/v0.4.0),
+[`segresnet-mlx` 0.6](https://github.com/MedMLX/segresnet-mlx/releases/tag/v0.6.0),
+[`mlx-generate-ctmr` 0.8](https://github.com/MedMLX/mlx-generate-ctmr/releases/tag/v0.8.0),
+`mlxradiomics` 1.2, and the matching minor releases of every other runtime.
 
 ## 0.10.0
 
