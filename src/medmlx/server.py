@@ -44,7 +44,7 @@ MedMLX runs medical imaging models natively on this Mac with MLX and Metal. It i
 research software: outputs require human review and are not for clinical use.
 Workflow: list_models -> describe_model (parameters, example_arguments, labels and
 the provider's instructions) -> convert_dicom when the input is a DICOM folder
-(list_dicom_series first if it holds several series) -> prepare_model when weights
+(list_dicom_series first if it holds several series) -> setup_model when weights
 are not cached -> check_run with the intended arguments -> run_model -> get_job
 until the state is terminal -> summarize_output and preview_output on the outputs.
 summarize_output reports label volumes in mL. Pass job_id for this run's label names,
@@ -56,7 +56,7 @@ binding, input and weight paths, supplied or cached weights, NIfTI headers); nul
 means something could not be checked; false names the blocker in reason. No check
 runs the model or proves that weights and images are compatible.
 Weights: when weights_path is omitted, runs download the model's pinned weights on
-first use; prepare_model downloads them ahead of time as a job. Some models need a
+first use; setup_model downloads them ahead of time as a job. Some models need a
 local weights_path; describe_model says which.
 Memory: one model runs at a time on this Mac across every MedMLX session, so models
 never pile up in unified memory; memory_status shows what is running. check_run
@@ -215,7 +215,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
         with _tool_errors():
             return api.start_model(_jobs(ctx), model_id, arguments)
 
-    def prepare_model(ctx: Context[Jobs, object], model_id: str) -> JobPayload:
+    def setup_model(ctx: Context[Jobs, object], model_id: str) -> JobPayload:
         """Download a model's pinned weights as a job and return it; poll get_job.
 
         Cached weights finish at once. The log tail shows status lines and JSON
@@ -245,9 +245,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
             with _tool_errors(missing="unknown_job"):
                 jobs.get(job_id)
         with _tool_errors():
-            return api.summarize_output(
-                path, job_id=job_id, model_id=model_id, jobs=jobs, root=root,
-            )
+            return api.summarize_job_output(jobs, path, job_id=job_id, model_id=model_id)
 
     def preview_output(
         ctx: Context[Jobs, object], path: str, image_path: str | None = None,
@@ -266,11 +264,9 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
             with _tool_errors(missing="unknown_job"):
                 jobs.get(job_id)
         with _tool_errors():
-            summary = api.summarize_output(
-                path, job_id=job_id, model_id=model_id, jobs=jobs, root=root,
-            )
-            png = api.preview_output(
-                path, image_path=image_path, job_id=job_id, model_id=model_id, jobs=jobs, root=root,
+            summary = api.summarize_job_output(jobs, path, job_id=job_id, model_id=model_id)
+            png = api.preview_job_output(
+                jobs, path, job_id=job_id, model_id=model_id, image_path=image_path,
             )
         return CallToolResult(
             content=[Image(data=png, format="png").to_image_content(),
@@ -338,7 +334,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
         (memory_status, _READ_ONLY),
         (list_dicom_series, _READ_ONLY),
         (convert_dicom, _WRITES),
-        (prepare_model, _PREPARES),
+        (setup_model, _PREPARES),
         (run_model, _RUNS),
         (get_job, _READ_ONLY),
         (list_jobs, _READ_ONLY),

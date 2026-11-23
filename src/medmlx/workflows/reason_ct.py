@@ -6,6 +6,11 @@ from collections.abc import Sequence
 from importlib.util import find_spec
 from inspect import signature
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Type-only, so discovery still loads with a medmlx-core that predates it.
+    from medmlx_core import ModelDeclaration
 
 #: Each weight argument and the model whose automatic weights it uses.
 WEIGHTS = {
@@ -14,7 +19,7 @@ WEIGHTS = {
     "medsam_weights_path": "medsam2",
 }
 
-MODEL = {
+MODEL: ModelDeclaration = {
     "id": "reason-ct-tools",
     "label": "Reason-CT nodule tools",
     "task": "workflow",

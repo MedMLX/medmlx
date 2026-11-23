@@ -97,7 +97,7 @@ def _parser() -> argparse.ArgumentParser:
     models.add_argument("--task")
     models.add_argument("--family", choices=("segment", "generate", "vision"))
     checkpoints = commands.add_parser("checkpoints", help="List checkpoint sources; no downloads.")
-    checkpoints.add_argument("--model-id")
+    checkpoints.add_argument("model_id", nargs="?", help="Show only this model's checkpoints.")
     commands.add_parser("packages", help="Show optional runtime families and versions.")
     commands.add_parser("runtime", help="Probe the MLX Metal runtime.")
     describe = commands.add_parser("describe", help="Show a runner's keyword arguments.")
@@ -202,7 +202,8 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
     """Dispatch one parsed command and return its JSON payload and exit code.
 
     ``models`` still returns its payload when some entry points failed to load,
-    but with exit code 1 so scripts notice the ``discovery_errors``.
+    but with exit code 1 so scripts notice the ``discovery_errors``; ``setup
+    --all`` likewise returns its per-model ``errors`` with exit code 1.
     """
     match options.command:
         case "setup":
@@ -219,21 +220,17 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
                     print(json.dumps({"message": message}), file=sys.stderr, flush=True)
             def download_progress(event: api.DownloadProgress) -> None:
                 print(json.dumps(event), file=sys.stderr, flush=True)
-            try:
-                if options.all:
-                    result = api.setup_all(
-                        progress=progress, refresh=options.refresh,
-                        download_progress=download_progress if options.progress else None,
-                    )
-                    return result, 0 if result["complete"] else 1
-                assert options.model_id is not None
-                return api.setup_model(
-                    options.model_id, progress=progress, refresh=options.refresh,
+            if options.all:
+                result = api.setup_all(
+                    progress=progress, refresh=options.refresh,
                     download_progress=download_progress if options.progress else None,
-                )["arguments"], 0
-            except Exception as error:
-                # The setup CLI is a reporting boundary for optional provider/Hub errors.
-                return {"error": str(error)}, 1
+                )
+                return result, 0 if result["complete"] else 1
+            assert options.model_id is not None
+            return api.setup_model(
+                options.model_id, progress=progress, refresh=options.refresh,
+                download_progress=download_progress if options.progress else None,
+            )["arguments"], 0
         case "models":
             payload = api.list_models(options.task, options.family)
             return payload, int(bool(payload["discovery_errors"]))

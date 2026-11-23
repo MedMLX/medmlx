@@ -33,7 +33,7 @@ from tests.conftest import BROKEN_MLX, NO_METAL_MLX, add_distribution, set_mlx
 
 _TOOLS = {
     "cancel_job", "check_run", "describe_model", "get_job", "list_jobs", "list_models",
-    "list_checkpoints", "list_packages", "model_readiness", "prepare_model", "run_model",
+    "list_checkpoints", "list_packages", "model_readiness", "setup_model", "run_model",
     "runtime_info", "list_dicom_series", "convert_dicom", "summarize_output", "preview_output",
     "memory_status",
 }

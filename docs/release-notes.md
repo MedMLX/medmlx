@@ -50,6 +50,35 @@ named for their role, and `precision` values read `<arithmetic>-<dtype>`.
 | `mlx-reason-ct` | `precision="bfloat16_fast"`, `"bfloat16"` | `precision="fast-bf16"`, `"source-bf16"` |
 | `mlx-generate-ctmr-ct`, `-mr`, `-mr-brain` | `precision="fast"`, `"source"` | `precision="fast-fp32"`, `"source-fp32"` |
 
+**The `prepare_model` MCP tool is now `setup_model`.** It matches `medmlx.setup_model`
+and `medmlx setup`; its argument and job result are unchanged.
+
+```diff
+-prepare_model {"model_id": "lung-nodule"}
++setup_model {"model_id": "lung-nodule"}
+```
+
+**`medmlx checkpoints` takes the model ID as a positional argument.**
+
+```diff
+-medmlx checkpoints --model-id nnunet-autopet
++medmlx checkpoints nnunet-autopet
+```
+
+**`medmlx setup` reports a failure on stderr, like every other command.** It printed
+`{"error": ...}` on stdout; now stdout stays empty and stderr reads
+`medmlx: <message>`, still with exit status 1. `medmlx setup --all` keeps its per-model
+`errors` in the JSON result.
+
+**`summarize_output` and `preview_output` no longer take `job_id` or `jobs`.** Name a
+run's labels with `result.summarize(role)` and `result.preview(role)` instead. The MCP
+tools keep their `job_id` argument.
+
+```diff
+-medmlx.summarize_output("segment-ct/mask.nii.gz", job_id=job_id, jobs=jobs)
++result.summarize("mask")
+```
+
 ### Fixes
 
 **`medmlx run` no longer fails for runtimes whose signatures name type-only imports.**
@@ -79,7 +108,7 @@ three models. It now checks each model in `weights_from`, and weight folders pas
 as arguments are no longer listed as unchecked inputs.
 
 **Setting up `reason-ct-tools` reports download bytes.** `medmlx setup --progress`,
-`setup_model(download_progress=...)` and the `prepare_model` MCP job printed only
+`setup_model(download_progress=...)` and the `setup_model` MCP job printed only
 status lines for workflows; byte events now arrive for each model they download.
 
 **Python calls that take `root` expand `~` in it, as readiness does.**
@@ -95,6 +124,14 @@ tokens, so the run stopped as incomplete after detection and segmentation had fi
 
 **Model declarations can omit `run`.** It defaults to the `run` function of the
 module the `medmlx.models` entry point names; `workflow` declarations still give it.
+
+**Run results summarize and preview their own outputs.** `result.summarize("mask")`
+and `result.preview("mask")` on a `RunResult` or a cohort's `CaseResult` name labels
+from that run's `artifacts` and resolve relative paths against the run's `root`.
+
+**`medmlx_core.ModelDeclaration` types a `MODEL` declaration.** Annotating
+`MODEL: ModelDeclaration` lets a type checker catch a misspelled or mistyped field
+that discovery would only report at runtime.
 
 ### Faster
 

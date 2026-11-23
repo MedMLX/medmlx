@@ -240,13 +240,17 @@ def test_all_continues_after_failures_and_never_reports_partial_success(
     assert not result["complete"] and result["discovery_errors"] == errors
 
 
-def test_cli_plan_succeeds_and_incomplete_setup_exits_nonzero(
-    monkeypatch: pytest.MonkeyPatch,
+def test_cli_plan_succeeds_and_failed_setup_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(registry, "discover", lambda: registry.Discovery({}, []))
     assert cli.main(["setup", "--all", "--plan"]) == 0
     assert cli.main(["setup", "--all"]) == 1  # An empty install is not a completed setup.
     assert cli.main(["setup", "a-model", "--all"]) == 1
+    capsys.readouterr()
+    assert cli.main(["setup", "absent"]) == 1
+    failed = capsys.readouterr()
+    assert failed.out == "" and failed.err.startswith("medmlx: Unknown MedMLX model 'absent'")
 
 
 @pytest.mark.parametrize("batch", [False, True], ids=["model", "all"])

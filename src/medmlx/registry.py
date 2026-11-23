@@ -6,7 +6,7 @@ group. The entry point names a mapping, or a callable returning one::
     [project.entry-points."medmlx.models"]
     totalsegmentator = "totalsegmentator_mlx.medmlx:MODEL"
 
-    MODEL = {
+    MODEL: ModelDeclaration = {  # from medmlx_core; keep it in step with _spec
         "id": "totalsegmentator",
         "label": "TotalSegmentator",
         "task": "segmentation",
@@ -347,6 +347,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
     if not isinstance(value, Mapping):
         raise TypeError("must name a mapping or a callable returning one")
     raw = cast(Mapping[str, object], value)
+    # medmlx_core.ModelDeclaration types these same fields; change both together.
     unknown = sorted(
         set(raw) - set(_REQUIRED) - set(_OPTIONAL)
         - {

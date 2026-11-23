@@ -129,7 +129,7 @@ behalf. A typical sequence is:
    Follow the provider's requirements for inputs, weights, units, and output.
 3. Call `check_run` with the model ID and the intended arguments. Fix any
    known blockers before starting a run. If its `weights.source` is
-   `download`, call `prepare_model` and wait for that job with `get_job`.
+   `download`, call `setup_model` and wait for that job with `get_job`.
 4. Call `run_model`, retain its `job_id`, and call `get_job` until the state is
    terminal. Inspect the result or error and the provider's output files.
 5. Call `summarize_output` and `preview_output` on output masks with that `job_id`
@@ -208,8 +208,9 @@ reports `"outputs"`, `"declaration"` or `null`.
 `preview_output` accepts the same `job_id` and `model_id`. It returns a PNG and
 the same structured summary, including `labels` and `names_from`. Named labels
 appear in a legend. The PNG also stores `labels` as JSON and `names_from` as text
-(`outputs`, `declaration` or `null`). Python's `medmlx.preview_output` still returns
-PNG bytes. Python calls with `job_id` also pass the owning `Jobs` session as `jobs`.
+(`outputs`, `declaration` or `null`). In Python, `result.summarize(role)` and
+`result.preview(role)` name labels from a run's own outputs, and
+`medmlx.preview_output` returns PNG bytes.
 
 Previews show the slice with the most labeled voxels in radiological orientation
 (patient right on the image left). Pass `image_path` to overlay the mask on its
@@ -285,7 +286,7 @@ A failed job's `error` has the exception's `type` and `message`. It adds
 | `describe_model` | `model_id` | Show one runner's parameters, provider-authored instructions, declared `labels` and `example_arguments`, and declared, measured and effective peak memory. |
 | `model_readiness` | Optional `model_ids` | Check that models are installed and that Metal works. |
 | `check_run` | `model_id`, `arguments` | Check one run's argument binding, input and weight paths, weights and NIfTI headers without running it. |
-| `prepare_model` | `model_id` | Download a model's pinned weights as a job; the result gives the `weights_path` folder. |
+| `setup_model` | `model_id` | Download a model's pinned weights as a job; the result gives the `weights_path` folder. |
 | `run_model` | `model_id`, `arguments` | Start a supervised worker and return its job record. |
 | `get_job` | `job_id`, optional `wait_seconds` | Get a job's state, log tail, and eventual result or error. |
 | `list_jobs` | None | List jobs in the current server session. |

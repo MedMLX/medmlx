@@ -180,6 +180,7 @@ result = medmlx.run(
 )
 result.outputs["mask"]    # path by role
 result.artifacts["mask"]  # kind, coordinate space and labels of that file
+result.summarize("mask")  # each label's name, voxel count and volume in mL
 ```
 
 `result.job` holds the full job record, including `log_tail`.

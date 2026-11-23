@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from medmlx_core.errors import (
     AssetNotReadyError,
@@ -28,7 +28,11 @@ from medmlx_core.errors import (
 )
 from medmlx_core.weights import weights_dir, weights_revision
 
-MEDGEMMA = {
+if TYPE_CHECKING:
+    # Type-only, so discovery still loads with a medmlx-core that predates it.
+    from medmlx_core import ModelDeclaration
+
+MEDGEMMA: ModelDeclaration = {
     "id": "medgemma", "label": "MedGemma (provisional bridge)", "task": "report-generation",
     "run": "medmlx.adapters.medvlm:run",
     "readiness": "medmlx.adapters.medvlm:readiness",

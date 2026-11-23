@@ -15,6 +15,7 @@ from medmlx_core.checkpoints import (
     mapping_from_pairs,
     tensor_mapping_from_payload,
 )
+from medmlx_core.declarations import ModelDeclaration
 from medmlx_core.errors import (
     AssetNotReadyError,
     InvalidInputError,
@@ -78,6 +79,7 @@ __all__ = [
     "MedmlxError",
     "MissingDependencyError",
     "MlxHostReport",
+    "ModelDeclaration",
     "ModelExecutionError",
     "as_fp32",
     "avg_pool3d_ncdhw",

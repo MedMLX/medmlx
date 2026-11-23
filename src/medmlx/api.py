@@ -309,82 +309,150 @@ def _spelled(annotation: object) -> str:
     return str(annotation).replace("collections.abc.", "")
 
 
-def _output_names(
-    path: str | Path, *, job_id: str | None, model_id: str | None,
-    jobs: Jobs | None, root: str | Path | None, labels: Mapping[int, str] | None,
-) -> tuple[Mapping[int, str] | None, OutputNamesFrom, str | Path | None]:
-    directory = root if root is not None else jobs.root if jobs is not None else None
-    if job_id is not None:
-        if jobs is None:
-            raise ValueError("job_id requires the Jobs session that owns it (jobs=...)")
-        job = jobs.get(job_id).to_payload()
-        result = job.get("result")
-        if job["state"] == "completed" and "outputs_error" not in job and isinstance(result, dict):
-            paths, artifacts = validate_outputs(result)
-            file = (Path(directory or Path.cwd()).expanduser() / Path(path).expanduser()).resolve()
-            for role, entry in artifacts.items():
-                candidate = (jobs.root / Path(paths[role]).expanduser()).resolve()
-                assigned = entry.get("labels")
-                if candidate == file and assigned is not None:
-                    return {row["value"]: row["name"] for row in assigned}, "outputs", directory
-    if model_id is not None:
-        declared = registry.get_model(model_id).label_names()
-        return declared, "declaration" if declared else None, directory
-    return labels, None, directory
+def _artifact_names(entry: Artifact) -> dict[int, str] | None:
+    """Return an artifact's label names by value, or None when it assigns none.
 
-
-def summarize_output(
-    path: str | Path, *, job_id: str | None = None, model_id: str | None = None,
-    jobs: Jobs | None = None, root: str | Path | None = None,
-    labels: Mapping[int, str] | None = None,
-) -> OutputSummary:
-    """Summarize a NIfTI output using run labels, then an explicit model's labels.
-
-    ``job_id`` requires its owning ``jobs`` session. Output paths resolve against
-    that session's root. ``root`` overrides the root for the requested ``path``.
-    Run labels come from the ``artifacts`` entry whose ``outputs`` path resolves
-    to ``path``. A file without labelled artifacts, or a result with invalid
-    outputs, falls back to ``model_id``.
-    ``names_from`` is ``outputs``, ``declaration`` or None. The existing ``labels``
-    mapping can supply names without either ID; its provenance is None.
-
-    Raises:
-        LookupError: A job or model id is unknown.
-        ValueError: ``job_id`` lacks a session, or the file is not NIfTI.
-        FileNotFoundError: ``path`` does not exist.
-        ImportError: nibabel is not installed.
+    An empty ``labels`` list is a run that named no labels, so it gives an
+    empty mapping rather than None.
     """
-    names, source, directory = _output_names(
-        path, job_id=job_id, model_id=model_id, jobs=jobs, root=root, labels=labels,
-    )
-    summary = outputs.summarize_output(path, labels=names, root=directory)
+    assigned = entry.get("labels")
+    return None if assigned is None else {row["value"]: row["name"] for row in assigned}
+
+
+def _declared_names(
+    model_id: str | None, labels: Mapping[int, str] | None,
+) -> tuple[Mapping[int, str] | None, OutputNamesFrom]:
+    """Names from ``model_id``'s declaration when given, otherwise ``labels`` without provenance."""
+    if model_id is None:
+        return labels, None
+    declared = registry.get_model(model_id).label_names()
+    return declared, "declaration" if declared else None
+
+
+def _named_summary(
+    path: str | Path, names: Mapping[int, str] | None, source: OutputNamesFrom,
+    root: str | Path | None,
+) -> OutputSummary:
+    summary = outputs.summarize_output(path, labels=names, root=root)
     summary["names_from"] = source
     return summary
 
 
-def preview_output(
-    path: str | Path, *, job_id: str | None = None, model_id: str | None = None,
-    jobs: Jobs | None = None, image_path: str | Path | None = None,
-    root: str | Path | None = None,
-) -> bytes:
-    """Render a NIfTI slice with the same naming rules as ``summarize_output``.
+def _role_output(
+    paths: Mapping[str, str], artifacts: Mapping[str, Artifact], role: str,
+) -> tuple[str, Mapping[int, str] | None, OutputNamesFrom]:
+    """Return one role's path and the label names its artifact assigns.
 
-    Return PNG bytes with a label legend. PNG text fields contain ``labels`` as
-    JSON and ``names_from`` as ``outputs``, ``declaration`` or ``null``.
-    ``job_id`` requires its owning ``jobs`` session. Relative paths use that
-    session's root unless ``root`` is given.
+    Raises:
+        LookupError: ``role`` is not a key of ``paths``.
+    """
+    if role not in paths:
+        available = ", ".join(sorted(paths)) or "none"
+        raise LookupError(f"No output role {role!r}; available roles: {available}")
+    entry = artifacts.get(role)
+    names = None if entry is None else _artifact_names(entry)
+    return paths[role], names, None if names is None else "outputs"
+
+
+def _job_names(
+    jobs: Jobs, path: str | Path, *, job_id: str | None, model_id: str | None,
+) -> tuple[Mapping[int, str] | None, OutputNamesFrom]:
+    """Names from the job's artifact for ``path``, then from ``model_id``'s declaration.
+
+    Run outputs and ``path`` both resolve against the session root, so a
+    symlink or ``./`` spelling still matches its artifact. A job that has not
+    completed, or whose outputs failed validation, supplies no names.
+    """
+    if job_id is not None:
+        job = jobs.get(job_id).to_payload()
+        result = job.get("result")
+        if job["state"] == "completed" and "outputs_error" not in job and isinstance(result, dict):
+            paths, artifacts = validate_outputs(result)
+            file = (jobs.root / Path(path).expanduser()).resolve()
+            for role, entry in artifacts.items():
+                names = _artifact_names(entry)
+                candidate = (jobs.root / Path(paths[role]).expanduser()).resolve()
+                if candidate == file and names is not None:
+                    return names, "outputs"
+    return _declared_names(model_id, None)
+
+
+def summarize_job_output(
+    jobs: Jobs, path: str | Path, *, job_id: str | None, model_id: str | None,
+) -> OutputSummary:
+    """Summarize an output for the MCP server, naming labels from a session job.
+
+    Names come from ``job_id``'s artifact for ``path``, then from ``model_id``'s
+    declaration. Paths resolve against the session root.
 
     Raises:
         LookupError: A job or model id is unknown.
-        ValueError: ``job_id`` lacks a session, a file is not NIfTI, or grids differ.
+        ValueError: The file is not NIfTI.
+        FileNotFoundError: ``path`` does not exist.
+        ImportError: nibabel is not installed.
+    """
+    names, source = _job_names(jobs, path, job_id=job_id, model_id=model_id)
+    return _named_summary(path, names, source, jobs.root)
+
+
+def preview_job_output(
+    jobs: Jobs, path: str | Path, *, job_id: str | None, model_id: str | None,
+    image_path: str | Path | None,
+) -> bytes:
+    """Render an output for the MCP server with ``summarize_job_output``'s names.
+
+    Raises:
+        LookupError: A job or model id is unknown.
+        ValueError: A file is not NIfTI, or grids differ.
         FileNotFoundError: A path does not exist.
         ImportError: nibabel or Pillow is not installed.
     """
-    names, source, directory = _output_names(
-        path, job_id=job_id, model_id=model_id, jobs=jobs, root=root, labels=None,
-    )
+    names, source = _job_names(jobs, path, job_id=job_id, model_id=model_id)
     return outputs.preview_output(
-        path, image_path=image_path, labels=names, names_from=source, root=directory,
+        path, image_path=image_path, labels=names, names_from=source, root=jobs.root,
+    )
+
+
+def summarize_output(
+    path: str | Path, *, model_id: str | None = None, root: str | Path | None = None,
+    labels: Mapping[int, str] | None = None,
+) -> OutputSummary:
+    """Summarize a NIfTI output: geometry, and each label's voxels and volume in mL.
+
+    ``model_id`` names labels from that model's declaration and sets
+    ``names_from`` to ``declaration``; otherwise ``labels`` supplies names and
+    ``names_from`` is None. Relative paths resolve against ``root`` (the current
+    directory by default). ``RunResult.summarize`` names labels from a run's
+    own outputs instead.
+
+    Raises:
+        LookupError: ``model_id`` is unknown.
+        ValueError: The file is not NIfTI.
+        FileNotFoundError: ``path`` does not exist.
+        ImportError: nibabel is not installed.
+    """
+    names, source = _declared_names(model_id, labels)
+    return _named_summary(path, names, source, root)
+
+
+def preview_output(
+    path: str | Path, *, model_id: str | None = None, image_path: str | Path | None = None,
+    root: str | Path | None = None,
+) -> bytes:
+    """Render a NIfTI slice as PNG bytes with a label legend, over ``image_path`` when given.
+
+    Labels are named as in ``summarize_output``. PNG text fields contain
+    ``labels`` as JSON and ``names_from`` as ``declaration`` or ``null``.
+
+    Raises:
+        LookupError: ``model_id`` is unknown.
+        ValueError: A file is not NIfTI, or grids differ.
+        FileNotFoundError: A path does not exist.
+        ImportError: nibabel or Pillow is not installed.
+    """
+    names, source = _declared_names(model_id, None)
+    return outputs.preview_output(
+        path, image_path=image_path, labels=names, names_from=source, root=root,
     )
 
 
@@ -582,7 +650,7 @@ def _judge(row: RunCheck, reasons: list[str], weight_arguments: set[str]) -> Non
     if row["weights"]["source"] == "download":
         reasons.append(
             "Weights are not cached; the run downloads them first (setup_model, "
-            "`medmlx setup` or the prepare_model MCP tool downloads them ahead of time)"
+            "`medmlx setup` or the setup_model MCP tool downloads them ahead of time)"
         )
     checked = {item["path"] for item in row["image_checks"]}
     unchecked = [
@@ -799,7 +867,8 @@ class CaseResult:
     is the provider's raw case result. A case whose provider reported invalid
     output metadata stays ``ok`` with ``outputs`` and ``artifacts`` empty, as
     for a single run's ``outputs_error``: ``outputs_error`` gives the reason and
-    the unchecked values stay in ``result``.
+    the unchecked values stay in ``result``. ``root`` is the run's root, which
+    relative ``outputs`` paths resolve against.
     """
 
     index: int
@@ -810,10 +879,23 @@ class CaseResult:
     error: WorkerError | None
     outputs_error: str | None
     result: JsonValue
+    root: Path
+
+    def summarize(self, role: str) -> OutputSummary:
+        """Summarize this case's output ``role``; see ``RunResult.summarize``."""
+        path, names, source = _role_output(self.outputs, self.artifacts, role)
+        return _named_summary(path, names, source, self.root)
+
+    def preview(self, role: str, image_path: str | Path | None = None) -> bytes:
+        """Render this case's output ``role``; see ``RunResult.preview``."""
+        path, names, source = _role_output(self.outputs, self.artifacts, role)
+        return outputs.preview_output(
+            path, image_path=image_path, labels=names, names_from=source, root=self.root,
+        )
 
     @classmethod
-    def from_entry(cls, entry: Mapping[str, JsonValue]) -> Self:
-        """Build a case from one ``cases`` entry of a cohort result.
+    def from_entry(cls, entry: Mapping[str, JsonValue], root: Path) -> Self:
+        """Build a case from one ``cases`` entry of a cohort run rooted at ``root``.
 
         The cohort worker already validated each successful case and recorded an
         invalid one as ``outputs_error``, so validation here never raises for a
@@ -831,7 +913,8 @@ class CaseResult:
             if entry["ok"] is True and outputs_error is None:
                 paths, artifacts = validate_outputs(result)
         return cls(
-            index, entry["ok"] is True, paths, artifacts, details, error, outputs_error, result
+            index, entry["ok"] is True, paths, artifacts, details, error, outputs_error, result,
+            root,
         )
 
 
@@ -846,6 +929,7 @@ class RunResult:
     is empty for an ordinary run; a cohort has no top-level ``outputs``.
     ``result`` is the whole provider result, for fields beyond those. ``job`` is
     the final job payload with ``log_tail``, memory metrics and ``outputs_error``.
+    ``root`` is the run's root, which relative ``outputs`` paths resolve against.
 
     A run whose provider reported invalid output metadata still completes: the job
     carries ``outputs_error``, ``outputs`` and ``artifacts`` are empty, and the
@@ -858,10 +942,45 @@ class RunResult:
     cases: list[CaseResult]
     result: JsonValue
     job: JobPayload
+    root: Path
+
+    def summarize(self, role: str) -> OutputSummary:
+        """Summarize the output file of ``role``, a key of ``outputs``.
+
+        Label names come from this run's ``artifacts`` entry for the role, with
+        ``names_from`` set to ``outputs``; a role without artifact labels has
+        unnamed labels and ``names_from`` None. See ``summarize_output`` for
+        the summary itself.
+
+        Raises:
+            LookupError: ``role`` is not a key of ``outputs``; the message lists them.
+            ValueError: The file is not NIfTI.
+            FileNotFoundError: The file does not exist.
+            ImportError: nibabel is not installed.
+        """
+        path, names, source = _role_output(self.outputs, self.artifacts, role)
+        return _named_summary(path, names, source, self.root)
+
+    def preview(self, role: str, image_path: str | Path | None = None) -> bytes:
+        """Render the output file of ``role`` as PNG bytes, over ``image_path`` when given.
+
+        Labels are named as in ``summarize``; a relative ``image_path`` resolves
+        against ``root``. See ``preview_output`` for the rendering.
+
+        Raises:
+            LookupError: ``role`` is not a key of ``outputs``; the message lists them.
+            ValueError: A file is not NIfTI, or the grids differ.
+            FileNotFoundError: A file does not exist.
+            ImportError: nibabel or Pillow is not installed.
+        """
+        path, names, source = _role_output(self.outputs, self.artifacts, role)
+        return outputs.preview_output(
+            path, image_path=image_path, labels=names, names_from=source, root=self.root,
+        )
 
     @classmethod
-    def from_job(cls, job: JobPayload) -> Self:
-        """Build the result of a completed job, checking outputs with ``validate_outputs``."""
+    def from_job(cls, job: JobPayload, root: Path) -> Self:
+        """Build the result of a completed job run at ``root``, checking its outputs."""
         result = job.get("result")
         paths: dict[str, str] = {}
         artifacts: dict[str, Artifact] = {}
@@ -871,11 +990,11 @@ class RunResult:
             details = result.get("details")
             entries = result.get("cases")
             if isinstance(entries, list):
-                cases = [CaseResult.from_entry(cast(dict[str, JsonValue], entry))
+                cases = [CaseResult.from_entry(cast(dict[str, JsonValue], entry), root)
                          for entry in entries]
             elif "outputs_error" not in job:
                 paths, artifacts = validate_outputs(result)
-        return cls(paths, artifacts, details, cases, result, job)
+        return cls(paths, artifacts, details, cases, result, job, root)
 
 
 class ModelRun:
@@ -916,7 +1035,7 @@ class ModelRun:
         self.close()
         if payload["state"] != "completed":
             raise ModelRunError(payload)
-        return RunResult.from_job(payload)
+        return RunResult.from_job(payload, self._jobs.root)
 
     def cancel(self) -> JobPayload:
         """Stop the worker and its child processes, then release the session."""

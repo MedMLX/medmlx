@@ -152,11 +152,11 @@ def test_run_check_is_true_only_when_every_check_passes(agent_site: Path, tmp_pa
     assert (both_given["run_ready"], both_given["weights"]["source"]) == (True, "argument")
 
 
-def test_prepare_model_downloads_as_a_job_and_rejects_manual_assets(
+def test_setup_model_downloads_as_a_job_and_rejects_manual_assets(
     agent_site: Path, tmp_path: Path,
 ) -> None:
     async def body(client: Client) -> None:
-        started = await client.call_tool("prepare_model", {"model_id": "shape"})
+        started = await client.call_tool("setup_model", {"model_id": "shape"})
         assert not started.is_error, started.content
         job = cast(JobPayload, started.structured_content)
         finished = await client.call_tool("get_job", {"job_id": job["job_id"], "wait_seconds": 60})
@@ -164,9 +164,9 @@ def test_prepare_model_downloads_as_a_job_and_rejects_manual_assets(
         assert payload["state"] == "completed", payload["log_tail"]
         assert payload.get("result") == {
             "model_id": "shape", "arguments": {}, "source_url": None, "revision": None}
-        manual = await _error(client, "prepare_model", {"model_id": "manual"})
+        manual = await _error(client, "setup_model", {"model_id": "manual"})
         assert manual.startswith("manual_setup: ") and "\nNext: " in manual
-        assert (await _error(client, "prepare_model", {"model_id": "absent"})).startswith(
+        assert (await _error(client, "setup_model", {"model_id": "absent"})).startswith(
             "unknown_model: ")
         assert (await _error(client, "get_job", {"job_id": "nope"})).startswith("unknown_job: ")
 

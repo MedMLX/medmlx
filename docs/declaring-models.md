@@ -8,7 +8,9 @@ totalsegmentator = "totalsegmentator_mlx.medmlx:MODEL"
 ```
 
 ```python
-MODEL = {
+from medmlx_core import ModelDeclaration
+
+MODEL: ModelDeclaration = {
     "id": "totalsegmentator",                            # lowercase letters, digits, ".", "_", "-"
     "label": "TotalSegmentator",
     "task": "segmentation",
@@ -16,6 +18,9 @@ MODEL = {
     "summary": "Whole-body CT segmentation.",  # optional
 }
 ```
+
+The `ModelDeclaration` annotation lets your type checker catch a misspelled or
+mistyped field before discovery reports it at runtime.
 
 The runner is the `run` function of the module the entry point names, here
 `totalsegmentator_mlx.medmlx:run`. Give `run` explicitly only when the function
@@ -131,7 +136,9 @@ keywords, so no runner may name a parameter `root`.
 | `scratch_dir=None` | Parent folder for temporary memory-mapped files. |
 | `seed` | Integer seed for stochastic models. |
 | `prompt` | Text the model reads, such as a question or a target description. |
-| `classes` | Output classes to produce or keep, by name or class ID. |
+| `classes` | Names or numeric IDs of the classes to keep in the output. |
+| `batch_size` | Slices per forward pass; it changes memory use and speed, not the result. |
+| `sw_batch_size` | Sliding windows per network call, under MONAI's name; it changes memory use and speed, not the result. |
 | `frame_index` | 0-based slice or frame for 2D prompts. |
 
 Other arguments are model-specific. Check every argument, input and output target

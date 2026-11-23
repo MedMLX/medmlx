@@ -17,7 +17,6 @@ from mcp import Client
 from PIL import Image
 
 import medmlx
-from medmlx.jobs import Jobs
 from medmlx.payloads import JobPayload, JsonValue, ModelDescription, OutputSummary
 from medmlx.server import build_server
 from tests._medical_images import ct_crop
@@ -126,45 +125,45 @@ def test_output_tools_use_run_names_for_the_resolved_file(
     anyio.run(run)
 
 
-def test_python_output_names_ignore_a_different_file_and_allow_declared_fallback(
+def test_run_results_name_their_own_outputs_and_python_falls_back_to_declarations(
     labelled_site: Path, tmp_path: Path,
 ) -> None:
     path = tmp_path / "mask.nii.gz"
     nib.save(nib.Nifti1Image(np.ones((1, 1, 1), dtype=np.uint8), np.eye(4)), path)
     arguments: dict[str, JsonValue] = {
-        "outputs": {"mask": "other/mask.nii.gz"},
+        "outputs": {"mask": "mask.nii.gz"},
         "artifacts": {"mask": {"kind": "binary_mask", "coordinate_space": "image_voxel",
                                "labels": [{"value": 1, "name": "prompt name"}]}},
     }
     finished = medmlx.run("labelled", **arguments, root=tmp_path)
-    assert finished.outputs == {"mask": "other/mask.nii.gz"}
-    assert finished.artifacts["mask"].get("labels") == [{"value": 1, "name": "prompt name"}]
+    assert finished.outputs == {"mask": "mask.nii.gz"}
     assert finished.job["state"] == "completed"
+    # The relative output resolves against the run's root, not the test's cwd.
+    named = finished.summarize("mask")
+    assert named["path"] == path.resolve().as_posix()
+    assert named["names_from"] == "outputs"
+    assert named["labels"] == [
+        {"value": 1, "name": "prompt name", "voxels": 1, "volume_ml": 0.001},
+    ]
+    with Image.open(io.BytesIO(finished.preview("mask"))) as picture:
+        assert picture.info["names_from"] == "outputs"
+        assert json.loads(picture.info["labels"]) == named["labels"]
+    with pytest.raises(LookupError, match="available roles: mask"):
+        finished.summarize("masks")
     invalid = medmlx.run("labelled", outputs={"mask": 1}, root=tmp_path)
     assert (invalid.outputs, invalid.artifacts) == ({}, {})
     assert "outputs_error" in invalid.job
     assert invalid.result == {"outputs": {"mask": 1}, "artifacts": {}}
-    jobs = Jobs(tmp_path)
-    try:
-        job = jobs.start("labelled", "fakemlx:labelled.run", arguments, holds_memory=False)
-        job.process.wait(timeout=5)
-        assert jobs.get(job.job_id).state == "completed", job.to_payload()
-        unnamed = medmlx.summarize_output("mask.nii.gz", job_id=job.job_id, jobs=jobs)
-        assert unnamed["names_from"] is None
-        assert unnamed["labels"] == [
-            {"value": 1, "name": None, "voxels": 1, "volume_ml": 0.001},
-        ]
-        fallback = medmlx.summarize_output(
-            "mask.nii.gz", job_id=job.job_id, jobs=jobs, model_id="labelled",
-        )
-        assert fallback["names_from"] == "declaration"
-        assert fallback["labels"][0]["name"] == "liver"
-        png = medmlx.preview_output("mask.nii.gz", job_id=job.job_id, jobs=jobs)
-        with Image.open(io.BytesIO(png)) as picture:
-            assert picture.info["names_from"] == "null"
-            assert json.loads(picture.info["labels"]) == unnamed["labels"]
-    finally:
-        jobs.close()
+    unnamed = medmlx.summarize_output("mask.nii.gz", root=tmp_path)
+    assert unnamed["names_from"] is None
+    assert unnamed["labels"] == [{"value": 1, "name": None, "voxels": 1, "volume_ml": 0.001}]
+    fallback = medmlx.summarize_output("mask.nii.gz", model_id="labelled", root=tmp_path)
+    assert fallback["names_from"] == "declaration"
+    assert fallback["labels"][0]["name"] == "liver"
+    png = medmlx.preview_output("mask.nii.gz", root=tmp_path)
+    with Image.open(io.BytesIO(png)) as picture:
+        assert picture.info["names_from"] == "null"
+        assert json.loads(picture.info["labels"]) == unnamed["labels"]
 
 
 @pytest.mark.parametrize("dtype", [np.uint64, np.float64])
