@@ -2,13 +2,61 @@
 
 ## Unreleased
 
+### Breaking changes
+
+**Requires [`mlx-reason-ct` 0.8](https://github.com/MedMLX/mlx-reason-ct/releases/tag/v0.8.0).**
+`mlx-reason-ct` answers run to 1,024 tokens by default instead of 512, and
+`mlx_reason_ct.load_model` takes `prefill_reuse` in place of `reuse_prefix`.
+
+**`medmlx.run` and `start` take the runner's arguments as keywords.** The
+`arguments=` dict is gone, and `root` is now reserved: no runner may name a
+parameter `root`.
+
+```diff
+-medmlx.run("mlx-segment-ct", arguments={"image_path": "ct.nii.gz", "output_dir": "seg"})
++medmlx.run("mlx-segment-ct", image_path="ct.nii.gz", output_dir="seg")
+```
+
+**`medmlx run` takes `KEY=VALUE` pairs after the model ID, without `--arg`.**
+`KEY:=JSON` and `--arguments FILE` work as before.
+
+```diff
+-medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=seg
++medmlx run mlx-segment-ct image_path=ct.nii.gz output_dir=seg
+```
+
+**Checking one run moved from readiness to `check`.** `model_readiness(model_ids)`,
+`medmlx readiness` and the `model_readiness` MCP tool now only check that models
+are installed and Metal works. The new `medmlx.check_run(model_id, **arguments)`,
+`medmlx check MODEL_ID KEY=VALUE ...` and `check_run` MCP tool check one run's
+arguments, paths, weights and NIfTI headers. Rows no longer carry `ready` (use
+`runtime_ready`), `inputs_validated` or `weights_validated`.
+
+```diff
+-medmlx readiness mlx-segment-ct --arg image_path=ct.nii.gz output_dir=seg
++medmlx check mlx-segment-ct image_path=ct.nii.gz output_dir=seg
+```
+
+**Several models renamed a mask argument or their `precision` values.** Masks are
+named for their role, and `precision` values read `<arithmetic>-<dtype>`.
+`totalsegmentator` reports `source-fp32` in `details["precision"]`.
+
+| Model | Before | Now |
+| :--- | :--- | :--- |
+| `fdg-pet-ct`, `mlx-generate-ctmr-ct` | `mask_path` | `label_map_path` |
+| `medsam2` | `mask_path`, also as a `prompts` key | `prompt_mask_path` |
+| `segresnet-renal-cect` | `precision="torch-order-fp32"` | `precision="source-fp32"` |
+| `nnunet-*`, `mrsegmentator`, `siam` | `precision="native"`, `"torch-order-fp32"` | `precision="fast-fp32"`, `"source-fp32"` |
+| `mlx-reason-ct` | `precision="bfloat16_fast"`, `"bfloat16"` | `precision="fast-bf16"`, `"source-bf16"` |
+| `mlx-generate-ctmr-ct`, `-mr`, `-mr-brain` | `precision="fast"`, `"source"` | `precision="fast-fp32"`, `"source-fp32"` |
+
 ### Fixes
 
 **`medmlx run` no longer fails for runtimes whose signatures name type-only imports.**
 The CLI evaluated every annotation of the runner, including ones a runtime imports
 only for type checking, so `medmlx run biomedparse-v2` stopped with
 `NameError: name 'PathLike' is not defined`. It now evaluates only the annotations
-of the arguments given with `--arg`.
+of the arguments given on the command line.
 
 **`mlx-generate-ctmr-ct` downloads the files learned paired CT needs.** The pinned
 weights revision predated `ct/configs/label_dict_124_to_132.json` and
@@ -22,7 +70,39 @@ The new revision adds the other four members (2.0 GB in total). The flagship is
 unchanged; existing caches keep it and fetch the four new members on the next run.
 
 **The MCP smoke walkthrough runs as written.** It passed `labels_path` instead of
-`mask_path` and read the PET from `outputs["pet"]` instead of `outputs["image"]`.
+`label_map_path` and read the PET from `outputs["pet"]` instead of `outputs["image"]`.
+
+**Readiness sees the weights `reason-ct-tools` uses.** It looked for a cache under the
+workflow's own ID, so it always said the weights would be downloaded and never
+returned `run_ready=true`, even when `medmlx setup reason-ct-tools` had cached all
+three models. It now checks each model in `weights_from`, and weight folders passed
+as arguments are no longer listed as unchecked inputs.
+
+**Setting up `reason-ct-tools` reports download bytes.** `medmlx setup --progress`,
+`setup_model(download_progress=...)` and the `prepare_model` MCP job printed only
+status lines for workflows; byte events now arrive for each model they download.
+
+**Python calls that take `root` expand `~` in it, as readiness does.**
+`medmlx.run`, `start` and `start_cohort` refused `root="~/medmlx-work"` as a missing
+directory, and `summarize_output`, `preview_output`, `list_dicom_series` and
+`convert_dicom` looked for a folder literally named `~` in the current directory.
+
+**`reason-ct-tools` no longer fails when its interpretation runs past 512 tokens.** Its
+`max_new_tokens` default is now 1024. On a LUNA16 chest CT the interpretation needed 813
+tokens, so the run stopped as incomplete after detection and segmentation had finished.
+
+### New
+
+**Model declarations can omit `run`.** It defaults to the `run` function of the
+module the `medmlx.models` entry point names; `workflow` declarations still give it.
+
+### Faster
+
+**`reason-ct-tools` decisions take about 2 s instead of 12 s.** Measured on an M5 Max
+for the decisions after the first, on a LUNA16 chest CT with two segmented candidates.
+The workflow keeps the CT's decoder state between decisions with `mlx-reason-ct` 0.8's
+`prefill_reuse="fast"`, and reads the tool calls that release parses instead of
+parsing `report.txt` itself.
 
 ## 0.10.0
 

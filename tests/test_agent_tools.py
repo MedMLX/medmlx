@@ -14,7 +14,7 @@ import pytest
 from mcp import Client
 
 import medmlx
-from medmlx.payloads import JobPayload, JsonValue, ModelReadiness, ReadinessPayload
+from medmlx.payloads import JobPayload, JsonValue, RunCheck
 from medmlx.server import build_server
 from tests.conftest import add_distribution
 
@@ -26,6 +26,8 @@ SHAPE = {"id": "shape", "label": "Shape", "task": "workflow", "run": "fakemlx:sh
 WEIGHTED = {"id": "weighted", "label": "Weighted", "task": "workflow", "run": "fakemlx:weighted"}
 MANUAL = {"id": "manual", "label": "Manual", "task": "workflow", "run": "fakemlx:weighted",
           "setup_supported": False}
+PAIRED = {"id": "paired", "label": "Paired", "task": "workflow", "run": "fakemlx:paired",
+          "weights_from": {"first_weights_path": "weighted", "second_weights_path": "other"}}
 
 
 def shape(image_path: str) -> dict[str, object]:
@@ -34,9 +36,16 @@ def shape(image_path: str) -> dict[str, object]:
 
 def weighted(image_path: str, weights_path: str | None = None) -> dict[str, object]:
     return {"weights_path": weights_path}
+
+
+def paired(
+    image_path: str, first_weights_path: str | None = None, second_weights_path: str | None = None,
+) -> dict[str, object]:
+    return {}
 '''
 _AGENT_ENTRY_POINTS = (
     "[medmlx.models]\nshape = fakemlx:SHAPE\nweighted = fakemlx:WEIGHTED\nmanual = fakemlx:MANUAL\n"
+    "paired = fakemlx:PAIRED\n"
 )
 REVISION = "a" * 40
 
@@ -73,10 +82,8 @@ def write_nifti(path: Path, shape: tuple[int, ...], *, version: int = 1, order: 
     return path
 
 
-def _row(model_id: str, arguments: dict[str, object], root: Path) -> ModelReadiness:
-    values = cast(dict[str, JsonValue], arguments)
-    report = medmlx.model_readiness([model_id], arguments=values, root=root)
-    return report["models"][0]
+def _row(model_id: str, arguments: dict[str, object], root: Path) -> RunCheck:
+    return medmlx.check_run(model_id, root=root, **cast(dict[str, JsonValue], arguments))
 
 
 def _with_client(root: Path, body: Callable[[Client], Awaitable[None]], **options: bool) -> None:
@@ -96,7 +103,7 @@ async def _error(client: Client, tool: str, arguments: dict[str, object]) -> str
     return text.removeprefix(prefix)
 
 
-def test_readiness_is_true_only_when_every_check_passes(agent_site: Path, tmp_path: Path) -> None:
+def test_run_check_is_true_only_when_every_check_passes(agent_site: Path, tmp_path: Path) -> None:
     ct = write_nifti(tmp_path / "ct.nii.gz", (32, 32, 16))
     assert medmlx.nifti_shape(write_nifti(tmp_path / "b.nii", (8, 9, 2), order=">")) == [8, 9, 2]
     assert medmlx.nifti_shape(write_nifti(tmp_path / "c.nii", (5, 6, 7), version=2)) == [5, 6, 7]
@@ -130,6 +137,20 @@ def test_readiness_is_true_only_when_every_check_passes(agent_site: Path, tmp_pa
     manual = _row("manual", {"image_path": str(ct)}, tmp_path)
     assert manual["run_ready"] is False and "needs a local weights_path" in str(manual["reason"])
 
+    # A workflow reads the cache of each model it names, and its weight folders
+    # are weights rather than unchecked inputs.
+    pending = _row("paired", {"image_path": str(ct)}, tmp_path)
+    assert (pending["run_ready"], pending["weights"]["source"]) == (None, "download")
+    other = tmp_path / "cache" / "other"
+    other.mkdir()
+    (other / ".medmlx-revision").write_text(REVISION)
+    both_cached = _row("paired", {"image_path": str(ct)}, tmp_path)
+    assert (both_cached["run_ready"], both_cached["weights"]) == (
+        True, {"required": True, "source": "cache", "path": None})
+    folders = {"first_weights_path": "weights", "second_weights_path": "weights"}
+    both_given = _row("paired", {"image_path": str(ct), **folders}, tmp_path)
+    assert (both_given["run_ready"], both_given["weights"]["source"]) == (True, "argument")
+
 
 def test_prepare_model_downloads_as_a_job_and_rejects_manual_assets(
     agent_site: Path, tmp_path: Path,
@@ -160,12 +181,10 @@ def test_restricted_root_rejects_paths_outside_it(agent_site: Path, tmp_path: Pa
 
     async def body(client: Client) -> None:
         inside = await client.call_tool(
-            "model_readiness", {"model_ids": ["shape"], "arguments": {"image_path": "ct.nii.gz"}})
-        report = cast(ReadinessPayload, inside.structured_content)
-        assert report["models"][0]["run_ready"] is True
+            "check_run", {"model_id": "shape", "arguments": {"image_path": "ct.nii.gz"}})
+        assert cast(RunCheck, inside.structured_content)["run_ready"] is True
         requests: tuple[tuple[str, dict[str, object]], ...] = (
-            ("model_readiness",
-             {"model_ids": ["shape"], "arguments": {"image_path": str(outside)}}),
+            ("check_run", {"model_id": "shape", "arguments": {"image_path": str(outside)}}),
             ("run_model", {"model_id": "shape", "arguments": {"image_path": "../outside.nii.gz"}}),
             ("run_model", {"model_id": "shape",
                            "arguments": {"image_paths": {"ct": "../outside.nii.gz"}}}),
@@ -181,9 +200,9 @@ def test_python_start_returns_at_once_and_can_wait_or_cancel(
 ) -> None:
     (tmp_path / "image.json").write_text("[0.1, 0.9]")
     arguments: dict[str, JsonValue] = {"image_path": "image.json", "output_path": "mask.json"}
-    finished = medmlx.start("threshold", arguments=arguments, root=tmp_path).wait()
+    finished = medmlx.start("threshold", **arguments, root=tmp_path).wait()
     assert finished.job["state"] == "completed"
-    with medmlx.start("sleeper", arguments={"seconds": 30}, root=tmp_path) as run:
+    with medmlx.start("sleeper", seconds=30, root=tmp_path) as run:
         assert run.status()["state"] == "running"
         with pytest.raises(TimeoutError):
             run.wait(timeout=0.2)

@@ -31,6 +31,7 @@ from medmlx.payloads import (
     OutputSummary,
     PackageListPayload,
     ReadinessPayload,
+    RunCheck,
     RuntimeToolPayload,
 )
 from medmlx.probe import runtime_info as probe_runtime
@@ -44,20 +45,21 @@ research software: outputs require human review and are not for clinical use.
 Workflow: list_models -> describe_model (parameters, example_arguments, labels and
 the provider's instructions) -> convert_dicom when the input is a DICOM folder
 (list_dicom_series first if it holds several series) -> prepare_model when weights
-are not cached -> model_readiness with the intended arguments -> run_model -> get_job
+are not cached -> check_run with the intended arguments -> run_model -> get_job
 until the state is terminal -> summarize_output and preview_output on the outputs.
 summarize_output reports label volumes in mL. Pass job_id for this run's label names,
 or model_id for declared names. preview_output returns a PNG and the same summary.
 Both report names_from. Neither interprets findings.
-model_readiness: run_ready true means every local check passed (runtime and Metal,
-argument binding, input and weight paths, supplied or cached weights, NIfTI headers);
-null means something could not be checked; false names the blocker in reason. No
-check runs the model or proves that weights and images are compatible.
+model_readiness checks that models are installed and Metal works. check_run checks one
+run: run_ready true means every local check passed (runtime and Metal, argument
+binding, input and weight paths, supplied or cached weights, NIfTI headers); null
+means something could not be checked; false names the blocker in reason. No check
+runs the model or proves that weights and images are compatible.
 Weights: when weights_path is omitted, runs download the model's pinned weights on
 first use; prepare_model downloads them ahead of time as a job. Some models need a
 local weights_path; describe_model says which.
 Memory: one model runs at a time on this Mac across every MedMLX session, so models
-never pile up in unified memory; memory_status shows what is running. Readiness
+never pile up in unified memory; memory_status shows what is running. check_run
 compares the larger of a model's declared peak and its highest measured MLX peak
 for the installed version with the available memory and reports it as a reason; it
 never blocks a run. Measurements exclude NumPy and preprocessing memory.
@@ -131,7 +133,7 @@ def _tool_errors(
 def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]:
     """Build the stdio MCP server whose runs use ``root`` as working directory.
 
-    With ``restrict_paths``, readiness checks and runs reject path arguments,
+    With ``restrict_paths``, run checks and runs reject path arguments,
     outputs included, that resolve outside ``root``. Runners can still read
     their own managed caches.
     """
@@ -179,20 +181,26 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
         with _tool_errors():
             return api.describe_model(model_id)
 
-    def model_readiness(
-        model_ids: list[str] | None = None,
-        arguments: dict[str, JsonValue] | None = None,
-    ) -> ReadinessPayload:
-        """Check runtime and optional input/weight paths for one model without running it.
+    def model_readiness(model_ids: list[str] | None = None) -> ReadinessPayload:
+        """Check that models (all when omitted) are installed and that Metal works.
 
-        ready and runtime_ready report the same boolean imports/provider checks
-        plus Metal result. run_ready=null means input/checkpoint contents remain
-        unverified; false identifies a blocker. Optional arguments require exactly
-        one model id and resolve paths against the server root.
+        runtime_ready combines the provider's import check with the Metal probe.
+        weights and memory describe a run without weights_path. Use check_run
+        for one run's arguments.
+        """
+        with _tool_errors():
+            return api.model_readiness(model_ids)
+
+    def check_run(model_id: str, arguments: dict[str, JsonValue]) -> RunCheck:
+        """Check one run's arguments, input and weight paths and NIfTI headers; no inference.
+
+        run_ready true means every local check passed, null that something could
+        not be checked, false that reason names a blocker. Paths resolve against
+        the server root.
         """
         check_paths(arguments)
         with _tool_errors():
-            return api.model_readiness(model_ids, arguments=arguments, root=root)
+            return api.check_run_arguments(model_id, arguments, root=root)
 
     def runtime_info() -> RuntimeToolPayload:
         """Report the platform, package versions, and MLX Metal availability and device."""
@@ -325,6 +333,7 @@ def build_server(root: Path, *, restrict_paths: bool = False) -> MCPServer[Jobs]
         (list_checkpoints, _READ_ONLY),
         (describe_model, _READ_ONLY),
         (model_readiness, _READ_ONLY),
+        (check_run, _READ_ONLY),
         (runtime_info, _READ_ONLY),
         (memory_status, _READ_ONLY),
         (list_dicom_series, _READ_ONLY),

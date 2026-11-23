@@ -127,7 +127,7 @@ behalf. A typical sequence is:
 2. Call `describe_model` for the selected ID. Its `parameters` come from the
    runner signature, and `instructions` reproduce the provider's docstring.
    Follow the provider's requirements for inputs, weights, units, and output.
-3. Call `model_readiness` with one model ID and the intended arguments. Fix any
+3. Call `check_run` with the model ID and the intended arguments. Fix any
    known blockers before starting a run. If its `weights.source` is
    `download`, call `prepare_model` and wait for that job with `get_job`.
 4. Call `run_model`, retain its `job_id`, and call `get_job` until the state is
@@ -152,11 +152,11 @@ documents its model folders, modes, and input requirements.
 {"model_id": "totalsegmentator"}
 ```
 
-`model_readiness`:
+`check_run`:
 
 ```json
 {
-  "model_ids": ["totalsegmentator"],
+  "model_id": "totalsegmentator",
   "arguments": {
     "weights_path": "models/total",
     "image_path": "inputs/ct.nii.gz",
@@ -165,8 +165,7 @@ documents its model folders, modes, and input requirements.
 }
 ```
 
-If appropriate for the task, pass the same model ID and runner arguments to
-`run_model`:
+If appropriate for the task, pass the same request to `run_model`:
 
 ```json
 {
@@ -230,14 +229,15 @@ preprocessing, macOS and other applications.
 
 Each successful worker reports `measured_peak_memory_gb`. Peaks are saved in
 `~/.cache/medmlx/peaks.json` (`MEDMLX_PEAKS` overrides the path).
-`describe_model`, readiness and `memory_status` expose the declared, measured
-and effective peaks, plus `peak_memory_source`.
+`describe_model`, `model_readiness`, `check_run` and `memory_status` expose the
+declared, measured and effective peaks, plus `peak_memory_source`.
 
 ## Readiness and jobs
 
-`model_readiness` reports `ready` and `runtime_ready` as the same boolean: the
-provider/import checks and Metal check passed. They do not validate a run.
-`run_ready` is `false` for a known blocker. It is `true` when every check
+`model_readiness` checks installed models, all of them when `model_ids` is
+omitted. Its `runtime_ready` means the provider/import checks and the Metal check
+passed; it does not validate a run. `check_run` checks one run of one model.
+Its `run_ready` is `false` for a known blocker. It is `true` when every check
 passed: the runtime and Metal, argument binding, input and weight paths, weights
 supplied as `weights_path` or already cached, and a readable NIfTI header for
 every input file. Otherwise it is `null`: no blocker was found, but something
@@ -246,7 +246,7 @@ first. `weights` reports where the weights come from (`argument`, `cache`,
 `download` or `manual`), and `image_checks` lists each NIfTI input's shape. No
 check runs the model or proves that weights and images are compatible.
 
-When supplying arguments, select exactly one model ID. `run_model` checks the
+`run_model` checks the
 signature and Metal before starting a worker; the provider then validates image
 contents, geometry, checkpoint compatibility and output paths during execution.
 
@@ -283,7 +283,8 @@ A failed job's `error` has the exception's `type` and `message`. It adds
 | `list_models` | Optional `task`, `family` | List discovered models; filters match declared task or `segment`, `generate`, or `vision` family. |
 | `list_checkpoints` | Optional `model_id` | List cataloged source references and channel order; this neither downloads nor qualifies assets. |
 | `describe_model` | `model_id` | Show one runner's parameters, provider-authored instructions, declared `labels` and `example_arguments`, and declared, measured and effective peak memory. |
-| `model_readiness` | Optional `model_ids`, `arguments` | Check runtime readiness and, for one model, argument binding, input and weight paths, weights and NIfTI headers. |
+| `model_readiness` | Optional `model_ids` | Check that models are installed and that Metal works. |
+| `check_run` | `model_id`, `arguments` | Check one run's argument binding, input and weight paths, weights and NIfTI headers without running it. |
 | `prepare_model` | `model_id` | Download a model's pinned weights as a job; the result gives the `weights_path` folder. |
 | `run_model` | `model_id`, `arguments` | Start a supervised worker and return its job record. |
 | `get_job` | `job_id`, optional `wait_seconds` | Get a job's state, log tail, and eventual result or error. |
@@ -296,7 +297,7 @@ A failed job's `error` has the exception's `type` and `message`. It adds
 | `preview_output` | `path`, optional `image_path`, `job_id`, `model_id` | Return a PNG with a label legend and the same structured summary as `summarize_output`. |
 
 If models are missing, check the installed family and `discovery_errors`. If a
-run is blocked, inspect `runtime_info`, the readiness reason and setup hint, and
+run is blocked, inspect `runtime_info`, the `check_run` reason and setup hint, and
 the job's error and log tail. `list_checkpoints` is a source catalog, not a list
 of installed or validated model weights.
 

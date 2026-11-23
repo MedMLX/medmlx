@@ -31,6 +31,7 @@ from medmlx.payloads import (
     JsonValue,
     MemoryCheck,
     MemoryStatus,
+    MlxProbe,
     ModelDescription,
     ModelListItem,
     ModelListPayload,
@@ -40,6 +41,7 @@ from medmlx.payloads import (
     PackageListPayload,
     PathCheck,
     ReadinessPayload,
+    RunCheck,
     WeightsCheck,
     WorkerError,
 )
@@ -319,7 +321,7 @@ def _output_names(
         result = job.get("result")
         if job["state"] == "completed" and "outputs_error" not in job and isinstance(result, dict):
             paths, artifacts = validate_outputs(result)
-            file = (Path(directory or Path.cwd()) / Path(path).expanduser()).resolve()
+            file = (Path(directory or Path.cwd()).expanduser() / Path(path).expanduser()).resolve()
             for role, entry in artifacts.items():
                 candidate = (jobs.root / Path(paths[role]).expanduser()).resolve()
                 assigned = entry.get("labels")
@@ -386,83 +388,121 @@ def preview_output(
     )
 
 
-def model_readiness(
-    model_ids: list[str] | None = None,
-    *, arguments: dict[str, JsonValue] | None = None,
-    root: str | Path | None = None,
-) -> ReadinessPayload:
-    """Check runtime availability and, optionally, one run's arguments, paths and weights.
-
-    ``ready`` preserves the historical boolean provider/import and Metal result;
-    ``runtime_ready`` names that same result explicitly. ``run_ready=False``
-    identifies a known blocker. ``run_ready=True`` means every check passed: the
-    runtime and Metal, argument binding, input and weight paths, weights supplied
-    or already cached, and a readable NIfTI header for every input file. Otherwise
-    ``run_ready=None``: no blocker was found, but something could not be checked,
-    such as a non-NIfTI input or weights that the run would download first.
-    No inference, downloads or output writes occur, and a true ``run_ready``
-    does not prove that the weights and images are compatible.
-
-    Args:
-        model_ids: Models to check; all discovered models when omitted or empty.
-        arguments: One runner's keyword arguments. Requires exactly one model id.
-            Input/weight parameters ending in ``_path``, ``_paths``, ``_dir`` or
-            ``_dirs`` are checked for existence; output parameters are excluded.
-            NIfTI inputs (``.nii``, ``.nii.gz``) have their headers read; tensors,
-            image geometry semantics and checkpoint contents are not checked.
-        root: Resolve relative paths against this directory, as runs do.
+def _root_directory(root: str | Path | None) -> Path:
+    """Resolve a run root, expanding ``~``; the current directory when ``root`` is None.
 
     Raises:
-        LookupError: A requested id is not discovered.
-        ValueError: Arguments are supplied without exactly one model id.
-        NotADirectoryError: The supplied root is not an existing directory.
+        NotADirectoryError: The root is not an existing directory.
     """
-    if arguments is not None and (not model_ids or len(model_ids) != 1):
-        raise ValueError("Supply exactly one model_id when checking arguments")
     directory = Path.cwd() if root is None else Path(root).expanduser().resolve()
     if not directory.is_dir():
         raise NotADirectoryError(directory)
+    return directory
+
+
+def _install_check(spec: registry.ModelSpec, mlx: MlxProbe) -> ModelReadiness:
+    """Combine the provider/import check with the shared Metal probe for one model."""
+    runtime = registry.readiness(spec)
+    ready = runtime["ready"]
+    hint = runtime["setup_hint"]
+    reasons = [str(runtime["reason"])] if runtime["reason"] else []
+    if not mlx["usable"]:
+        ready = False
+        hint = hint or _MLX_HINT
+        reasons.append(f"MLX is not usable: {mlx.get('reason')}")
+    return {
+        "id": spec.id, "runtime_ready": ready, "reason": "; ".join(reasons) or None,
+        "setup_hint": hint, "weights": _weights(spec, None, Path.cwd()), "memory": _memory(spec),
+    }
+
+
+def model_readiness(model_ids: Sequence[str] | None = None) -> ReadinessPayload:
+    """Check that models are installed and that MLX can use Metal, without running them.
+
+    ``runtime_ready`` combines the provider's ``readiness`` (or, without one, an
+    import of its runner) with the Metal probe. ``weights`` says where a run
+    without ``weights_path`` would get its weights and ``memory`` whether a run
+    would be admitted now. Use ``check_run`` to check one run's arguments.
+
+    Args:
+        model_ids: Models to check; all discovered models when omitted or empty.
+
+    Raises:
+        LookupError: A requested id is not discovered.
+    """
     specs = (
         [registry.get_model(model_id) for model_id in model_ids]
         if model_ids
         else list(registry.discover().models.values())
     )
     mlx = runtime_info()["mlx"]
-    rows: list[ModelReadiness] = []
-    for spec in specs:
-        runtime = registry.readiness(spec)
-        row: ModelReadiness = {
-            "id": spec.id, "ready": runtime["ready"],
-            "runtime_ready": runtime["ready"], "run_ready": None if runtime["ready"] else False,
-            "reason": runtime["reason"],
-            "setup_hint": runtime["setup_hint"], "arguments_valid": None,
-            "path_checks": [], "weights": _weights(spec, None, directory), "image_checks": [],
-            "memory": _memory(spec), "inputs_validated": False, "weights_validated": False,
-        }
-        reasons = [str(row["reason"])] if row["reason"] else []
-        if not mlx["usable"]:
-            row.update(ready=False, runtime_ready=False, run_ready=False,
-                       setup_hint=row["setup_hint"] or _MLX_HINT)
-            reasons.append(f"MLX is not usable: {mlx.get('reason')}")
-        if arguments is not None:
-            try:
-                runner = registry.resolve(spec.run)
-                bound = inspect.signature(runner).bind(
-                    **registry.bound_arguments(spec, runner, arguments)
-                )
-                bound.apply_defaults()
-                values = dict(bound.arguments)
-                row["path_checks"] = _check_paths(values, directory)
-                row["weights"] = _weights(spec, values, directory)
-                row["image_checks"] = _check_images(row["path_checks"])
-                row["arguments_valid"] = True
-                _judge(row, reasons)
-            except (TypeError, ValueError, ImportError, AttributeError) as error:
-                row.update(run_ready=False, arguments_valid=False)
-                reasons.append(f"Invalid arguments: {error}")
-        row["reason"] = "; ".join(reasons) or None
-        rows.append(row)
-    return {"mlx_usable": mlx["usable"], "models": rows}
+    return {"mlx_usable": mlx["usable"], "models": [_install_check(spec, mlx) for spec in specs]}
+
+
+def check_run(
+    model_id: str, /, *, root: str | Path | None = None, **arguments: JsonValue,
+) -> RunCheck:
+    """Check one run of a model without inference, downloads or output writes.
+
+    The keyword arguments are the runner's; ``root`` is MedMLX's own. See
+    ``check_run_arguments`` for the checks and the result.
+    """
+    return check_run_arguments(model_id, arguments, root=root)
+
+
+def check_run_arguments(
+    model_id: str, arguments: Mapping[str, JsonValue], *, root: str | Path | None = None,
+) -> RunCheck:
+    """Check one run given its runner arguments as a mapping, as the CLI and MCP do.
+
+    ``run_ready=False`` identifies a known blocker. ``run_ready=True`` means every
+    check passed: the runtime and Metal, argument binding, input and weight paths,
+    weights supplied or already cached, and a readable NIfTI header for every input
+    file. Otherwise ``run_ready=None``: no blocker was found, but something could
+    not be checked, such as a non-NIfTI input or weights that the run would
+    download first. A true ``run_ready`` does not prove that the weights and
+    images are compatible.
+
+    Input/weight parameters ending in ``_path``, ``_paths``, ``_dir`` or ``_dirs``
+    are checked for existence; output parameters are excluded. NIfTI inputs
+    (``.nii``, ``.nii.gz``) have their headers read; tensors, image geometry
+    semantics and checkpoint contents are not checked. A name the runner lacks,
+    ``root`` included, sets ``arguments_valid=False`` instead of raising.
+
+    Args:
+        model_id: The model to check.
+        arguments: The runner's keyword arguments.
+        root: Resolve relative paths against this directory, as runs do.
+
+    Raises:
+        LookupError: ``model_id`` is not discovered.
+        NotADirectoryError: ``root`` is not an existing directory.
+    """
+    directory = _root_directory(root)
+    spec = registry.get_model(model_id)
+    install = _install_check(spec, runtime_info()["mlx"])
+    reasons = [install["reason"]] if install["reason"] else []
+    check: RunCheck = {
+        "id": spec.id, "runtime_ready": install["runtime_ready"],
+        "run_ready": None if install["runtime_ready"] else False, "reason": None,
+        "setup_hint": install["setup_hint"], "arguments_valid": False, "path_checks": [],
+        "weights": install["weights"], "image_checks": [], "memory": install["memory"],
+    }
+    try:
+        runner = registry.resolve(spec.run)
+        bound = inspect.signature(runner).bind(**registry.bound_arguments(spec, runner, arguments))
+        bound.apply_defaults()
+        values = dict(bound.arguments)
+        check["path_checks"] = _check_paths(values, directory)
+        check["weights"] = _weights(spec, values, directory)
+        check["image_checks"] = _check_images(check["path_checks"])
+        check["arguments_valid"] = True
+        _judge(check, reasons, {"weights_path", *(name for name, _ in spec.weights_from)})
+    except (TypeError, ValueError, ImportError, AttributeError) as error:
+        check["run_ready"] = False
+        reasons.append(f"Invalid arguments: {error}")
+    check["reason"] = "; ".join(reasons) or None
+    return check
 
 
 def _check_paths(arguments: dict[str, object], root: Path) -> list[PathCheck]:
@@ -507,10 +547,12 @@ def _memory(spec: registry.ModelSpec) -> MemoryCheck:
     }
 
 
-def _judge(row: ModelReadiness, reasons: list[str]) -> None:
+def _judge(row: RunCheck, reasons: list[str], weight_arguments: set[str]) -> None:
     """Set ``run_ready`` from the run, path, weight and image checks of one bound run.
 
     Memory only adds a reason: a peak above the available memory does not block the run.
+    ``weight_arguments`` names the parameters that hold weight folders; they are
+    checked as weights, not reported as unchecked inputs.
     """
     blockers: list[str] = []
     running = row["memory"]["other_runs"]
@@ -545,7 +587,7 @@ def _judge(row: ModelReadiness, reasons: list[str]) -> None:
     checked = {item["path"] for item in row["image_checks"]}
     unchecked = [
         item["path"] for item in row["path_checks"]
-        if item["parameter"] != "weights_path" and item["path"] not in checked
+        if item["parameter"] not in weight_arguments and item["path"] not in checked
     ]
     if unchecked:
         reasons.append("Inputs that are not NIfTI files were not checked: " + ", ".join(unchecked))
@@ -555,9 +597,31 @@ def _judge(row: ModelReadiness, reasons: list[str]) -> None:
 def _weights(
     spec: registry.ModelSpec, arguments: dict[str, object] | None, root: Path,
 ) -> WeightsCheck:
-    """Report where a run's weights would come from, without downloading anything."""
+    """Report where a run's weights would come from, without downloading anything.
+
+    A workflow that declares ``weights_from`` takes one folder per weight argument,
+    each defaulting to the named model's automatic download, so it has no single
+    ``path``. Its ``source`` is ``"argument"`` when every folder is supplied, and
+    otherwise the least ready omitted folder: ``"manual"``, ``"download"``, then
+    ``"cache"``.
+    """
     if not spec.requires_weights:
         return {"required": False, "source": None, "path": None}
+    if spec.weights_from:
+        values = arguments or {}
+        omitted = [
+            model_id for name, model_id in spec.weights_from
+            if not (isinstance(value := values.get(name), str | Path) and str(value).strip())
+        ]
+        if omitted and (
+            not spec.setup_supported or any(weights_repo(item) is None for item in omitted)
+        ):
+            source = "manual"
+        elif any(cached_weights(item) is None for item in omitted):
+            source = "download"
+        else:
+            source = "cache" if omitted else "argument"
+        return {"required": True, "source": source, "path": None}
     supplied = (arguments or {}).get("weights_path")
     if isinstance(supplied, str | Path) and str(supplied).strip():
         path = Path(supplied).expanduser()
@@ -876,16 +940,25 @@ class ModelRun:
         self.close()
 
 
-def start(
-    model_id: str,
-    *,
-    arguments: dict[str, JsonValue],
-    root: str | Path | None = None,
-) -> ModelRun:
+def start(model_id: str, /, *, root: str | Path | None = None, **arguments: JsonValue) -> ModelRun:
     """Start a model in a supervised worker and return without waiting.
 
+    The keyword arguments are the runner's, for example
+    ``start("mlx-segment-ct", image_path="ct.nii.gz", output_dir="segment-ct")``;
+    ``root`` is MedMLX's own. See ``start_run`` for paths and errors.
+    """
+    return start_run(model_id, arguments, root=root)
+
+
+def start_run(
+    model_id: str, arguments: dict[str, JsonValue], *, root: str | Path | None = None,
+) -> ModelRun:
+    """Start a model given its runner arguments as a mapping, as the CLI does.
+
     Relative model paths resolve against ``root`` (the current directory by
-    default). Call ``wait`` on the result for the ``RunResult``, or ``cancel``.
+    default; ``~`` is expanded). Call ``wait`` on the result for the
+    ``RunResult``, or ``cancel``. A name the runner lacks, ``root`` included,
+    raises ``ValueError``.
 
     Raises:
         NotADirectoryError: ``root`` is not an existing directory.
@@ -893,10 +966,7 @@ def start(
         ValueError: ``arguments`` do not match the runner's signature.
         RuntimeError: MLX Metal is unusable on this host.
     """
-    directory = Path.cwd() if root is None else Path(root).resolve()
-    if not directory.is_dir():
-        raise NotADirectoryError(directory)
-    jobs = Jobs(directory)
+    jobs = Jobs(_root_directory(root))
     try:
         submitted = start_model(jobs, model_id, arguments)
     except BaseException:
@@ -924,9 +994,7 @@ def start_cohort(
     """
     from medmlx.cohort import MAX_CASES
 
-    directory = Path.cwd() if root is None else Path(root).resolve()
-    if not directory.is_dir():
-        raise NotADirectoryError(directory)
+    directory = _root_directory(root)
     if not 1 <= len(cases) <= MAX_CASES:
         raise ValueError(f"A cohort requires 1..{MAX_CASES} cases")
     spec = registry.get_model(model_id)
@@ -953,15 +1021,12 @@ def start_cohort(
     return ModelRun(jobs, job.job_id)
 
 
-def run(
-    model_id: str,
-    *,
-    arguments: dict[str, JsonValue],
-    root: str | Path | None = None,
-) -> RunResult:
+def run(model_id: str, /, *, root: str | Path | None = None, **arguments: JsonValue) -> RunResult:
     """Run a model synchronously in a worker; cancel its process group on interruption.
 
-    Relative model paths resolve against ``root`` (the current directory by
+    The keyword arguments are the runner's, for example
+    ``run("mlx-segment-ct", image_path="ct.nii.gz", output_dir="segment-ct")``;
+    ``root`` is MedMLX's own and resolves relative paths (the current directory by
     default). Return the ``RunResult`` with the outputs and artifacts by role, the
     provider's details and the completed job. A failed worker
     raises with its reported error instead of returning an apparent success.
@@ -969,9 +1034,9 @@ def run(
     Raises:
         NotADirectoryError: ``root`` is not an existing directory.
         LookupError: ``model_id`` is not a discovered model.
-        ValueError: ``arguments`` do not match the runner's signature.
+        ValueError: The arguments do not match the runner's signature.
         RuntimeError: MLX Metal is unusable on this host.
         ModelRunError: The worker failed or was cancelled; see ``ModelRun.wait``.
     """
-    with start(model_id, arguments=arguments, root=root) as model_run:
+    with start_run(model_id, arguments, root=root) as model_run:
         return model_run.wait()

@@ -25,7 +25,7 @@ def test_python_and_cli_execute_the_same_runner_and_report_failures(
     """Exercise real worker processes, relative paths and the CLI's JSON boundary."""
     (tmp_path / "image.json").write_text("[0.1, 0.7, 0.8]")
     arguments: dict[str, JsonValue] = {"image_path": "image.json", "output_path": "mask.json"}
-    result = medmlx.run("threshold", arguments=arguments, root=tmp_path)
+    result = medmlx.run("threshold", **arguments, root=tmp_path)
     assert result.job["state"] == "completed"
     assert result.result == {"output_path": "mask.json", "foreground": 2}
     assert json.loads((tmp_path / "mask.json").read_text()) == [False, True, True]
@@ -35,13 +35,14 @@ def test_python_and_cli_execute_the_same_runner_and_report_failures(
     completed = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, check=False)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["result"]["foreground"] == 1
-    inline = [sys.executable, "-m", "medmlx", "run", "threshold",
-              "--arg", "image_path=image.json", "output_path=mask.json", "level=0.75"]
+    # Pairs are accepted on both sides of an option.
+    inline = [sys.executable, "-m", "medmlx", "run", "threshold", "image_path=image.json",
+              "--root", str(tmp_path), "output_path=mask.json", "level=0.75"]
     completed = subprocess.run(inline, cwd=tmp_path, capture_output=True, text=True, check=False)
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["result"]["foreground"] == 1
     with pytest.raises(medmlx.ModelRunError, match="failing: provider failure") as failure:
-        medmlx.run("failing", arguments={"message": "provider failure"}, root=tmp_path)
+        medmlx.run("failing", message="provider failure", root=tmp_path)
     assert (failure.value.category, failure.value.hint, failure.value.state) == (
         "AssetNotReadyError", "Run medmlx setup failing", "failed")
     (tmp_path / "arguments.json").write_text('{"level": NaN}')

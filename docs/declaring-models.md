@@ -12,13 +12,15 @@ MODEL = {
     "id": "totalsegmentator",                            # lowercase letters, digits, ".", "_", "-"
     "label": "TotalSegmentator",
     "task": "segmentation",
-    "run": "totalsegmentator_mlx.medmlx:run",            # module:function, always named run
     "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional, module:function
     "summary": "Whole-body CT segmentation.",  # optional
 }
 ```
 
-`run` receives JSON keyword arguments and returns a JSON-compatible dictionary.
+The runner is the `run` function of the module the entry point names, here
+`totalsegmentator_mlx.medmlx:run`. Give `run` explicitly only when the function
+lives in another module. `run` receives JSON keyword arguments and returns a
+JSON-compatible dictionary.
 Convert paths to strings and arrays to lists; non-finite numbers are rejected.
 Exceptions fail the job and send their type and message to the client.
 
@@ -29,6 +31,7 @@ is returned as `instructions`.
 
 | Optional field | Purpose |
 | --- | --- |
+| `run` | `module:function` of the runner, always named `run`. Defaults to the entry point module's `run`; `workflow` declarations must give it. |
 | `readiness` | No-argument function returning `ready`, `reason` and `setup_hint`. Keep it cheap; MedMLX adds the Metal check. Without it, only runner imports are checked. |
 | `requires_weights` | Defaults to `True`; set to `False` for weight-free runtimes. |
 | `setup_supported` | Defaults to `True`; set to `False` when assets must be supplied manually. |
@@ -92,7 +95,8 @@ model ID already says what it does. `task` describes the outputs:
 | `report-generation` | `report` |
 
 - `run` is exported from the package root (`from unest_mlx import run`) and is
-  the function the declaration's `run` names; discovery rejects any other name.
+  the function the declaration's `run` names or defaults to; discovery rejects
+  any other name.
   Keep the root import free of MLX by exporting lazily.
 - `workflow` declarations orchestrate other models and may name any runner.
 - A package whose models share one set of arguments has one `run` with a
@@ -104,20 +108,26 @@ model ID already says what it does. `task` describes the outputs:
 - Don't add aliases such as `segment()` or `detect()`: `run` is the only one-shot
   entry point.
 
-### Arguments
+### Runner argument names
 
 All public arguments are keyword-only and accept `str` or `os.PathLike` paths.
-Fixed choices are `Literal` types, so `describe_model` lists them.
+Fixed choices are `Literal` types, so `describe_model` lists them. `root` is
+reserved: `medmlx.run`, `start` and `check_run` take it next to the runner's
+keywords, so no runner may name a parameter `root`.
 
 | Argument | Meaning |
 | --- | --- |
 | `image_path` | The case's one input image. |
 | `image_paths` | Several co-registered images of one case, as a map from the model's channel names to paths: `{"ct": "ct.nii.gz", "pet": "suv.nii.gz"}`. Keys must match exactly; order never matters. |
-| `<role>_path` | Other inputs, named by role: `mask_path`, `video_path`. |
+| `lesion_mask_path` | Binary lesion mask. |
+| `organ_mask_path` | Binary organ mask. |
+| `label_map_path` | Integer label map input, such as MAISI labels. |
+| `prompt_mask_path` | A mask used as a prompt. |
+| `<role>_path` | Other inputs, named by role, such as `video_path`. `mlxradiomics` keeps PyRadiomics' `mask_path` for its ROI mask. |
 | `output_dir` | Required. Directory for the output files, created if missing. |
 | `weights_path=None` | The model's weights folder, as published. `None` downloads the pinned folder on first use. |
 | `overwrite=False` | Replace existing outputs only when true. |
-| `precision` | The model's numerical mode, where it offers more than one. |
+| `precision` | `<arithmetic>-<dtype>`, where the model offers more than one mode. Arithmetic is `source` (the reference implementation's operation order), `fast` (MLX-native kernels in the same dtype) or `compensated` (error-compensated sums); dtype is `fp32`, `tf32`, `bf16` or `fp48`. A runtime with one arithmetic per dtype uses the bare dtype: `fp32`, `tf32`, `bf16`. |
 | `scratch_dir=None` | Parent folder for temporary memory-mapped files. |
 | `seed` | Integer seed for stochastic models. |
 | `prompt` | Text the model reads, such as a question or a target description. |

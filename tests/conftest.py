@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # Real adapters keep types from their MLX modules lazy; --arg must not need them.
+    # Real adapters keep types from their MLX modules lazy; inline CLI arguments must not need them.
     from fakemlx_runtime import RunResult
 
 THRESHOLD = {

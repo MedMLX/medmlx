@@ -152,13 +152,17 @@ def _arguments(inputs: Inputs, **changes: JsonValue) -> dict[str, JsonValue]:
             "prompt": inputs["prompt"], "output_dir": inputs["output_dir"], **changes}
 
 
+def _run(arguments: dict[str, JsonValue]) -> api.RunResult:
+    with api.start_run("medgemma", arguments) as run:
+        return run.wait()
+
+
 def test_isolated_worker_uses_local_runtime_and_publishes_report(
     isolated_python: Path, inputs: Inputs,
 ) -> None:
-    ready = api.model_readiness(["medgemma"], arguments=_arguments(inputs))
-    assert ready["models"][0]["ready"] is True
+    assert api.check_run_arguments("medgemma", _arguments(inputs))["runtime_ready"] is True
     assert not _mlx_imported(isolated_python)
-    assert api.run("medgemma", arguments=_arguments(inputs)).job["state"] == "completed"
+    assert _run(_arguments(inputs)).job["state"] == "completed"
     destination = Path(inputs["output_dir"]) / "report.json"
     report = json.loads(destination.read_text())
     assert report["text"] == "gemma3:rendered:describe"
@@ -167,12 +171,12 @@ def test_isolated_worker_uses_local_runtime_and_publishes_report(
     assert report["versions"]["mlx"] == "0.32.4"
     original = destination.read_bytes()
     with pytest.raises(RuntimeError):
-        api.run("medgemma", arguments=_arguments(inputs))
+        _run(_arguments(inputs))
     assert destination.read_bytes() == original
-    api.run("medgemma", arguments=_arguments(inputs, prompt="replacement", overwrite=True))
+    _run(_arguments(inputs, prompt="replacement", overwrite=True))
     assert json.loads(destination.read_text())["text"] == "gemma3:rendered:replacement"
     with pytest.raises(RuntimeError):
-        api.run("medgemma", arguments=_arguments(inputs, output_dir=inputs["weights_path"]))
+        _run(_arguments(inputs, output_dir=inputs["weights_path"]))
     assert not (Path(inputs["weights_path"]) / "report.json").exists()
 
 
@@ -216,7 +220,7 @@ def test_stale_index_beside_single_weights_file_runs(
     (Path(inputs["weights_path"]) / "model.safetensors.index.json").write_text(
         '{"weight_map": {"a": "model-00001-of-00002.safetensors",'
         ' "b": "model-00002-of-00002.safetensors"}}')
-    assert api.run("medgemma", arguments=_arguments(inputs)).job["state"] == "completed"
+    assert _run(_arguments(inputs)).job["state"] == "completed"
 
 
 @pytest.mark.parametrize("case", ["missing", "architecture", "shard", "tokens"])
@@ -235,7 +239,7 @@ def test_invalid_assets_and_options_fail_before_importing_mlx_or_writing(
     else:
         arguments["max_new_tokens"] = True
     with pytest.raises(RuntimeError):
-        api.run("medgemma", arguments=arguments)
+        _run(arguments)
     assert not _mlx_imported(isolated_python)
     assert not Path(inputs["output_dir"]).exists()
 
@@ -245,7 +249,7 @@ def test_isolated_provider_errors_leave_no_output(
     isolated_python: Path, inputs: Inputs, prompt: str,
 ) -> None:
     with pytest.raises(RuntimeError):
-        api.run("medgemma", arguments=_arguments(inputs, prompt=prompt))
+        _run(_arguments(inputs, prompt=prompt))
     assert not Path(inputs["output_dir"]).exists()
 
 

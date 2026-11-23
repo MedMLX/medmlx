@@ -12,7 +12,7 @@ uv sync --locked --no-dev --extra generate --extra mcp
 ```
 
 The script uses the checkout's Python and deletes its temporary inputs and output
-when it exits. It prints the runtime, readiness state, and completed job summary.
+when it exits. It prints the runtime, run check, and completed job summary.
 
 ```sh
 .venv/bin/python - <<'PY'
@@ -57,7 +57,7 @@ async def exercise(root):
     }
     (root / "profile.json").write_text(json.dumps(profile))
     arguments = {
-        "image_path": "ct.nii.gz", "mask_path": "labels.nii.gz",
+        "image_path": "ct.nii.gz", "label_map_path": "labels.nii.gz",
         "profile_path": "profile.json", "output_dir": "output"
     }
     server = StdioServerParameters(
@@ -70,13 +70,12 @@ async def exercise(root):
         print("Runtime:", runtime["mlx"])
         description = await call(client, "describe_model", {"model_id": "fdg-pet-ct"})
         print("Model:", description["id"])
-        readiness = await call(client, "model_readiness", {
-            "model_ids": ["fdg-pet-ct"], "arguments": arguments
+        row = await call(client, "check_run", {
+            "model_id": "fdg-pet-ct", "arguments": arguments
         })
-        row = readiness["models"][0]
-        print("Readiness:", row["runtime_ready"], row["run_ready"])
+        print("Run check:", row["runtime_ready"], row["run_ready"])
         if row["run_ready"] is False:
-            raise RuntimeError(f"Readiness blocker: {row['reason']}")
+            raise RuntimeError(f"Run blocker: {row['reason']}")
         job = await call(client, "run_model", {
             "model_id": "fdg-pet-ct", "arguments": arguments
         })

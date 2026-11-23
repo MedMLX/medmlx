@@ -22,6 +22,8 @@ FIRST = {"id": "shared-first", "label": "First", "task": "segmentation",
 SECOND = dict(FIRST, id="shared-second", label="Second")
 MISNAMED = {"id": "misnamed", "label": "Misnamed", "task": "segmentation",
             "run": "fakemlx:sleep", "requires_weights": False}
+DEFAULTED = {"id": "defaulted", "label": "Defaulted", "task": "segmentation",
+             "requires_weights": False}
 '''
 
 
@@ -31,7 +33,7 @@ def shared_site(model_site: Path) -> Path:
     module.write_text(module.read_text() + _MODELS)
     add_distribution(model_site, "shared-mlx", (
         "[medmlx.models]\nshared-first = fakemlx:FIRST\nshared-second = fakemlx:SECOND\n"
-        "misnamed = fakemlx:MISNAMED\n"
+        "misnamed = fakemlx:MISNAMED\ndefaulted = fakemlx:DEFAULTED\n"
     ))
     return model_site
 
@@ -42,10 +44,10 @@ def test_shared_runner_gets_each_declarations_id_and_hides_model(
     names = [row["name"] for row in api.describe_model("shared-second")["parameters"]]
     assert names == ["image_path", "overwrite"]
 
-    result = medmlx.run("shared-second", arguments={"image_path": "ct.nii.gz"}, root=tmp_path)
+    result = medmlx.run("shared-second", image_path="ct.nii.gz", root=tmp_path)
     assert result.result == {"model": "shared-second", "image_path": "ct.nii.gz"}
     with pytest.raises(ValueError, match="sets model itself"):
-        medmlx.run("shared-first", arguments={"image_path": "ct.nii.gz", "model": "shared-second"},
+        medmlx.run("shared-first", image_path="ct.nii.gz", model="shared-second",
                    root=tmp_path)
 
 
@@ -54,3 +56,10 @@ def test_a_runner_not_named_for_its_task_is_a_discovery_error(shared_site: Path)
     assert "misnamed" not in {model["id"] for model in listed["models"]}
     assert any("must name the package's run function, not sleep" in error["error"]
                for error in listed["discovery_errors"])
+
+
+def test_an_omitted_run_is_the_entry_point_modules_run(shared_site: Path) -> None:
+    described = api.describe_model("defaulted")
+    assert described["run"] == "fakemlx:run"
+    assert [row["name"] for row in described["parameters"]] == [
+        "image_path", "output_path", "level"]

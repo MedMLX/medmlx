@@ -23,16 +23,16 @@ from medmlx.payloads import (
     ModelDescription,
     ModelListPayload,
     ModelPayload,
-    ModelReadiness,
     PackageListPayload,
     ReadinessPayload,
+    RunCheck,
     RuntimeToolPayload,
 )
 from medmlx.server import build_server
 from tests.conftest import BROKEN_MLX, NO_METAL_MLX, add_distribution, set_mlx
 
 _TOOLS = {
-    "cancel_job", "describe_model", "get_job", "list_jobs", "list_models",
+    "cancel_job", "check_run", "describe_model", "get_job", "list_jobs", "list_models",
     "list_checkpoints", "list_packages", "model_readiness", "prepare_model", "run_model",
     "runtime_info", "list_dicom_series", "convert_dicom", "summarize_output", "preview_output",
     "memory_status",
@@ -264,9 +264,8 @@ def test_readiness_and_description_come_from_the_package(
                                 {"model_ids": ["threshold", "sleeper"]}, ReadinessPayload)
         assert readiness["mlx_usable"] is True
         threshold, sleeper = readiness["models"]
-        assert (threshold["ready"], threshold["run_ready"]) == (False, False)
+        assert (threshold["runtime_ready"], sleeper["runtime_ready"]) == (False, True)
         assert threshold["setup_hint"] == "stage the weights"
-        assert (sleeper["ready"], sleeper["run_ready"]) == (True, None)
         described = await _call(client, "describe_model", {"model_id": "threshold"},
                                 ModelDescription)
         assert (described["package"], described["family"]) == ("fakemlx", "segment")
@@ -280,7 +279,7 @@ def test_readiness_and_description_come_from_the_package(
     _with_client(tmp_path, body)
 
 
-def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
+def test_check_run_checks_supplied_paths_without_running(
     model_site: Path, tmp_path: Path,
 ) -> None:
     (tmp_path / "image.json").write_text("[0.2, 0.8]")
@@ -288,18 +287,18 @@ def test_readiness_checks_supplied_paths_without_claiming_checkpoint_validation(
     module.write_text(module.read_text() + '\nTHRESHOLD.pop("readiness")\n')
 
     async def body(client: Client) -> None:
-        async def readiness(model_id: str, arguments: dict[str, object]) -> ModelReadiness:
-            request: dict[str, object] = {"model_ids": [model_id], "arguments": arguments}
-            return (await _call(client, "model_readiness", request, ReadinessPayload))["models"][0]
+        async def check(model_id: str, arguments: dict[str, object]) -> RunCheck:
+            request: dict[str, object] = {"model_id": model_id, "arguments": arguments}
+            return await _call(client, "check_run", request, RunCheck)
 
         paths = {"output_path": "mask.json"}
-        missing = await readiness("threshold", {"image_path": "absent.json", **paths})
-        assert (missing["ready"], missing["run_ready"], missing["arguments_valid"]) == (
+        missing = await check("threshold", {"image_path": "absent.json", **paths})
+        assert (missing["runtime_ready"], missing["run_ready"], missing["arguments_valid"]) == (
             True, False, True)
-        present = await readiness("threshold", {"image_path": "image.json", **paths})
+        present = await check("threshold", {"image_path": "image.json", **paths})
         assert present["run_ready"] is None
-        assert (present["weights_validated"], present["inputs_validated"]) == (False, False)
-        invalid = await readiness("sleeper", {"misspelled": 0})
+        # root is MedMLX's own keyword; from a client it is just an unknown argument.
+        invalid = await check("sleeper", {"seconds": 0, "root": "."})
         assert (invalid["run_ready"], invalid["arguments_valid"]) == (False, False)
         assert not (tmp_path / "mask.json").exists()
         assert await _jobs(client) == []
@@ -319,8 +318,7 @@ def test_readiness_fails_every_model_when_mlx_is_unusable(
         readiness = await _call(client, "model_readiness",
                                 {"model_ids": ["threshold", "sleeper"]}, ReadinessPayload)
         assert readiness["mlx_usable"] is False
-        assert [(row["ready"], row["run_ready"]) for row in readiness["models"]] == [
-            (False, False), (False, False)]
+        assert [row["runtime_ready"] for row in readiness["models"]] == [False, False]
         assert readiness["models"][0]["setup_hint"] == "stage the weights"
         listed = await _call(client, "list_models", {}, ModelListPayload)
         assert _fake_ids(listed["models"]) == _SERVED

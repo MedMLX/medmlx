@@ -150,10 +150,15 @@ def test_workflow_prepares_each_model_it_uses(
         return [entry]
 
     requested: list[str] = []
+    forwarded: list[object] = []
 
-    def download(model_id: str, **_kwargs: object) -> Path:
+    def download(model_id: str, **kwargs: object) -> Path:
         requested.append(model_id)
+        forwarded.append(kwargs.get("download_progress"))
         return tmp_path / model_id
+
+    def report(_event: medmlx.DownloadProgress) -> None:
+        pass
 
     cached: set[str] = {"mlx-reason-ct", "lung-nodule"}
 
@@ -172,11 +177,12 @@ def test_workflow_prepares_each_model_it_uses(
     assert plan["weights_path"] is None and plan["revision"] is None
     cached.add("medsam2")
     assert medmlx.setup_plan("reason-ct-tools")["cached"] is True
-    assert medmlx.setup_model("reason-ct-tools")["arguments"] == {
+    assert medmlx.setup_model("reason-ct-tools", download_progress=report)["arguments"] == {
         "reason_weights_path": str(tmp_path / "mlx-reason-ct"),
         "detector_weights_path": str(tmp_path / "lung-nodule"),
         "medsam_weights_path": str(tmp_path / "medsam2"),
     }
+    assert forwarded == [report] * 3  # Byte events reach the caller for every model.
     assert medmlx.setup_all()["complete"]
     assert requested == models * 2
 

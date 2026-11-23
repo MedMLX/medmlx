@@ -25,7 +25,7 @@ reason-ct-tools = "medmlx.workflows.reason_ct:MODEL"
 # Kept as an empty compatibility extra; automatic downloads are included by default.
 setup = []
 reason-tools = [
-  "mlx-reason-ct[tools]>=0.7.0,<0.8",
+  "mlx-reason-ct[tools]>=0.8.0,<0.9",
   "lung-nodule-mlx>=0.3.0,<0.4",
   "medsam2-mlx>=0.4.0,<0.5",
   "pydantic>=2.14,<3",
@@ -51,7 +51,7 @@ segment = [
 ]
 generate = [
   "nibabel>=5.4.2,<6",
-  "mlx-reason-ct>=0.7.0,<0.8",
+  "mlx-reason-ct>=0.8.0,<0.9",
   "fdg-pet-ct-mlx>=0.4.0,<0.5",
   "mlx-generate-ctmr>=0.7.0,<0.8",
   "lesiondiffusion-mlx>=0.3.0,<0.4",
@@ -70,7 +70,7 @@ all = [
   "pillow>=13,<14",
   "nibabel>=5.4.2,<6",
   "sam3-mlx[video]>=0.4.0,<0.5",
-  "mlx-reason-ct[tools]>=0.7.0,<0.8",
+  "mlx-reason-ct[tools]>=0.8.0,<0.9",
   "biomedparse-mlx>=0.2.0,<0.3",
   "fdg-pet-ct-mlx>=0.4.0,<0.5",
   "flexible-unet-mlx>=0.3.0,<0.4",

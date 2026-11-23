@@ -136,11 +136,11 @@ def test_python_output_names_ignore_a_different_file_and_allow_declared_fallback
         "artifacts": {"mask": {"kind": "binary_mask", "coordinate_space": "image_voxel",
                                "labels": [{"value": 1, "name": "prompt name"}]}},
     }
-    finished = medmlx.run("labelled", arguments=arguments, root=tmp_path)
+    finished = medmlx.run("labelled", **arguments, root=tmp_path)
     assert finished.outputs == {"mask": "other/mask.nii.gz"}
     assert finished.artifacts["mask"].get("labels") == [{"value": 1, "name": "prompt name"}]
     assert finished.job["state"] == "completed"
-    invalid = medmlx.run("labelled", arguments={"outputs": {"mask": 1}}, root=tmp_path)
+    invalid = medmlx.run("labelled", outputs={"mask": 1}, root=tmp_path)
     assert (invalid.outputs, invalid.artifacts) == ({}, {})
     assert "outputs_error" in invalid.job
     assert invalid.result == {"outputs": {"mask": 1}, "artifacts": {}}

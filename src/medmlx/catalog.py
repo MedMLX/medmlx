@@ -46,7 +46,7 @@ CHECKPOINTS = (
         "https://github.com/hhaentze/MRSegmentator/releases/tag/v1.2.0",
         "Dataset050_ukbb_inhouse_nako", ("MR",), "named_adapter",
         "Optional local 1.2 base folder with 3d_fullres_bs8 plans. The named adapter "
-        "selects mrsegmentator-1.2-base, torch-order-fp32 and no mirroring. Verify weight terms.",
+        "selects mrsegmentator-1.2-base, source-fp32 and no mirroring. Verify weight terms.",
     ),
     Checkpoint(
         "liver-zenodo-18807203", "CT liver and liver tumor", "nnunet-liver",

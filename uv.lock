@@ -699,9 +699,9 @@ requires-dist = [
     { name = "medsam2-mlx", marker = "extra == 'segment'", specifier = ">=0.4.0,<0.5" },
     { name = "mlx-generate-ctmr", marker = "extra == 'all'", specifier = ">=0.7.0,<0.8" },
     { name = "mlx-generate-ctmr", marker = "extra == 'generate'", specifier = ">=0.7.0,<0.8" },
-    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.7.0,<0.8" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.7.0,<0.8" },
-    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.7.0,<0.8" },
+    { name = "mlx-reason-ct", marker = "extra == 'generate'", specifier = ">=0.8.0,<0.9" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'all'", specifier = ">=0.8.0,<0.9" },
+    { name = "mlx-reason-ct", extras = ["tools"], marker = "extra == 'reason-tools'", specifier = ">=0.8.0,<0.9" },
     { name = "mlx-segment-ct", marker = "extra == 'all'", specifier = ">=0.4.0,<0.5" },
     { name = "mlx-segment-ct", marker = "extra == 'segment'", specifier = ">=0.4.0,<0.5" },
     { name = "mlxradiomics", marker = "extra == 'all'", specifier = ">=1.1.0,<1.2" },
@@ -861,7 +861,7 @@ wheels = [
 
 [[package]]
 name = "mlx-reason-ct"
-version = "0.7.0"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -873,9 +873,9 @@ dependencies = [
     { name = "scipy" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/14/91/491c6aa3838b200a6989501cc15d20b40e129bb5113b8da6018005e5a871/mlx_reason_ct-0.7.0.tar.gz", hash = "sha256:01ccb4993d0875028b04940498c55fe18afc0fc0902488d767291c5205c6d23f", size = 3773764, upload-time = "2026-11-15T02:02:58.54Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/75/a3df0fd26ce01a20355c9400d6feb46e5e166877c56b0b1e579f0fd552cf/mlx_reason_ct-0.8.0.tar.gz", hash = "sha256:5d430a0c0e15585a090efb5c3080be3f03795f9ed6567a2d6a50fe9879bb9042", size = 3787235, upload-time = "2026-11-19T03:56:41.624Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/e8/b5e4769e4eb599468c0f3cf28295713fb382b0c84053b6a06ed79ac1ec19/mlx_reason_ct-0.7.0-py3-none-any.whl", hash = "sha256:8bb1d0af4e2444aa5fee4d42297e86c4d0bc463b116f3d3da000b246fb4a7bf8", size = 3783896, upload-time = "2026-11-15T02:02:56.73Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/8f/431cb63d6a9a04aecf6d2d5c58437ee05bc8e94eaf53b8363cd3ef2ab9dc/mlx_reason_ct-0.8.0-py3-none-any.whl", hash = "sha256:de691da4b3975bac6d7265f526334ed31e3903d273e1b2c817c74ff0a0851a07", size = 3794802, upload-time = "2026-11-19T03:56:39.935Z" },
 ]
 
 [package.optional-dependencies]

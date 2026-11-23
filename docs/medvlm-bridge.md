@@ -61,7 +61,8 @@ compatible interpreter, set `MEDMLX_MEDVLM_PYTHON`.
 The bridge isolates MedVLM's [dependencies](https://github.com/MedMLX/med-vlm-mlx/blob/v0.3.3/pyproject.toml)
 from the other runtimes and rejects a conflicting `mlx-vlm` installation.
 Readiness checks installed dependency metadata without installing packages or
-loading the model. Until execution, `run_ready` can remain unknown.
+loading the model. Until execution, `run_ready` from `medmlx check` can remain
+unknown.
 
 The bridge has synthetic process-protocol tests. Real-checkpoint execution and
 numerical accuracy remain unqualified; reports record that status.

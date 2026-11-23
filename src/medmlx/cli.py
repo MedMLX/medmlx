@@ -35,7 +35,7 @@ def read_arguments(path: Path) -> dict[str, JsonValue]:
 
 
 def inline_arguments(model_id: str, pairs: list[str]) -> dict[str, JsonValue]:
-    """Parse ``--arg`` pairs into one runner's keyword arguments.
+    """Parse ``KEY=VALUE`` and ``KEY:=JSON`` pairs into one runner's keyword arguments.
 
     ``KEY=VALUE`` converts ``VALUE`` to the type ``KEY`` declares (see
     ``api.text_arguments``); ``KEY:=JSON`` passes a finite JSON value unchanged,
@@ -68,21 +68,18 @@ def inline_arguments(model_id: str, pairs: list[str]) -> dict[str, JsonValue]:
     return {**api.text_arguments(model_id, text), **literal}
 
 
-def _arguments(
-    model_id: str, path: Path | None, pairs: list[str] | None,
-) -> dict[str, JsonValue] | None:
-    """Merge an ``--arguments`` file with ``--arg`` pairs; pairs replace file entries."""
-    if path is None and not pairs:
-        return None
+def _arguments(model_id: str, path: Path | None, pairs: list[str]) -> dict[str, JsonValue]:
+    """Merge an ``--arguments`` file with inline pairs; pairs replace file entries."""
     return {
         **({} if path is None else read_arguments(path)),
-        **inline_arguments(model_id, pairs or []),
+        **inline_arguments(model_id, pairs),
     }
 
 
 def _add_argument_options(command: argparse.ArgumentParser, help_file: str) -> None:
+    command.add_argument("model_id")
     command.add_argument(
-        "--arg", dest="pairs", action="extend", nargs="+", metavar="KEY=VALUE",
+        "pairs", nargs="*", metavar="KEY=VALUE",
         help="Runner argument; values take the declared type. Use KEY:=JSON for lists, "
              "objects and null. See medmlx describe MODEL for the names.",
     )
@@ -105,9 +102,12 @@ def _parser() -> argparse.ArgumentParser:
     commands.add_parser("runtime", help="Probe the MLX Metal runtime.")
     describe = commands.add_parser("describe", help="Show a runner's keyword arguments.")
     describe.add_argument("model_id")
-    ready = commands.add_parser("readiness", help="Check model and Metal readiness.")
+    ready = commands.add_parser("readiness", help="Check models are installed and Metal works.")
     ready.add_argument("model_ids", nargs="*")
-    _add_argument_options(ready, "Check one model's argument JSON file and paths.")
+    check = commands.add_parser(
+        "check", help="Check one run's arguments, paths and weights without running it.",
+    )
+    _add_argument_options(check, "JSON keyword-argument file; inline pairs override it.")
     setup = commands.add_parser(
         "setup", help="Optionally pre-download model weights for offline use.",
     )
@@ -123,8 +123,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     setup.add_argument("--progress", action="store_true", help="Stream JSON progress on stderr.")
     run = commands.add_parser("run", help="Run a model and wait for its result.")
-    run.add_argument("model_id")
-    _add_argument_options(run, "JSON keyword-argument file; --arg entries override it.")
+    _add_argument_options(run, "JSON keyword-argument file; inline pairs override it.")
     serve = commands.add_parser("serve", help="Serve MCP on stdio (requires the mcp extra).")
     serve.add_argument("--root", type=Path, default=Path.cwd())
     serve.add_argument(
@@ -247,17 +246,14 @@ def _execute(options: argparse.Namespace) -> tuple[object, int]:
         case "describe":
             return api.describe_model(options.model_id), 0
         case "readiness":
-            arguments = None
-            if options.arguments is not None or options.pairs:
-                if len(options.model_ids) != 1:
-                    raise ValueError("Supply exactly one model_id when checking arguments")
-                arguments = _arguments(options.model_ids[0], options.arguments, options.pairs)
-            return api.model_readiness(
-                options.model_ids or None, arguments=arguments, root=options.root,
-            ), 0
+            return api.model_readiness(options.model_ids), 0
+        case "check":
+            arguments = _arguments(options.model_id, options.arguments, options.pairs)
+            return api.check_run_arguments(options.model_id, arguments, root=options.root), 0
         case "run":
             arguments = _arguments(options.model_id, options.arguments, options.pairs)
-            return api.run(options.model_id, arguments=arguments or {}, root=options.root).job, 0
+            with api.start_run(options.model_id, arguments, root=options.root) as model_run:
+                return model_run.wait().job, 0
         case "serve":
             return None, _serve(options.root, restrict=options.restrict_root)
         case "convert":
@@ -276,7 +272,14 @@ def main(argv: list[str] | None = None) -> int:
     recipe's own exit code. Invalid command-line syntax exits with status 2
     through ``argparse``.
     """
-    options = _parser().parse_args(argv)
+    parser = _parser()
+    options, extra = parser.parse_known_args(argv)
+    if extra:
+        # argparse fills the positional pairs before the first option, so
+        # ``run`` and ``check`` pairs written after an option arrive here.
+        if options.command not in ("run", "check") or any(i.startswith("-") for i in extra):
+            parser.error(f"unrecognized arguments: {' '.join(extra)}")
+        options.pairs.extend(extra)
     try:
         payload, code = _execute(options)
     except (OSError, ValueError, LookupError, RuntimeError, ImportError) as error:

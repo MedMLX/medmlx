@@ -10,16 +10,20 @@ group. The entry point names a mapping, or a callable returning one::
         "id": "totalsegmentator",
         "label": "TotalSegmentator",
         "task": "segmentation",
-        "run": "totalsegmentator_mlx.medmlx:run",
         "readiness": "totalsegmentator_mlx.medmlx:readiness",  # optional
         "summary": "Whole-body CT segmentation.",  # optional
     }
 
-``id``, ``label``, ``task`` and ``run`` are required non-empty strings.
-``task`` is one of ``TASKS`` or ``workflow``, and ``run`` names the package's
-``run`` function, whatever the task: the model ID already says what it does.
+``id``, ``label`` and ``task`` are required non-empty strings. ``task`` is one
+of ``TASKS`` or ``workflow``. ``run`` names the package's ``run`` function,
+whatever the task: the model ID already says what it does. It defaults to
+``run`` in the module the entry point names (``totalsegmentator_mlx.medmlx:run``
+above); a ``workflow`` declaration must give ``run`` and may name any function.
 A runner with a ``model`` keyword serves several declarations; MedMLX passes
 the declaration's ``id`` as ``model`` and hides that argument from callers.
+MedMLX's Python ``run``, ``start`` and ``check_run`` take the runner's arguments
+as keywords next to their own ``root``, so a runner must not name a parameter
+``root``.
 ``readiness`` and ``summary`` are optional. ``requires_weights`` and
 ``setup_supported`` are optional booleans defaulting to true. ``labels``
 optionally maps each integer output label to its name (``{"1": "spleen"}``), and
@@ -72,7 +76,7 @@ ENTRY_POINT_GROUP = "medmlx.models"
 
 _ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 _REFERENCE = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_][\w.]*$")
-_REQUIRED = ("id", "label", "task", "run")
+_REQUIRED = ("id", "label", "task")
 
 #: Tasks a model declaration may name; ``task`` describes the outputs, not the runner.
 TASKS = ("segmentation", "detection", "generation", "feature-extraction", "report-generation")
@@ -82,7 +86,7 @@ RUNNER = "run"
 WORKFLOW_TASK = "workflow"
 #: A runner keyword MedMLX fills with the declaration's model ID.
 MODEL_ARGUMENT = "model"
-_OPTIONAL = ("readiness", "summary", "cohort")
+_OPTIONAL = ("run", "readiness", "summary", "cohort")
 
 
 @dataclass(frozen=True, slots=True)
@@ -359,6 +363,11 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         if not isinstance(item, str) or not item.strip():
             raise ValueError(f"field {key!r} must be non-empty text")
         fields[key] = item
+    run = fields["run"]
+    if run is None:
+        if fields["task"] == WORKFLOW_TASK:
+            raise ValueError("a workflow declaration must name its 'run' function")
+        run = fields["run"] = f"{entry_point.module}:{RUNNER}"
     model_id = cast(str, fields["id"])
     if not _ID.match(model_id):
         raise ValueError(f"id {model_id!r} must be lowercase letters, digits, '.', '_', or '-'")
@@ -366,7 +375,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         reference = fields[key]
         if reference is not None and not _REFERENCE.match(reference):
             raise ValueError(f"field {key!r} must be a 'module:attribute' reference")
-    _check_operation(cast(str, fields["task"]), cast(str, fields["run"]), fields["cohort"])
+    _check_operation(cast(str, fields["task"]), run, fields["cohort"])
     distribution = entry_point.dist
     requires_weights = raw.get("requires_weights", True)
     if not isinstance(requires_weights, bool):
@@ -384,7 +393,7 @@ def _spec(entry_point: EntryPoint) -> tuple[ModelSpec, list[str]]:
         id=model_id,
         label=cast(str, fields["label"]),
         task=cast(str, fields["task"]),
-        run=cast(str, fields["run"]),
+        run=run,
         readiness=fields["readiness"],
         summary=fields["summary"],
         package=None if distribution is None else distribution.name,

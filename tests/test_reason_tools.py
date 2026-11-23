@@ -11,11 +11,12 @@ import nibabel as nib
 import numpy as np
 import pytest
 from medmlx_core import weights
+from mlx_reason_ct.tool_calls import ToolCallError, parse_tool_calls
 from numpy.typing import NDArray
 
 from medmlx import registry
 from medmlx.payloads import JsonValue
-from medmlx.workflows.ct_agent import parse_action, tool_choice
+from medmlx.workflows.ct_agent import TOOLS, read_action, tool_choice
 from medmlx.workflows.ct_contracts import Candidate
 from medmlx.workflows.ct_geometry import (
     Scan,
@@ -242,6 +243,16 @@ def test_invalid_segmentations_cannot_be_measured(tmp_path: Path, fault: str) ->
     assert not (tmp_path / "native.nii.gz").exists()
 
 
+def answer(text: str) -> dict[str, object]:
+    """Build the ``details`` Reason-CT returns for ``text``, using its own call parser."""
+    details: dict[str, object] = {"report": text}
+    try:
+        details["tool_calls"] = parse_tool_calls(text, TOOLS)[1]
+    except ToolCallError as error:
+        details.update(tool_calls=[], tool_call_error=str(error))
+    return details
+
+
 class ReasonSession:
     """Stand-in for one Reason-CT ``load_model`` session; records whether it closed."""
 
@@ -262,13 +273,10 @@ def providers(monkeypatch: pytest.MonkeyPatch, responses: list[str]) -> list[Rea
 
     def reason(*, output_dir: Path, response_choices: object = None, **arguments: object) -> object:
         output_dir.mkdir(parents=True)
-        response = (
-            responses.pop(0)
-            if response_choices is not None
-            else "Candidate-001 was segmented. <script>alert('unsafe')</script>"
-        )
-        (output_dir / "report.txt").write_text(response)
-        return {}
+        if response_choices is None:
+            report = "Candidate-001 was segmented. <script>alert('unsafe')</script>"
+            return {"details": {"report": report}}
+        return {"details": answer(responses.pop(0))}
 
     def detect(
         *, image_path: Path, weights_path: Path, output_dir: Path, resample_raw_input: bool
@@ -435,8 +443,10 @@ def test_workflow_dispatches_to_released_lung_detector(
         "Detect nodules",
         tool_choice("shell"),
         tool_choice("segment_candidate", "candidate-001") + "suffix",
+        tool_choice("detect_nodules") + "\n" + tool_choice("finish"),
+        tool_choice("segment_candidate", "../../escape"),
     ],
 )
-def test_only_complete_allowed_tool_calls_are_admitted(text: str) -> None:
+def test_only_one_complete_allowed_tool_call_is_admitted(text: str) -> None:
     with pytest.raises(ValueError):
-        parse_action(text)
+        read_action(answer(text))

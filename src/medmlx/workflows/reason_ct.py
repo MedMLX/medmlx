@@ -47,11 +47,11 @@ def readiness() -> dict[str, object]:
             "reason": f"Missing {', '.join(missing)}",
             "setup_hint": "Install this source checkout with its reason-tools extra.",
         }
-    from mlx_reason_ct.medmlx import run as generate_report
+    from mlx_reason_ct.medmlx import load_model
 
-    supported = {"tools", "tool_history", "response_choices"} <= set(
-        signature(generate_report).parameters
-    )
+    # The workflow reads parsed tool calls and opens its session with
+    # prefill_reuse, both added in mlx-reason-ct 0.8.
+    supported = "prefill_reuse" in signature(load_model).parameters
     return {
         "ready": supported,
         "reason": None if supported else "Reason-CT provider lacks the tool conversation API",
@@ -73,7 +73,7 @@ def run(
     max_candidates: int = 5,
     max_segments: int = 2,
     max_steps: int = 8,
-    max_new_tokens: int = 512,
+    max_new_tokens: int = 1024,
     padding_mm: float = 3.0,
     hu_window: Sequence[float] = (-1000.0, 400.0),
     assume_mm: bool = False,

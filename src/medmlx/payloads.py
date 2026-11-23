@@ -319,9 +319,31 @@ class ImageCheck(TypedDict):
 
 
 class ModelReadiness(TypedDict):
-    """Separate runtime availability from unproven input/checkpoint compatibility.
+    """One model's install and Metal check, without any run arguments.
 
-    ``ready`` is the legacy runtime boolean, identical to ``runtime_ready``.
+    ``runtime_ready`` is the provider/import check combined with the Metal probe;
+    ``reason`` joins every reported problem, or is ``None``. ``weights`` and
+    ``memory`` describe a run that omits ``weights_path``.
+    """
+
+    id: str
+    runtime_ready: bool
+    reason: str | None
+    setup_hint: object
+    weights: WeightsCheck
+    memory: MemoryCheck
+
+
+class ReadinessPayload(TypedDict):
+    """The shared MLX probe result and each requested model's install check."""
+
+    mlx_usable: bool
+    models: list[ModelReadiness]
+
+
+class RunCheck(TypedDict):
+    """One run's check: runtime, arguments, paths, weights, NIfTI headers and memory.
+
     ``run_ready`` is ``False`` for a known blocker, ``None`` when no blocker was
     found but something could not be checked, and ``True`` when every check
     passed: runtime and Metal, argument binding, input and weight paths, weights
@@ -330,25 +352,15 @@ class ModelReadiness(TypedDict):
     """
 
     id: str
-    ready: bool
     runtime_ready: bool
     run_ready: bool | None
-    reason: object
+    reason: str | None
     setup_hint: object
-    arguments_valid: bool | None
+    arguments_valid: bool
     path_checks: list[PathCheck]
     weights: WeightsCheck
     image_checks: list[ImageCheck]
     memory: MemoryCheck
-    inputs_validated: bool
-    weights_validated: bool
-
-
-class ReadinessPayload(TypedDict):
-    """The shared MLX probe result and each requested model's readiness report."""
-
-    mlx_usable: bool
-    models: list[ModelReadiness]
 
 
 class PackagePayload(TypedDict):

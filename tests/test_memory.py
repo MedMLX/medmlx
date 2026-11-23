@@ -94,7 +94,7 @@ def test_successful_workers_record_the_highest_mlx_peak(
     for peak_bytes, measured, highest in [
         (2_500_000_000, 2.5, 2.5), (1_000_000_000, 1.0, 2.5), (3_000_000_000, 3.0, 3.0),
     ]:
-        job = medmlx.run("measured", arguments={"peak_bytes": peak_bytes}, root=tmp_path).job
+        job = medmlx.run("measured", peak_bytes=peak_bytes, root=tmp_path).job
         assert job.get("measured_peak_memory_gb") == measured
         metrics = job.get("memory_metrics")
         assert metrics is not None
@@ -104,7 +104,7 @@ def test_successful_workers_record_the_highest_mlx_peak(
         assert job.get("result") == {"done": True}
         assert medmlx.describe_model("measured")["measured_peak_memory_gb"] == highest
     with pytest.raises(RuntimeError, match="measurement run failed"):
-        medmlx.run("measured", arguments={"peak_bytes": 9_000_000_000, "fail": True}, root=tmp_path)
+        medmlx.run("measured", peak_bytes=9_000_000_000, fail=True, root=tmp_path)
     assert json.loads(peak_store.read_text()) == {"measured": {"1.2.3": 3.0}}
 
 
@@ -113,7 +113,7 @@ def test_worker_reports_host_and_exited_bridge_allocations_separately_from_mlx(
     measured_model: Path, tmp_path: Path, peak_store: Path, owner: str,
 ) -> None:
     allocation_bytes = 64 * 1024**2
-    job = medmlx.run("resident", arguments={"owner": owner, "allocation_bytes": allocation_bytes},
+    job = medmlx.run("resident", owner=owner, allocation_bytes=allocation_bytes,
                      root=tmp_path).job
     metrics = job.get("memory_metrics")
     assert metrics is not None
@@ -181,23 +181,21 @@ def test_guard_uses_measurements_only_for_the_current_package_version(
     }
     description = medmlx.describe_model("measured")
     assert {key: value for key, value in description.items() if key in expected} == expected
-    row = medmlx.model_readiness(["measured"], arguments={"peak_bytes": 0})["models"][0]
+    row = medmlx.check_run("measured", peak_bytes=0)
     assert row["memory"] == {**expected, "available_gb": 10.0, "fits": True, "other_runs": []}
     assert row["run_ready"] is True
-    with medmlx.start(
-        "measured", arguments={"peak_bytes": 0, "seconds": 30}, root=tmp_path,
-    ):
+    with medmlx.start("measured", peak_bytes=0, seconds=30, root=tmp_path):
         active = medmlx.memory_status()["active_runs"][0]
         assert {key: value for key, value in active.items() if key in expected} == expected
 
     memory.record_peak("measured", "1.2.3", 9.0)
     monkeypatch.setattr(memory, "available_bytes", lambda: 8_500_000_000)
-    row = medmlx.model_readiness(["measured"], arguments={"peak_bytes": 0})["models"][0]
+    row = medmlx.check_run("measured", peak_bytes=0)
     assert row["memory"]["fits"] is False
     assert "Needs about 9.0 GB at peak" in str(row["reason"])
     # Memory is reported, not enforced: the run is neither marked blocked nor refused.
     assert row["run_ready"] is True
-    assert medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path).job["state"] == (
+    assert medmlx.run("measured", peak_bytes=0, root=tmp_path).job["state"] == (
         "completed")
 
     measured_model.write_text(
@@ -207,7 +205,7 @@ def test_guard_uses_measurements_only_for_the_current_package_version(
     assert description["measured_peak_memory_gb"] is None
     assert description["effective_peak_memory_gb"] == 8.0
     assert description["peak_memory_source"] == "declared"
-    job = medmlx.run("measured", arguments={"peak_bytes": 0}, root=tmp_path).job
+    job = medmlx.run("measured", peak_bytes=0, root=tmp_path).job
     assert job["state"] == "completed"
     assert medmlx.describe_model("measured")["measured_peak_memory_gb"] == 0.0
 
@@ -231,11 +229,11 @@ def test_one_model_holds_memory_per_machine(
     add_distribution(model_site, "huge-mlx", "[medmlx.models]\nhuge = fakemlx:HUGE\n")
     module = model_site / "fakemlx" / "__init__.py"
     module.write_text(module.read_text() + _HUGE)
-    first = medmlx.start("sleeper", arguments={"seconds": 30}, root=tmp_path)
+    first = medmlx.start("sleeper", seconds=30, root=tmp_path)
     assert [run["model_id"] for run in medmlx.memory_status()["active_runs"]] == ["sleeper"]
     # A second session sees the first one's run and is refused before loading anything.
     with pytest.raises(RuntimeError, match="already running on this Mac"):
-        medmlx.start("sleeper", arguments={"seconds": 0}, root=tmp_path)
+        medmlx.start("sleeper", seconds=0, root=tmp_path)
     first.cancel()
     assert medmlx.memory_status()["active_runs"] == []
     # A record whose worker died without cleanup no longer holds memory.
@@ -243,13 +241,13 @@ def test_one_model_holds_memory_per_machine(
     (run_registry / "dead.json").write_text('{"model_id": "dead"}')
     assert medmlx.memory_status()["active_runs"] == []
     assert not (run_registry / "dead.json").exists()
-    assert medmlx.start("sleeper", arguments={"seconds": 0}, root=tmp_path).wait().job["state"] == (
+    assert medmlx.start("sleeper", seconds=0, root=tmp_path).wait().job["state"] == (
         "completed")
 
-    row = medmlx.model_readiness(["huge"], arguments={"seconds": 0}, root=tmp_path)["models"][0]
+    row = medmlx.check_run("huge", seconds=0, root=tmp_path)
     assert row["memory"]["fits"] is False and "GB at peak" in str(row["reason"])
     assert row["run_ready"] is not False
-    assert medmlx.start("huge", arguments={"seconds": 0}, root=tmp_path).wait().job["state"] == (
+    assert medmlx.start("huge", seconds=0, root=tmp_path).wait().job["state"] == (
         "completed")
 
 

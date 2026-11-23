@@ -52,15 +52,15 @@ Then show the model's arguments, check that it can run, and run it:
 
 ```sh
 medmlx describe mlx-segment-ct
-medmlx readiness mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
-medmlx run mlx-segment-ct --arg image_path=ct.nii.gz output_dir=segment-ct
+medmlx check mlx-segment-ct image_path=ct.nii.gz output_dir=segment-ct
+medmlx run mlx-segment-ct image_path=ct.nii.gz output_dir=segment-ct
 ```
 
-- `--arg` takes the argument names `describe` lists. Values are converted to the
+- `KEY=VALUE` pairs take the argument names `describe` lists. Values are converted to the
   declared types; give lists and other JSON values as `KEY:=JSON`, for example
   `points:='[[120, 140, 60]]'`. `--arguments FILE` reads them from a JSON file.
 - Relative paths resolve against the current folder, or against `--root`.
-- `readiness` checks Metal and the input paths without downloading anything.
+- `check` checks Metal, the arguments and the input paths without downloading anything.
 - The first run downloads the `MedMLX/vista3d-ct-mlx` weights; later runs reuse the
   cache.
 - The mask is written to `segment-ct/mask.nii.gz`.
@@ -174,7 +174,8 @@ import medmlx
 
 result = medmlx.run(
     "mlx-segment-ct",
-    arguments={"image_path": "ct.nii.gz", "output_dir": "segment-ct"},
+    image_path="ct.nii.gz",
+    output_dir="segment-ct",
     root="/path/to/medmlx-work",
 )
 result.outputs["mask"]    # path by role
@@ -209,7 +210,7 @@ case. Leaving the context early cancels the worker and its child processes.
   detect and segment nodules, then browse masks and measurements in a local CT viewer.
 - [MedGemma bridge](https://github.com/MedMLX/medmlx/blob/main/docs/medvlm-bridge.md):
   run MedGemma in a managed environment with local weights.
-- This README describes the 0.4.7 release on [PyPI](https://pypi.org/project/medmlx/).
+- This README describes the 0.10.0 release on [PyPI](https://pypi.org/project/medmlx/).
   Unreleased changes are in the [release notes](https://github.com/MedMLX/medmlx/blob/main/docs/release-notes.md);
   to use them, install from the locked source workspace described in the
   [MCP guide](https://github.com/MedMLX/medmlx/blob/main/docs/mcp.md).

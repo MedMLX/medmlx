@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol, cast
@@ -72,36 +72,53 @@ def tool_choice(name: str, candidate_id: str | None = None) -> str:
     return f"<tool_call>\n<function={name}>\n{parameter}</function>\n</tool_call>"
 
 
-def parse_action(text: str) -> Action:
-    """Read the pinned Qwen3.5 XML-style format for the workflow's supported functions.
+_CANDIDATE_ID = re.compile(r"candidate-[0-9]{3,}")
 
-    The template permits prose before a single call, but no suffix. Parameters
-    are raw text, not XML attributes or JSON; only the candidate ID is admitted.
-    Multiple calls, extra parameters and malformed tags never reach a runner.
-    Final interpretation is generated separately after the finish action.
+
+def read_action(details: Mapping[str, object]) -> Action:
+    """Admit the one tool call of a Reason-CT answer as a workflow action.
+
+    Reason-CT parses its native call markup and checks each call against ``TOOLS``:
+    ``details["tool_calls"]`` lists them as names and arguments, and
+    ``details["tool_call_error"]`` is set when the markup is malformed, names an
+    undeclared tool or parameter, or omits a required one. Exactly one call is
+    admitted, and a candidate ID only in the form the workflow assigns. Final
+    interpretation is generated separately after the finish action.
+
+    Raises:
+        ValueError: The answer holds no usable call, several calls, or a
+            candidate ID of another form.
     """
-    if not any(marker in text for marker in ("<tool_call", "<function=", "<parameter=")):
-        raise ValueError("A complete tool call is required for an action decision")
-    match = re.fullmatch(
-        r"(?s).*?<tool_call>\s*<function=([A-Za-z_]\w*)>\s*(.*?)\s*</function>"
-        r"\s*</tool_call>\s*",
-        text,
-    )
-    if match is None or text.count("<tool_call>") != 1:
+    error = details.get("tool_call_error")
+    if error is not None:
+        raise ValueError(f"Unusable tool call: {error}")
+    calls = details.get("tool_calls")
+    if not isinstance(calls, list) or len(cast(list[object], calls)) != 1:
         raise ValueError("Return one complete native tool call, with no suffix or extra calls")
-    name, arguments = match.groups()
-    if name == "detect_nodules" and not arguments.strip():
+    call = cast(Mapping[str, object], calls[0])
+    name = call.get("name")
+    arguments = cast(Mapping[str, object], call.get("arguments") or {})
+    if name == "detect_nodules" and not arguments:
         return Detect(action="detect_nodules")
-    if name == "finish" and not arguments.strip():
+    if name == "finish" and not arguments:
         return Finish(action="finish")
-    if name == "segment_candidate":
-        parameter = re.fullmatch(
-            r"<parameter=candidate_id>\s*(candidate-[0-9]{3,})\s*</parameter>",
-            arguments,
-        )
-        if parameter is not None:
-            return Segment(action="segment_candidate", candidate_id=parameter.group(1))
+    candidate_id = arguments.get("candidate_id")
+    if (
+        name == "segment_candidate"
+        and isinstance(candidate_id, str)
+        and _CANDIDATE_ID.fullmatch(candidate_id)
+    ):
+        return Segment(action="segment_candidate", candidate_id=candidate_id)
     raise ValueError("Unsupported tool or arguments; use detection, a candidate ID, or finish")
+
+
+def _answer(result: object) -> tuple[str, Mapping[str, object]]:
+    """Return the answer text and ``details`` of one Reason-CT session result."""
+    details = cast(Mapping[str, Mapping[str, object]], result)["details"]
+    report = details["report"]
+    if not isinstance(report, str):
+        raise RuntimeError("Reason-CT returned no answer text")
+    return report.strip(), details
 
 
 class _ReasonSession(Protocol):
@@ -172,9 +189,19 @@ def execute(
     load_reason = registry.resolve(
         providers["mlx-reason-ct"].run.partition(":")[0] + ":load_model"
     )
-    inspect.signature(load_reason).bind(
-        image_path=image_path, weights_path=reason_weights_path, anatomy_region="chest"
-    )
+    # Every decision is a constrained choice among a few calls. The fast mode keeps
+    # the decoder state up to the last 64 tokens before the question, so a decision
+    # decodes only the conversation; its logits differ from a whole prefill at
+    # rounding level, which changed none of 248 constrained answers in Reason-CT's
+    # own comparison. The wording of the free-text interpretation can differ from a
+    # one-shot report at a near-tie token.
+    session_options: dict[str, object] = {
+        "image_path": image_path,
+        "weights_path": reason_weights_path,
+        "anatomy_region": "chest",
+        "prefill_reuse": "fast",
+    }
+    inspect.signature(load_reason).bind(**session_options)
     stamp = image_path.stat()
     output_dir = output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=False)
@@ -209,12 +236,7 @@ def execute(
             image_path, output_dir / "working_ct.nii.gz", assume_mm=limits.assume_mm
         )
         reason = cast(
-            _ReasonSession,
-            load_reason(
-                image_path=scan.working_path,
-                weights_path=reason_weights_path,
-                anatomy_region="chest",
-            ),
+            _ReasonSession, load_reason(**session_options | {"image_path": scan.working_path})
         )
         assert scan.original.affine is not None and scan.working.affine is not None
         record["geometry"] = {
@@ -260,20 +282,21 @@ def execute(
                 {"step": step + 1, "event": "reason_requested", "allowed_calls": list(choices)}
             )
             _write_record(journal, record)
-            reason.run(
-                output_dir=step_dir,
-                prompt=request,
-                tools=TOOLS,
-                tool_history=history,
-                response_choices=choices,
-                max_new_tokens=limits.max_new_tokens,
+            response, details = _answer(
+                reason.run(
+                    output_dir=step_dir,
+                    prompt=request,
+                    tools=TOOLS,
+                    tool_history=history,
+                    response_choices=choices,
+                    max_new_tokens=limits.max_new_tokens,
+                )
             )
-            response = (step_dir / "report.txt").read_text().strip()
             history.append({"role": "assistant", "content": response})
             events.append({"step": step + 1, "event": "model_response", "text": response})
             selected: Candidate | None = None
             try:
-                action = parse_action(response)
+                action = read_action(details)
                 if isinstance(action, Detect) and detected:
                     raise ValueError("Detection has already completed; use the returned IDs")
                 if isinstance(action, Segment):
@@ -351,7 +374,7 @@ def execute(
                     "measurements": [m.model_dump(exclude={"mask_path"}) for m in measurements],
                     "score_threshold": limits.score_threshold,
                 }
-                reason.run(
+                interpretation = reason.run(
                     output_dir=output_dir / "interpretation",
                     max_new_tokens=limits.max_new_tokens,
                     prompt=(
@@ -363,7 +386,7 @@ def execute(
                         "Tool evidence:\n" + json.dumps(evidence, allow_nan=False)
                     ),
                 )
-                report = (output_dir / "interpretation/report.txt").read_text().strip()
+                report, _ = _answer(interpretation)
                 now = image_path.stat()
                 if (stamp.st_ino, stamp.st_size, stamp.st_mtime_ns) != (
                     now.st_ino,

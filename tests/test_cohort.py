@@ -60,9 +60,10 @@ def test_cohort_reuses_preparation_reports_case_errors_and_closes(
     source, weights, closed = (tmp_path / name for name in ("image.json", "weights.json", "closed"))
     source.write_text("[0.1, 0.7, 0.8]")
     weights.write_text("0.1")
-    reference = medmlx.run("threshold", root=tmp_path, arguments={
-        "image_path": "image.json", "output_path": "reference.json", "level": 0.6,
-    })
+    reference = medmlx.run(
+        "threshold", root=tmp_path,
+        image_path="image.json", output_path="reference.json", level=0.6,
+    )
     cases: list[dict[str, JsonValue]] = [
         {"image_path": "image.json", "output_path": "a.json"},
         {"image_path": "image.json", "output_path": "image.json"},
@@ -110,9 +111,9 @@ def test_cohort_admission_is_held_until_cancel_and_new_weights_are_prepared(
         "image_path": "image.json", "output_path": "pending.json", "seconds": 60,
     }]) as running:
         with pytest.raises(RuntimeError):
-            medmlx.start("threshold", root=tmp_path, arguments={
-                "image_path": "image.json", "output_path": "denied.json",
-            })
+            medmlx.start(
+                "threshold", root=tmp_path, image_path="image.json", output_path="denied.json",
+            )
         assert running.cancel()["state"] == "cancelled"
     assert memory.active_runs() == []
     weights.write_text("0.4")

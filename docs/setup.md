@@ -55,17 +55,21 @@ arguments, `medmlx setup` lists installed models and their source repositories.
 The same calls are available in Python as `setup_all()`, `setup_model(model_id)`,
 `list_setup_plans()` and `setup_plan(model_id)`.
 
-## Describe, readiness and checkpoints
+## Describe, readiness, check and checkpoints
 
 `describe` shows the runner's arguments, units, ranges and instructions.
 Relative paths resolve against `--root`.
 
-`readiness` reports `ready` (and the equivalent `runtime_ready`) for imports,
-provider checks and Metal. Neither validates run inputs or weights. The separate
-`run_ready` is `false` for a known blocker and `null` while input and checkpoint
-contents are unverified; this check never returns `run_ready=true`. Passing
-arguments checks names, required arguments and that local input and weight paths
-exist, without running inference or creating outputs.
+`readiness [MODEL_ID ...]` reports `runtime_ready` for imports, provider checks
+and Metal; it does not validate run inputs or weights. `check MODEL_ID
+KEY=VALUE ...` checks one run: argument names, required arguments, that local
+input and weight paths exist, that weights are supplied or cached, and that NIfTI
+inputs have readable headers, without running inference or creating outputs. Its
+`run_ready` is `true` when all of these pass, `false` for a known blocker, and
+`null` when something could not be checked, such as a non-NIfTI input or weights
+the run would download first. `true` does not prove that the weights and images
+are compatible. Python has the same checks as `model_readiness(model_ids)` and
+`check_run(model_id, **arguments)`.
 
 `checkpoints` lists known source references for the named nnU-Net models,
 including liver and AutoPET. It does not download assets or validate a checkpoint.

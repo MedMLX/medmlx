@@ -14,10 +14,9 @@ uv pip install --python .venv/bin/python -e '.[reason-tools]'
 ```
 
 Setup downloads the three models: `mlx-reason-ct`, `lung-nodule` and `medsam2`.
-Source-checkout runs also download missing weights automatically. With the
-published `medmlx` 0.4.7 package, supply `reason_weights_path`,
-`detector_weights_path` and `medsam_weights_path` explicitly. These take model
-folders; the detector and MedSAM2 also accept `.safetensors` files.
+Runs also download missing weights automatically. To use local copies instead,
+pass `reason_weights_path`, `detector_weights_path` and `medsam_weights_path`;
+each takes the model's folder, not a weights file.
 
 Save this as `arguments.json`, with paths relative to your working directory:
 
@@ -32,7 +31,7 @@ Save this as `arguments.json`, with paths relative to your working directory:
 ```
 
 ```sh
-.venv/bin/medmlx readiness reason-ct-tools --arguments arguments.json
+.venv/bin/medmlx check reason-ct-tools --arguments arguments.json
 .venv/bin/medmlx run reason-ct-tools --arguments arguments.json
 open outputs/nodule-review/review.html
 ```
