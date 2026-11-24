@@ -155,7 +155,7 @@ five-process timing campaign is separate. Detector decoding and NMS remain on
 the host and were not changed.
 
 The fix is committed as `cd69c0c`. A fresh export from that clean revision is
-recorded in [the saved comparison](lung-nodule-20261028.verification.json).
+recorded in [the saved comparison](lung-nodule-tiled-norms.verification.json).
 It is installed at `build/lung_nodule/lung_nodule_retinanet`; the previous assets
 are preserved in `build/norm-original/lung_nodule/`. Repeating the original
 runtime check against the installed Core AI export passed all fourteen calls

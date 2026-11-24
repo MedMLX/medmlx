@@ -62,13 +62,13 @@ Full-volume pipelines and device placement need separate comparisons.
 | nnunet-mlx: TotalSegmentator fast | Verified | Verified | `recipes/totalsegmentator` |
 | nnunet-mlx: liver | Verified | Verified | `recipes/nnunet_liver` |
 | nnunet-mlx: BraTS, all five folds | Verified | Verified | `recipes/nnunet_brats` |
-| nnunet-mlx: PANTHER pancreas fold_all | [Verified with tiled norms](docs/validation/coreai-overlap-20261027.md) | Verified with tiled norms | `recipes/nnunet_pancreas` |
+| nnunet-mlx: PANTHER pancreas fold_all | [Verified with tiled norms](docs/validation/coreai-overlap.md) | Verified with tiled norms | `recipes/nnunet_pancreas` |
 | nnunet-mlx: AutoPET II, all five folds | Verified | Verified | `recipes/nnunet_autopet` |
-| segresnet-mlx | [Verified; BraTS tiled norms](docs/validation/coreai-overlap-20261027.md) | Verified; BraTS tiled norms | `recipes/segresnet` |
+| segresnet-mlx | [Verified; BraTS tiled norms](docs/validation/coreai-overlap.md) | Verified; BraTS tiled norms | `recipes/segresnet` |
 | radimagenet-mlx: ResNet50 features | Verified | Verified | `recipes/radimagenet` |
 | swin-unetr-mlx | Verified | Verified | `recipes/swin_unetr` |
 | unest-mlx | Verified | Verified | `recipes/unest` |
-| lung-nodule-mlx | [Verified with tiled norms](docs/validation/coreai-overlap-20261027.md#lung-detector-follow-up) | Verified with tiled norms | `recipes/lung_nodule` |
+| lung-nodule-mlx | [Verified with tiled norms](docs/validation/coreai-overlap.md#lung-detector-follow-up) | Verified with tiled norms | `recipes/lung_nodule` |
 | mlx-segment-ct | Verified | Verified | `recipes/vista3d` |
 | medsam2-mlx | Verified | Verified | `recipes/medsam2` |
 | sam3-mlx | Verified | Verified | `recipes/sam3`; text geometry aligned |

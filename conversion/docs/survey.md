@@ -96,7 +96,7 @@ medmlx.org (website), mlxradiomics (radiomics features).
   InstanceNorm reductions in both formats. Full-size maximum logit differences
   are 2.10762e-4 (Core AI) and 2.10524e-4 (Core ML), with argmax agreement 1.0.
   All 40 corrected overlapping calls passed while the original Core AI export
-  failed alongside them. See [the investigation](validation/coreai-overlap-20261027.md).
+  failed alongside them. See [the investigation](validation/coreai-overlap.md).
 - nnU-Net v2.8.1 PlainConvUNet and ResidualEncoderUNet (BasicBlockD). Checkpoints
   are user-supplied model folders (TotalSegmentator v2, MRSegmentator, and
   others), with per-model licenses.
@@ -131,7 +131,7 @@ medmlx.org (website), mlxradiomics (radiomics features).
   formats. Full-size maximum logit difference is 7.15256e-6 in each format,
   with argmax agreement 1.0. All 40 corrected overlapping calls passed while
   the original Core AI export failed alongside them. See
-  [the investigation](validation/coreai-overlap-20261027.md).
+  [the investigation](validation/coreai-overlap.md).
 - Recipe: `recipes/segresnet`, both bundles. Max difference 8e-4 (renal) and 8e-6
   (BraTS, through the trilinear rewrite). Core AI uses the transposed-conv rewrite
   and both formats use tiled GroupNorm reductions.
@@ -180,13 +180,13 @@ medmlx.org (website), mlxradiomics (radiomics features).
   the unchanged 0.01 limit. All 60 calls across three competing processes
   passed. The previous export failed a fresh Core AI check with a
   `box_regression_0` error of 0.24204. See
-  [the investigation](validation/coreai-overlap-20261027.md#lung-detector-follow-up)
-  and [export comparison](validation/lung-nodule-20261028.verification.json).
+  [the investigation](validation/coreai-overlap.md#lung-detector-follow-up)
+  and [export comparison](validation/lung-nodule-tiled-norms.verification.json).
 - The historical 2026-10-13 closeout rerun passed all six outputs in both formats, with
   maximum error 6.58e-5. Receipt:
-  `docs/validation/lung-nodule-20261013-closeout.verification.json`.
+  `docs/validation/lung-nodule-closeout.verification.json`.
   The earlier Core AI `classification_0` error of 0.764 against 0.01 remains
-  recorded in `docs/validation/lung-nodule-20261013.verification.json`;
+  recorded in `docs/validation/lung-nodule-failure.verification.json`;
   its cause is unverified.
 - Recipe: `recipes/lung_nodule` exports the six head maps at a 256×256×128 window.
   Core AI uses the max-pool rewrite; Core ML decomposes the FPN's functional
@@ -235,16 +235,16 @@ medmlx.org (website), mlxradiomics (radiomics features).
 - The 2026-10-27 text-only Transformers rerun loaded all 1,797 tensors from the pinned video checkpoint,
   then extracted the detector. All five outputs passed for both runtimes.
   Maximum mask-logit errors were 0.04086 (Core AI) and 0.01643 (Core ML);
-  all other outputs were within 0.00061. The [verification receipt](validation/sam3-20261027.verification.json)
+  all other outputs were within 0.00061. The [verification receipt](validation/sam3-text-only-rerun.verification.json)
   records the converter revision and environment. Prompt-padding and fixed-grid
   source checks also passed.
 - The current recipe includes the original image model’s empty-geometry CLS token,
   which the Transformers text-only call omits. It checks this path against the
   Transformers geometry encoder with a fully masked box. The 2026-10-27
-  [aligned export](validation/sam3-geometry-aligned-20261027.verification.json)
+  [aligned export](validation/sam3-geometry-aligned.verification.json)
   passed on both runtimes, with maximum mask-logit errors of 0.03560 (Core AI)
   and 0.03335 (Core ML); all other outputs were within 0.00021. The
-  [empty-geometry source check](validation/sam3-empty-geometry-20261027.verification.json),
+  [empty-geometry source check](validation/sam3-empty-geometry.verification.json),
   prompt-padding and fixed-grid checks passed as well.
 - Recipe: `recipes/sam3`, following apple/coreai-models' SAM 3 `--full` export: the
   image detector of the Hugging Face `Sam3VideoModel` from gated
