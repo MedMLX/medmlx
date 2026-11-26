@@ -19,7 +19,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://huggingface.co/MedMLX"
+Homepage = "https://medmlx.org"
+Documentation = "https://github.com/MedMLX/medmlx/blob/v0.11.0/packages/core/README.md"
+Repository = "https://github.com/MedMLX/medmlx"
+Issues = "https://github.com/MedMLX/medmlx/issues"
 
 [project.optional-dependencies]
 conversion = [

@@ -14,6 +14,12 @@ license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Joseph Sandoval" }, { name = "Alfredo Sandoval Jr." }]
 dependencies = ["medmlx-core>=0.3.2,<0.4", "packaging>=24", "psutil>=7,<8", "uv>=0.8,<1"]
 
+[project.urls]
+Homepage = "https://medmlx.org"
+Documentation = "https://github.com/MedMLX/medmlx/blob/v0.11.0/README.md"
+Repository = "https://github.com/MedMLX/medmlx"
+Issues = "https://github.com/MedMLX/medmlx/issues"
+
 [project.scripts]
 medmlx = "medmlx.cli:main"
 
