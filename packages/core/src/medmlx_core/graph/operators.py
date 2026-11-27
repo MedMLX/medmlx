@@ -54,9 +54,9 @@ def _conv(op: Op, p: Parameters) -> mx.array:
     if (op == Op.DECONV3 and tuple(weight.shape[2:]) == (2, 2, 2)
             and ints(p["stride"]) == (2, 2, 2) and not any(ints(p["padding"]))
             and not any(ints(p["output_padding"])) and ints(p["dilation"]) == (1, 1, 1)):
-        # The shared one-matmul implementation avoids MLX's lazy phase-view
-        # synchronization defect in the generic 2x decoder path, confirmed
-        # still reproducible on the pinned mlx>=0.32.4 floor.
+        # The shared one-matmul implementation avoids the lazy phase-view
+        # synchronization defect of the pinned mlx 0.32.4 floor and keeps full
+        # FP32 products under MLX_ENABLE_TF32=1.
         core = import_module("medmlx_core.upsample")
         return tensor(invoke(core, "deconv2x_ncdhw", x, weight, p["bias"], mx=mx))
     axes = (1, *range(2, weight.ndim), 0) if transpose else (

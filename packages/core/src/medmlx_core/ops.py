@@ -141,11 +141,11 @@ def conv_transpose3d_ncdhw(
         and array.dtype == weight.dtype == mx.float32
         and (bias is None or bias.dtype == mx.float32)
     ):
-        # MLX's stock transposed conv marks phase views of the public output as
-        # temporaries, which loses cross-encoder synchronization when a lazy
-        # decoder consumes it; confirmed still reproducible on mlx 0.32.4, the
-        # pinned floor (see test_transpose_convolution.py), so this custom path
-        # stays in place regardless of patch version.
+        # MLX 0.32.4, the pinned floor, marks phase views of the public output
+        # as temporaries, which loses cross-encoder synchronization when a lazy
+        # decoder consumes it (see test_transpose_convolution.py). MLX 0.32.5
+        # fixes that, but its stock path still uses reduced-precision products
+        # under MLX_ENABLE_TF32=1; this ordered path keeps full FP32 either way.
         return deconv2x_ncdhw(array, weight, bias, mx=mx)
     output = mx.conv_transpose3d(
         to_ndhwc(array, mx),

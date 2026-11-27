@@ -33,7 +33,14 @@ adds `out_phase_view` to `copies`, which are subsequently registered as
 temporaries. Those views share the public output buffer.
 [CommandEncoder::end_encoding](https://github.com/ml-explore/mlx/blob/64ea011cb65f14d9ce2737e60db9a4ae91ed7441/mlx/backend/metal/device.cpp#L445-L471)
 removes temporary buffers from the output set before registering cross-encoder
-fences. This is the inferred cause; an upstream C++ repair has not been tested here.
+fences. This is the inferred cause. MLX 0.32.4, the pinned floor, still reproduces the
+failure (relative L2 0.68 in the final lazy call on an M5 Max).
+
+MLX 0.32.5 no longer keeps the phase view as a copy, and its native path is
+exact in the lazy consumer: with the regression's 48-cubed input, five repeated
+calls stay at 9.9e-7 maximum absolute error against a float64 Torch reference,
+the same as the ordered path. With `MLX_ENABLE_TF32=1` the native path rises
+to 3.2e-3 while the ordered path stays at 9.9e-7, so the dispatch is unchanged.
 
 The regression checks the public core operation followed by a lazy skip
 addition against Torch, at the unchanged `dot` numerical budget, with repeated
